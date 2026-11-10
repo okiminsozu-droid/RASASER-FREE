@@ -502,6 +502,13 @@ s = replace(s, '''    if (tvOpen) TelevisionWindow(
 s = replace(s, '''contentAlignment = Alignment.Center) { T("📻", 40) }''',
 '''contentAlignment = Alignment.Center) { T("🕌", 40) }''', "original media artwork")
 
+# Weather labels and missing-GPS text must follow the selected language too.
+s = replace(s, '''T(w?.let { wDesc(it.code, lang == "tr") } ?: "", 14)''',
+'''T(w?.let { weatherText(it.code, lang) } ?: "", 14)''', "all-language weather")
+s = replace(s, '''T("📍 " + if (loc == null) "Uşak / Banaz" else t("me"), 14)''',
+'''T("📍 " + if (loc == null) t("gpsMissing") else placeName.ifBlank { t("me") }, 14,
+                                        maxLines = 1)''', "real locality instead of fixed test coordinates")
+
 MAIN.write_text(s,encoding="utf-8")
 
 for kotlin in ["Translations.kt", "WorldMedia.kt", "DashboardWidgets.kt", "CameraAlerts.kt"]:
