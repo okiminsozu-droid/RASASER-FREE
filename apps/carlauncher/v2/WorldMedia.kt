@@ -106,8 +106,8 @@ fun CountryMenu(lang: String, selected: String, accent: Color, onSelect: (String
             modifier = Modifier.clickable { expanded = true }.padding(vertical = 3.dp)
         )
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            Column(Modifier.heightIn(max = 320.dp)) {
-                countries.forEach { entry ->
+            LazyColumn(Modifier.heightIn(max = 320.dp).width(260.dp)) {
+                items(countries) { entry ->
                     DropdownMenuItem(
                         text = { Text("${entry.flag} ${entry.name}", fontSize = 13.sp) },
                         onClick = { expanded = false; onSelect(entry.iso) }
@@ -120,7 +120,7 @@ fun CountryMenu(lang: String, selected: String, accent: Color, onSelect: (String
 
 @Composable
 fun TelevisionWindow(
-    country: String, lang: String, speedKmh: Int, accent: Color,
+    country: String, lang: String, speedKmh: Int, parkedVerified: Boolean, accent: Color,
     onClose: () -> Unit
 ) {
     val context = LocalContext.current
@@ -145,8 +145,8 @@ fun TelevisionWindow(
             catch (_: Exception) { error = uiText(lang, "tvUnavailable"); emptyList() }
         loading = false
     }
-    LaunchedEffect(chosen, speedKmh) {
-        if (speedKmh >= 5 || chosen == null) {
+    LaunchedEffect(chosen, speedKmh, parkedVerified) {
+        if (!parkedVerified || speedKmh >= 5 || chosen == null) {
             player.pause()
         } else {
             try {
@@ -176,7 +176,7 @@ fun TelevisionWindow(
                 Spacer(Modifier.height(7.dp))
                 Row(Modifier.fillMaxSize()) {
                     Box(Modifier.weight(2f).fillMaxHeight().background(Color.Black), contentAlignment = Alignment.Center) {
-                        if (speedKmh >= 5) {
+                        if (!parkedVerified || speedKmh >= 5) {
                             Text(uiText(lang, "tvParked"), color = Color.White, modifier = Modifier.padding(16.dp))
                         } else if (chosen == null) {
                             Text(uiText(lang, "selectChannel"), color = Color.LightGray)
