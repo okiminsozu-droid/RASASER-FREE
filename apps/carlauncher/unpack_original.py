@@ -6,7 +6,7 @@ import base64
 import brotli
 import sys
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parent
 PARTS = ROOT / "source-packed"
 OUTPUT = ROOT / "original"
 EXPECTED_SHA256 = "52f901cdcf37427f6b6e4bcdf7b4a1509ae9cedd7d8e97badebf7ca325374b4d"
