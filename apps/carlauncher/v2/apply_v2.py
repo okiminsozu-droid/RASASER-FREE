@@ -535,6 +535,17 @@ s = replace(s, '''NavItem("🏠", t("home"), navSel == "home", accent) { navSel 
                         requestHomeRoleIfNeeded()
                     }''', "HOME item selects default launcher role")
 
+# Render the long-press action dialog above the app chooser, not behind it.
+apps_start = s.index("fun AppsDialog(")
+alert_start = s.index("    longPressed?.let { app ->", apps_start)
+alert_end = s.index("    val apps = remember {", alert_start)
+alert_code = s[alert_start:alert_end]
+s = s[:alert_start] + s[alert_end:]
+last_close = s.rfind("\n}")
+if last_close < apps_start:
+    raise SystemExit("Cannot locate AppsDialog closing brace")
+s = s[:last_close] + "\n" + alert_code + s[last_close:]
+
 MAIN.write_text(s,encoding="utf-8")
 
 for kotlin in ["Translations.kt", "WorldMedia.kt", "DashboardWidgets.kt", "CameraAlerts.kt"]:
