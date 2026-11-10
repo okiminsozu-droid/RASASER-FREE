@@ -124,3 +124,25 @@ private val translations: Map<String, Map<String, String>> = mapOf(
 
 fun uiText(lang: String, key: String): String =
     translations[lang]?.get(key) ?: translations["en"]?.get(key) ?: key
+
+/** Five-language weather conditions used by the existing weather card. */
+fun weatherText(code: Int, lang: String): String {
+    val kind = when (code) {
+        0 -> 0
+        1, 2 -> 1
+        3 -> 2
+        in 45..48 -> 3
+        in 51..67, in 80..82 -> 4
+        in 71..77 -> 5
+        in 95..99 -> 6
+        else -> 7
+    }
+    val words = mapOf(
+        "tr" to listOf("Açık", "Parçalı Bulutlu", "Kapalı", "Sisli", "Yağmurlu", "Karlı", "Fırtına", "Bilinmiyor"),
+        "en" to listOf("Clear", "Partly Cloudy", "Overcast", "Fog", "Rain", "Snow", "Storm", "Unknown"),
+        "de" to listOf("Klar", "Teilweise bewölkt", "Bedeckt", "Nebel", "Regen", "Schnee", "Gewitter", "Unbekannt"),
+        "es" to listOf("Despejado", "Parcialmente nublado", "Cubierto", "Niebla", "Lluvia", "Nieve", "Tormenta", "Desconocido"),
+        "ja" to listOf("晴れ", "晴れ時々曇り", "曇り", "霧", "雨", "雪", "嵐", "不明")
+    )
+    return (words[lang] ?: words.getValue("en"))[kind]
+}
