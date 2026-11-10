@@ -41,10 +41,12 @@ jobs:
         with:
           distribution: temurin
           java-version: "17"
-      # Use preinstalled Android SDK on ubuntu-latest; setup-android@v3 requests removed 'tools' package.
+      - name: Setup Android SDK (current action, no deprecated tools package)
+        uses: android-actions/setup-android@v4
+        with:
+          packages: "platform-tools"
       - name: Install Android 34 platform
-        run: |
-          "$ANDROID_HOME/cmdline-tools/16.0/bin/sdkmanager" --sdk_root="$ANDROID_HOME" --install "platforms;android-34" "build-tools;34.0.0"
+        run: sdkmanager --install "platforms;android-34" "build-tools;34.0.0"
       - name: Setup Gradle 8.7 (original wrapper version)
         uses: gradle/actions/setup-gradle@v4
         with:
