@@ -516,6 +516,18 @@ g=replace(g, '    implementation("org.osmdroid:osmdroid-android:6.1.18")',
     implementation("androidx.media3:media3-exoplayer:1.4.1")
     implementation("androidx.media3:media3-exoplayer-hls:1.4.1")
     implementation("androidx.media3:media3-ui:1.4.1")''', "media3")
+# Distinct debug package keeps the user's original working test APK installed.
+g = replace(g, '''    buildTypes {
+        release {''',
+'''    buildTypes {
+        debug {
+            applicationIdSuffix = ".v2test"
+            versionNameSuffix = "-test"
+        }
+        release {''', "isolated v2 debug applicationId")
+# No debug signing of publish/release artifacts. The private pipeline will supply upload signing.
+g = replace(g, '''            signingConfig = signingConfigs.getByName("debug")''',
+'''            // PRIVATE signing only; never use debug key for a production release.''', "release signing isolation")
 GRADLE.write_text(g,encoding="utf-8")
 
 m=MANIFEST.read_text(encoding="utf-8")
