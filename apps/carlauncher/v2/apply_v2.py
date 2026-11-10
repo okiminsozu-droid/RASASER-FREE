@@ -470,6 +470,38 @@ s = replace(s, '''        Box(Modifier.size(34.dp).clip(RoundedCornerShape(8.dp)
             else T(icon, 18)
         }''', "show shortcut artwork")
 
+# Keep the live TV overlay within the original dashboard (not a blocking system Dialog).
+# The bottom TV button stays visible and can be held for three seconds to close it.
+s = replace(s, '''    // ---------- UI ----------
+    Column(Modifier.fillMaxSize().background(Bg).padding(6.dp)) {''',
+'''    // ---------- UI ----------
+    Box(Modifier.fillMaxSize()) {
+    Column(Modifier.fillMaxSize().background(Bg).padding(6.dp)) {''', "non-modal parent layout")
+s = replace(s, '''    }
+
+    if (showApps) AppsDialog(''',
+'''    }
+    if (tvOpen) TelevisionWindow(
+        radioCountry, lang, speed,
+        loc != null && lastFixAt > 0L &&
+            SystemClock.elapsedRealtime() - lastFixAt < 15_000L && speed < 5,
+        accent, Modifier.align(Alignment.Center)
+    ) { tvOpen = false }
+    }
+
+    if (showApps) AppsDialog(''', "live TV over existing content")
+s = replace(s, '''    if (tvOpen) TelevisionWindow(
+        radioCountry, lang, speed,
+        loc != null && lastFixAt > 0L &&
+            SystemClock.elapsedRealtime() - lastFixAt < 15_000L && speed < 5,
+        accent
+    ) { tvOpen = false }
+    if (widgetsOpen) DashboardWidgets''',
+'''    if (widgetsOpen) DashboardWidgets''', "remove prior modal TV placement")
+# Retain the original radio artwork; only content labels/controls change.
+s = replace(s, '''contentAlignment = Alignment.Center) { T("📻", 40) }''',
+'''contentAlignment = Alignment.Center) { T("🕌", 40) }''', "original media artwork")
+
 MAIN.write_text(s,encoding="utf-8")
 
 for kotlin in ["Translations.kt", "WorldMedia.kt", "DashboardWidgets.kt", "CameraAlerts.kt"]:
