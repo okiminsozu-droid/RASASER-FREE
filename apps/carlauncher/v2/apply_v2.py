@@ -509,6 +509,32 @@ s = replace(s, '''T("📍 " + if (loc == null) "Uşak / Banaz" else t("me"), 14)
 '''T("📍 " + if (loc == null) t("gpsMissing") else placeName.ifBlank { t("me") }, 14,
                                         maxLines = 1)''', "real locality instead of fixed test coordinates")
 
+# System-approved default-home role is the reliable Android 15 automatic boot flow.
+# Never force-launch an Activity from BOOT_COMPLETED in the background.
+s = replace(s, '''import android.annotation.SuppressLint''',
+'''import android.annotation.SuppressLint
+import android.app.role.RoleManager''', "HOME role imports")
+s = replace(s, '''    val accents = listOf(Gold, Color(0xFF4DA3FF), Color(0xFF3DDC84))''',
+'''    val homeRoleRequest = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { }
+    fun requestHomeRoleIfNeeded() {
+        if (android.os.Build.VERSION.SDK_INT >= 29) {
+            val roles = act.getSystemService(RoleManager::class.java)
+            if (roles?.isRoleAvailable(RoleManager.ROLE_HOME) == true &&
+                !roles.isRoleHeld(RoleManager.ROLE_HOME)) {
+                homeRoleRequest.launch(roles.createRequestRoleIntent(RoleManager.ROLE_HOME))
+            }
+        } else {
+            act.tryStart(Intent(Settings.ACTION_HOME_SETTINGS))
+        }
+    }
+
+    val accents = listOf(Gold, Color(0xFF4DA3FF), Color(0xFF3DDC84))''', "default home selection consent")
+s = replace(s, '''NavItem("🏠", t("home"), navSel == "home", accent) { navSel = "home" }''',
+'''NavItem("🏠", t("home"), navSel == "home", accent) {
+                        navSel = "home"
+                        requestHomeRoleIfNeeded()
+                    }''', "HOME item selects default launcher role")
+
 MAIN.write_text(s,encoding="utf-8")
 
 for kotlin in ["Translations.kt", "WorldMedia.kt", "DashboardWidgets.kt", "CameraAlerts.kt"]:
