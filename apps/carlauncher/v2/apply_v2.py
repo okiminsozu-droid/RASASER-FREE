@@ -443,6 +443,28 @@ s=replace(s, '''                        Modifier.clickable { ctx.launchPkg(a.pkg
                                 onLongPress = { longPressed = a }
                             )
                         }.padding(8.dp),''', "apps pick and long press")
+# Keep original shortcut tiles, but show the actual icon of user-added applications.
+s = replace(s, '''                            Shortcut(icon, name, color, { act.launchPkg(pkg) }, { shortcutOptions = pkg })''', '''                            val appIcon = remember(pkg) {
+                                if (pkg in baseShortcuts) null
+                                else runCatching {
+                                    act.packageManager.getApplicationIcon(pkg).toBitmap(96, 96).asImageBitmap()
+                                }.getOrNull()
+                            }
+                            Shortcut(icon, name, color, { act.launchPkg(pkg) },
+                                { shortcutOptions = pkg }, appIcon)''', "real app icons")
+s = replace(s, '''    onLongClick: () -> Unit = {}
+) {
+    Row(''', '''    onLongClick: () -> Unit = {},
+    appIcon: androidx.compose.ui.graphics.ImageBitmap? = null
+) {
+    Row(''', "optional shortcut artwork")
+s = replace(s, '''        Box(Modifier.size(34.dp).clip(RoundedCornerShape(8.dp)).background(tint), contentAlignment = Alignment.Center) { T(icon, 18) }''',
+'''        Box(Modifier.size(34.dp).clip(RoundedCornerShape(8.dp)).background(tint),
+            contentAlignment = Alignment.Center) {
+            if (appIcon != null) Image(appIcon, null, Modifier.size(34.dp))
+            else T(icon, 18)
+        }''', "show shortcut artwork")
+
 MAIN.write_text(s,encoding="utf-8")
 
 for kotlin in ["Translations.kt", "WorldMedia.kt", "DashboardWidgets.kt", "CameraAlerts.kt"]:
