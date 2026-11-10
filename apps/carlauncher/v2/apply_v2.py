@@ -216,7 +216,7 @@ s = replace(s, '''                        Box(Modifier.align(Alignment.TopEnd).p
                                 try {
                                     val p = loc ?: DEFAULT_POINT
                                     act.tryStart(Intent(Intent.ACTION_VIEW, Uri.parse(
-                                        "geo:\${p.latitude},\${p.longitude}?q=\${p.latitude},\${p.longitude}"
+                                        "geo:${p.latitude},${p.longitude}?q=${p.latitude},${p.longitude}"
                                     )).setPackage("com.google.android.apps.maps"))
                                 } catch (_: Exception) { act.toast(t("error")) }
                             }
@@ -248,8 +248,8 @@ s = replace(s, '''                                T("✔ " + t("inactive"), 15)
                                 T(t("source"), 11, Color.LightGray)
 ''', "radar status truthful")
 
-start = s.index('                    // Müzik\\n                    Card2(')
-end = s.index('                    // Hava durumu\\n', start)
+start = s.index('                    // Müzik\n                    Card2(')
+end = s.index('                    // Hava durumu\n', start)
 s = s[:start] + '''                    // Aynı radyo kartı: ülke listesi ve istasyon ileri/geri.
                     Card2(Modifier.weight(1.6f).fillMaxHeight(), accent) {
                         Row(Modifier.fillMaxSize().padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -281,8 +281,8 @@ s = s[:start] + '''                    // Aynı radyo kartı: ülke listesi ve i
                     }
 ''' + s[end:]
 
-start = s.index('            // Kısayollar\\n')
-end = s.index('        // Alt araç çubuğu\\n', start)
+start = s.index('            // Kısayollar\n')
+end = s.index('        // Alt araç çubuğu\n', start)
 s = s[:start] + '''            // Aynı sağ kartı koru; artık dikey kaydırılabilir ve + ile eklenebilir.
             Card2(Modifier.width(170.dp).fillMaxHeight(), accent) {
                 Column(Modifier.fillMaxSize().padding(8.dp)) {
@@ -330,8 +330,8 @@ s = s[:start] + '''            // Aynı sağ kartı koru; artık dikey kaydırı
 
 ''' + s[end:]
 
-start=s.index('        // Alt araç çubuğu\\n')
-end=s.index('\\n    if (showApps) AppsDialog(', start)
+start=s.index('        // Alt araç çubuğu\n')
+end=s.index('\n    if (showApps) AppsDialog(', start)
 s=s[:start]+'''        // Önceki alt çubuk düzeni ve görünümü korunuyor; istenen tuş değişiklikleri.
         val tools: List<Triple<String, String, () -> Unit>> = listOf(
             Triple("🛒", t("playstore")) { act.launchPkg("com.android.vending") },
@@ -431,7 +431,7 @@ s=replace(s, '''fun AppsDialog(ctx: Context, accent: Color, onDismiss: () -> Uni
             },
             dismissButton = {
                 TextButton(onClick = {
-                    ctx.tryStart(Intent(Intent.ACTION_DELETE, Uri.parse("package:\${app.pkg}")))
+                    ctx.tryStart(Intent(Intent.ACTION_DELETE, Uri.parse("package:${app.pkg}")))
                     longPressed = null
                 }) { Text(uiText(lang, "uninstall")) }
             }
