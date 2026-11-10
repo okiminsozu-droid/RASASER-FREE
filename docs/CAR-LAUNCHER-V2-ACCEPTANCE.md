@@ -49,4 +49,16 @@
 - [ ] 1024×600 ve hedef araç ekranı çözünürlüğünde taşma/ekran dışına çıkma yok
 - [ ] Play Console yayımlama gereksinimleri ve üçüncü taraf lisans atıfları kontrol edildi
 
+## Son başarılı V2 test APK kaydı
+
+- **GitHub Actions:** #42899260018 — **SUCCESS**
+- **Artifact ID:** `13802840782`
+- **APK:** `app-debug.apk`, 11.985.343 bayt
+- **SHA-256:** `468ec700cc553ae23e45fc62b4252946cb586e284a38171a60dba5cf3d3c33b6`
+- **Uygulama paketi:** `com.rasaser.launcher.v2test` (orijinal test uygulamasının üzerine yazmaz)
+- **Sürüm:** `1.1.0-dashboard-test-test` (debug), `versionCode=2`
+- **Kaynak koruması:** Orijinal sıkıştırılmış 10 dosya değişmeden korundu; arayüz V2 yamaları ayrı `v2/` altında.
+- **Cihaz testi:** Henüz yapılmadı; bu APK Google Play'e gönderilecek yayın paketi değildir.
+- **Doğrulanan:** CI kaynak bütünlüğü, Android/Kotlin Gradle debug derleme, paket ZIP bütünlüğü ve `AndroidManifest.xml` ile `classes.dex` mevcudiyeti.
+
 **Not:** Bu listede doğrulanmamış maddeler tamamlanmış gibi işaretlenmemiştir.
