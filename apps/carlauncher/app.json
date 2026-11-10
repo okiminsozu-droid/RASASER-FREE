@@ -3,12 +3,14 @@
   "display_name": "CAR LAUNCHER",
   "package_id": "com.rasaser.launcher",
   "source_zip_sha256": "8b8b56be6b396f755181ff1d0b21b3ffe1e5ca75b7e09d6978ea6ba3a448d650",
-  "source_imported": false,
+  "source_serialized_sha256": "52f901cdcf37427f6b6e4bcdf7b4a1509ae9cedd7d8e97badebf7ca325374b4d",
+  "source_imported": true,
+  "original_source_untouched": true,
   "version_code": 1,
   "version_name": "1.0",
-  "private_engine_required": true,
-  "allow_public_debug_artifacts": false,
+  "private_engine_required": false,
+  "allow_public_debug_artifacts": true,
   "license_review_completed": false,
   "release_signing_location": "PRIVATE_ONLY",
-  "publication_status": "FOLDER_CREATED_SOURCE_PENDING"
+  "publication_status": "ORIGINAL_SOURCE_DEBUG_BUILD"
 }
