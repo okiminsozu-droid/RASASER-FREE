@@ -38,8 +38,7 @@ jobs:
         with:
           distribution: temurin
           java-version: "17"
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+      # Use preinstalled Android SDK on ubuntu-latest; setup-android@v3 requests removed 'tools' package.
       - name: Install Android 34 platform
         run: sdkmanager --install "platforms;android-34" "build-tools;34.0.0"
       - name: Setup Gradle 8.7 (original wrapper version)
