@@ -1,0 +1,26 @@
+# Android ve Gradle
+**/.gradle/
+**/build/
+**/local.properties
+**/.idea/
+**/*.iml
+*.apk
+*.aab
+*.apks
+*.mapping.txt
+# Gizli dosyalar
+*.jks
+*.keystore
+*.p12
+*.pfx
+*.pem
+*.key
+*.env
+.env.*
+**/signing.properties
+**/keystore.properties
+**/secrets.properties
+**/google-services.json
+**/service-account*.json
+private-engines/
+private-release/

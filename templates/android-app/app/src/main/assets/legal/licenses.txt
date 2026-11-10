@@ -1,0 +1,12 @@
+RaSaSeR — Uygulama Lisansları
+
+Uygulama: RaSaSeR FREE Şablon
+Yayıncı: RaSaSeR Apps & Technology
+Sürüm: 0.1.0
+
+© 2026 RaSaSeR. Tüm hakları saklıdır.
+Ücretsiz uygulama dağıtımı, kaynak koda kendiliğinden açık kaynak lisansı vermez.
+
+ÜÇÜNCÜ TARAF BİLDİRİMLERİ
+Bu şablon AndroidX/Jetpack Compose ve Kotlin kullanır.
+Gerçek uygulama yayımlanmadan önce bağımlılık lisansları, yasal bildirimler, sürümler ve gerekli atıflar kontrol edilerek eklenmelidir.

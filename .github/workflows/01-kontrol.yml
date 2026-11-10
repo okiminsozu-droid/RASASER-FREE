@@ -1,0 +1,28 @@
+name: FREE Güvenlik ve Yapı Kontrolü
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: free-kontrol-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  kontrol:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Kaynaklari al
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Python hazirla
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Koruma sinirlarini kontrol et
+        run: python3 tools/check_repo.py
+      - name: Arac testlerini calistir
+        run: python3 -m unittest discover -s tools/tests -v

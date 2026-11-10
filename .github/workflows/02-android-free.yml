@@ -1,0 +1,58 @@
+name: Android FREE Derleme
+on:
+  workflow_dispatch:
+    inputs:
+      app_slug:
+        description: 'apps/ altindaki yeni uygulama klasor adi'
+        required: true
+        type: string
+      public_debug_artifact:
+        description: 'YALNIZ kamuya acik kod iceren debug APK artifact yuklensin mi?'
+        required: true
+        default: false
+        type: boolean
+permissions:
+  contents: read
+concurrency:
+  group: android-free-${{ inputs.app_slug }}-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      APP_SLUG: ${{ inputs.app_slug }}
+      PUBLIC_DEBUG_ARTIFACT: ${{ inputs.public_debug_artifact }}
+    steps:
+      - name: Kaynaklari al
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: JDK 17 hazirla
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Android SDK hazirla
+        uses: android-actions/setup-android@v3
+      - name: Android 35 platform ve build-tools hazirla
+        run: sdkmanager --install "platforms;android-35" "build-tools;35.0.0"
+      - name: Gradle 8.9 hazirla
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Uygulama kimligi ve guvenlik kontrolu
+        run: |
+          python3 tools/check_repo.py
+          python3 tools/validate_app.py "$APP_SLUG" "$PUBLIC_DEBUG_ARTIFACT"
+      - name: DEBUG derle ve unit test calistir
+        run: |
+          gradle --no-daemon --project-dir "apps/$APP_SLUG" :app:assembleDebug :app:testDebugUnitTest
+      - name: Acik kaynak debug APK artifact (opsiyonel)
+        if: ${{ inputs.public_debug_artifact == true }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: public-debug-${{ inputs.app_slug }}-${{ github.run_number }}
+          path: apps/${{ inputs.app_slug }}/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+          retention-days: 3

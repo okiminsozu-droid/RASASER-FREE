@@ -1,0 +1,11 @@
+{
+  "slug": "template",
+  "display_name": "RaSaSeR FREE Şablon",
+  "package_id": "com.rasaser.free.template",
+  "version_code": 1,
+  "version_name": "0.1.0",
+  "private_engine_required": false,
+  "allow_public_debug_artifacts": false,
+  "license_review_completed": false,
+  "release_signing_location": "PRIVATE_ONLY"
+}
