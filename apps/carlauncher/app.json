@@ -1,0 +1,14 @@
+{
+  "slug": "carlauncher",
+  "display_name": "CAR LAUNCHER",
+  "package_id": "com.rasaser.launcher",
+  "source_zip_sha256": "8b8b56be6b396f755181ff1d0b21b3ffe1e5ca75b7e09d6978ea6ba3a448d650",
+  "source_imported": false,
+  "version_code": 1,
+  "version_name": "1.0",
+  "private_engine_required": true,
+  "allow_public_debug_artifacts": false,
+  "license_review_completed": false,
+  "release_signing_location": "PRIVATE_ONLY",
+  "publication_status": "FOLDER_CREATED_SOURCE_PENDING"
+}
