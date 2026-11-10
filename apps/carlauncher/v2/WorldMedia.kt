@@ -121,7 +121,7 @@ fun CountryMenu(lang: String, selected: String, accent: Color, onSelect: (String
 @Composable
 fun TelevisionWindow(
     country: String, lang: String, speedKmh: Int, parkedVerified: Boolean, accent: Color,
-    onClose: () -> Unit
+    modifier: Modifier = Modifier, onClose: () -> Unit
 ) {
     val context = LocalContext.current
     var selectedCountry by remember { mutableStateOf(country) }
@@ -157,9 +157,8 @@ fun TelevisionWindow(
         }
     }
 
-    Dialog(onDismissRequest = onClose, properties = DialogProperties(usePlatformDefaultWidth = false)) {
-        Surface(
-            modifier = Modifier.fillMaxWidth(0.82f).fillMaxHeight(0.78f),
+    Surface(
+            modifier = modifier.fillMaxWidth(0.78f).fillMaxHeight(0.66f),
             color = Color(0xFF15110B),
             shape = RoundedCornerShape(18.dp),
             border = BorderStroke(2.dp, accent)
@@ -202,5 +201,4 @@ fun TelevisionWindow(
                 }
             }
         }
-    }
 }
