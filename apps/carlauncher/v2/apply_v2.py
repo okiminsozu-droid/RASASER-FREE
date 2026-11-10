@@ -397,7 +397,12 @@ s=replace(s, '''    if (showApps) AppsDialog(act, accent) { showApps = false }
             }
         )
     }
-    if (tvOpen) TelevisionWindow(radioCountry, lang, speed, accent) { tvOpen = false }
+    if (tvOpen) TelevisionWindow(
+        radioCountry, lang, speed,
+        loc != null && lastFixAt > 0L &&
+            SystemClock.elapsedRealtime() - lastFixAt < 15_000L && speed < 5,
+        accent
+    ) { tvOpen = false }
     if (widgetsOpen) DashboardWidgets(act, lang, accent) { widgetsOpen = false }
 }''', "dialogs overlay")
 
