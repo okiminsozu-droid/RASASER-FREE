@@ -26,3 +26,13 @@ Depo kökünden: gradle --project-dir apps/kurankelime :app:assembleDebug :app:t
 ## Veri modeli
 
 assets/seed/fatiha_preview.json -> cihazın SQLite veritabanı (sura/ayah/position, 5 dil, sözcük türü). Her kelime ayrı kimlik taşır. Ayet numaraları başlangıç ayetleriyle doğru eşleşir. İçerik ve fonetik doğrulama tamamlanmadan Play Store'a yayımlanmaz.
+
+## Onaylanan PDF'nin sayfa sayfa görüntülenmesi
+
+PDF'nin birebir korunması için uygulama Android PdfRenderer kullanır. Eserin 304 sayfası aynı sıra ve renklerle görüntülenir; PDF yeniden dizilmez, Arapça/Türkçe yazılar değiştirilmez.
+
+Kaynak PDF: `Renkli_Kelime_Altli_Kuran_TAMAMI_Calisma_Nushasi.pdf` (90.889.211 bayt; SHA-256 `387674c9a3bfb2c501c2dcca4b63946ea05f386dcd4d6fa4b63b4060b01397ea`).
+
+**Android kaynak klasörü:** `app/src/main/assets/quran/kelime_mealli.pdf`. Küçük onaylı logo: `app/src/main/assets/brand/logo.webp`. Bu büyük PDF ve telif durumu incelenen tercüme, herkese açık GitHub depomuzun kaynaklarına konmamıştır; bağımsız ZIP içerik paketinden bu yola yerleştirilince uygulama tamamen çevrimdışı ön yüklü çalışır. PDF yoksa Android dosya seçicisinden aynı dosya bir kez içeri alınır ve cihazda saklanır. İçerik aktarma kontrolü dosyanın tam SHA-256 karmasını ve 304 sayfa sayısını doğrular.
+
+Okuma: sol ok sonraki PDF sayfası, sağ ok önceki PDF sayfası, üstte ana sayfa, sayfa numarası, favori ve logolu PNG paylaşım. PDF 304 sayfalıdır; klasik 604 mushaf sayfası ile aynı numaralandırma değildir. İlk PDF sayfasındaki Fâtiha ayetlerine sınırlı arama/vurgulama vardır; **tüm 304 sayfada kelime arama henüz çalışmıyor** çünkü metinler PDF'de resim katmanı olarak duruyor. Farklı dilde UI değişebilir ama bu PDF'nin içindeki kelime altları Türkçedir. Kaynak PDF'nin tercüme hakları ve metin doğruluğu kamuya yayın öncesi ayrıca kontrol edilmelidir.

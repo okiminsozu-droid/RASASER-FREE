@@ -37,8 +37,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.security.MessageDigest
 
 private const val EXPECTED_PAGES = 304
+private const val EXPECTED_LENGTH = 90889211L
+private const val EXPECTED_SHA256 = "387674c9a3bfb2c501c2dcca4b63946ea05f386dcd4d6fa4b63b4060b01397ea"
 private const val BOOK_ASSET = "quran/kelime_mealli.pdf"
 private val Paper = Color(0xFFFFFFFF)
 private val GoldSand = Color(0xFFE8CEAC)
@@ -69,6 +72,18 @@ fun openBookPage(context: Context, page: Int = 0, highlightAyah: Int = 0) {
 }
 
 private fun verifyPdf(file: File): Boolean = try {
+    if (file.length() != EXPECTED_LENGTH) return false
+    val digest = MessageDigest.getInstance("SHA-256")
+    file.inputStream().use { input ->
+        val buffer = ByteArray(65536)
+        while (true) {
+            val count = input.read(buffer)
+            if (count < 0) break
+            if (count > 0) digest.update(buffer, 0, count)
+        }
+    }
+    val actual = digest.digest().joinToString("") { "%02x".format(it.toInt() and 0xff) }
+    if (actual != EXPECTED_SHA256) return false
     ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY).use { descriptor ->
         PdfRenderer(descriptor).use { it.pageCount == EXPECTED_PAGES }
     }
@@ -278,9 +293,10 @@ private fun PdfReaderScreen(initialPage: Int, highlightAyah: Int, home: () -> Un
                     Text("Arama eşleşmesi: Fâtiha " + highlightAyah + ". ayet",
                         color = Forest, modifier = Modifier.padding(8.dp))
                 }
-                BoxWithConstraints(Modifier.fillMaxWidth().horizontalScroll(horizontal)) {
+                BoxWithConstraints(Modifier.fillMaxWidth()) {
                     val paperWidth = maxWidth * zoom
                     val paperHeight = paperWidth * (842f / 595f)
+                    Row(Modifier.fillMaxWidth().horizontalScroll(horizontal)) {
                     Box(Modifier.width(paperWidth).height(paperHeight)) {
                         val image = bitmap
                         if (image != null) {
@@ -299,6 +315,7 @@ private fun PdfReaderScreen(initialPage: Int, highlightAyah: Int, home: () -> Un
                                 CircularProgressIndicator(color = Forest)
                             }
                         }
+                    }
                     }
                 }
             }
