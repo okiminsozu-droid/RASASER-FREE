@@ -580,8 +580,8 @@ for kotlin in ["Translations.kt", "WorldMedia.kt", "DashboardWidgets.kt", "Camer
 
 g=GRADLE.read_text(encoding="utf-8")
 g=replace(g, 'versionCode = 1\n        versionName = "1.0"',
-'''versionCode = 2
-        versionName = "1.1.0-dashboard-test"''', "version")
+'''versionCode = 3
+        versionName = "1.2.1-dashboard-fix"''', "version")
 g=replace(g, '    implementation("org.osmdroid:osmdroid-android:6.1.18")',
 '''    implementation("org.osmdroid:osmdroid-android:6.1.18")
     implementation("androidx.media3:media3-exoplayer:1.4.1")
@@ -592,7 +592,7 @@ g = replace(g, '''    buildTypes {
         release {''',
 '''    buildTypes {
         debug {
-            applicationIdSuffix = ".v2test"
+            applicationIdSuffix = ".v21test"
             versionNameSuffix = "-test"
         }
         release {''', "isolated v2 debug applicationId")
