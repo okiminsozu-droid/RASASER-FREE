@@ -1,0 +1,50 @@
+name: Kurani Kesfet - Canonical Verse Reference Dataset (build-time only)
+on:
+  push:
+    branches:
+      - feature/kurankelime-five-language-offline-v1
+    paths:
+      - '.github/workflows/05-quran-verse-reference.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verse-reference:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Download attributed Quran Arabic verse reference
+        run: |
+          curl --fail --location --silent --show-error --retry 3 --output quran_dataset.json \
+            https://raw.githubusercontent.com/malekverse/quran-dataset/main/quran_dataset.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          records=json.loads(Path("quran_dataset.json").read_text(encoding="utf-8"))
+          assert len(records)==6236, f"Expected 6236, got {len(records)}"
+          used=set()
+          out=[]
+          for row in records:
+              s=int(row["surah_no"]);a=int(row["ayah_no_surah"])
+              assert 1<=s<=114 and a>0 and (s,a) not in used
+              used.add((s,a))
+              out.append(dict(sura=s,ayah=a,arabic=row["ayah_ar"],
+                name_ar=row["surah_name_ar"], name_latin=row["surah_name_roman"]))
+          out.sort(key=lambda x:(x["sura"],x["ayah"]))
+          Path("quran_arabic_verses.json").write_text(
+              json.dumps(out,ensure_ascii=False,separators=(",",":")),encoding="utf-8")
+          Path("QURAN_DATA_ATTRIBUTION.txt").write_text(
+              "Arabic verse reference from malekverse/quran-dataset, CC BY 4.0. "+
+              "https://github.com/malekverse/quran-dataset. "+
+              "No English translations redistributed. "+
+              "This dataset is used OFFLINE for verse referencing; "+
+              "OCR-to-verse alignment must be verified before claiming exactness.\n")
+          print("Canonical Arabic ayahs",len(out))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: quran-canonical-6236-build-reference-CC-BY-4
+          path: |
+            quran_arabic_verses.json
+            QURAN_DATA_ATTRIBUTION.txt
+          retention-days: 7
