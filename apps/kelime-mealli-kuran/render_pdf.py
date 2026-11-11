@@ -62,7 +62,7 @@ h1,h2,h3,p { margin: 0; }
 .ar { direction:rtl; unicode-bidi:isolate; font-family:"Amiri", "Noto Naskh Arabic",serif;
       font-size:21pt; line-height:2.2; min-height:65px; }
 .tr { direction:ltr; font-family:"DejaVu Sans"; font-size:9pt; line-height:1.2;
-      color:#524b40; min-height:16px; margin-top:7px; }
+      color:#524b40; font-weight:700; min-height:16px; margin-top:7px; }
 .ornament {font-size:8pt;color:#a19076;line-height:1.1}
 .word.pending .tr { color:#b3a693; font-size:7.5pt; }
 .word.pending { background:#fffdfa; }
@@ -106,13 +106,13 @@ def words_html(text, glosses=None, verse_id=""):
         cls = "word pending" if gl is None else "word"
         out.append(
             f'<div class="{cls}"><div class="ar" lang="ar" style="color:{color}">{arabic}</div>'
-            f'<div class="tr">{tr}</div></div>'
+            f'<div class="tr" style="color:{color if gl else "#b3a693"}">{tr}</div></div>'
         )
     return "".join(out)
 
 def build_html(src, sample=False):
-    edition = "FÂTİHA: KELİME MEALİ ÖRNEĞİ" if sample else "TAM KUR’AN: RENKLİ ARAPÇA METİN"
-    status = ("İlk 7 ayet için bağımsız Türkçe kelime karşılığı. Dinî ilimler kontrolü bekleyen örnek."
+    edition = "FÂTİHA: ÇİFT RENKLİ KELİME MEALİ TASLAĞI" if sample else "TAM KUR’AN: RENKLİ ARAPÇA METİN"
+    status = ("İlk 7 ayette Arapça kelime ile altındaki Türkçe karşılık AYNI renktedir. Türkçe anlamlar ilmî inceleme bekleyen taslaktır."
               if sample else
               "114 sure / 6.236 ayet Arapça tam metin. Türkçe kelime meali henüz tamamlanmadı; bu kitap son meal baskısı değildir.")
     chunks = ['<html lang="tr"><head><meta charset="utf-8"><style>',CSS,
