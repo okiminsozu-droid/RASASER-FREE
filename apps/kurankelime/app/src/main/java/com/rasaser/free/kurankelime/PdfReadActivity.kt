@@ -255,7 +255,7 @@ private fun PdfReaderScreen(initialPage: Int, highlightAyah: Int, home: () -> Un
                         page = target
                         pageDialog = false
                     }
-                }, enabled = pageDraft.toIntOrNull() in 1..EXPECTED_PAGES) { Text("Git") }
+                }, enabled = (pageDraft.toIntOrNull() ?: 0) in 1..EXPECTED_PAGES) { Text("Git") }
             },
             dismissButton = {
                 TextButton(onClick = { pageDialog = false }) { Text("İptal") }
