@@ -84,6 +84,8 @@ private fun DiscoverHome() {
     val quranIndex = remember { QuranStore(context) }
     val fullIndex = remember { PageWordIndex(context.applicationContext) }
     val localEngine = remember { PdfTextEngine(context.applicationContext) }
+    val bundledIndex = remember { BundledWordIndex(context.applicationContext) }
+    val bundledReady = remember { bundledIndex.isBundled }
     var language by remember { mutableStateOf(settings.getString("lang", "tr") ?: "tr") }
     var menu by remember { mutableStateOf(false) }
     var screen by remember { mutableStateOf(if ((context as? android.app.Activity)?.intent?.getBooleanExtra("open_search", false) == true) "search" else "home") }
@@ -100,7 +102,7 @@ private fun DiscoverHome() {
         if (screen != "search") return@LaunchedEffect
         val file = withContext(Dispatchers.IO) { installedBook(context) }
         bookPresent = file != null
-        if (file != null && Build.VERSION.SDK_INT >= 35) {
+        if (file != null && Build.VERSION.SDK_INT >= 35 && !bundledReady && !fullIndex.hasFullIndex) {
             indexing = true
             try {
                 onDeviceReady = withContext(Dispatchers.IO) {
@@ -118,10 +120,11 @@ private fun DiscoverHome() {
             }
         }
     }
-    LaunchedEffect(screen, query, onDeviceReady) {
+    LaunchedEffect(screen, query, onDeviceReady, bundledReady) {
         fullHits = if (screen == "search" && query.isNotBlank()) {
             withContext(Dispatchers.IO) {
                 when {
+                    bundledReady -> bundledIndex.search(query)
                     onDeviceReady -> localEngine.search(query)
                     fullIndex.hasFullIndex -> fullIndex.search(query)
                     else -> emptyList()
@@ -204,13 +207,14 @@ private fun DiscoverHome() {
                 }
                 OutlinedTextField(query,{query=it},modifier=Modifier.fillMaxWidth(),
                     placeholder={Text(l.searchHint)}, singleLine=true)
-                val hasFullSearch = onDeviceReady || fullIndex.hasFullIndex
+                val hasFullSearch = bundledReady || onDeviceReady || fullIndex.hasFullIndex
                 val searchMessage = when {
                     indexing -> "Çevrimdışı metin dizini hazırlanıyor: $scannedPages / $pageCount sayfa"
+                    bundledReady -> "304 sayfalık çevrimdışı dizin hazır · OCR sonuçları doğrulama gerektirir"
                     onDeviceReady -> "PDF'den oluşturulan yerel arama dizini hazır · internet gerekmez"
                     fullIndex.hasFullIndex -> "Uygulamaya eklenmiş 304 sayfalık arama dizini hazır"
                     noTextLayer -> "Bu PDF'nin metin katmanı okunamadı. Kelime dizini eklenmeli."
-                    !bookPresent -> "Tam arama için PDF'yi OKU bölümünden bir kez seçin."
+                    !bookPresent -> "Eksiksiz çevrimdışı paket bu APK içinde bulunmuyor."
                     Build.VERSION.SDK_INT < 35 -> "Android 15 altında tam arama için yerel kelime dizini gereklidir."
                     else -> "Tam arama verisi henüz hazır değil; Fâtiha örnek araması açık."
                 }
