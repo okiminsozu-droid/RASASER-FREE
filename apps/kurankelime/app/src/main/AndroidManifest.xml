@@ -1,17 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Intentionally no INTERNET permission: the reader works offline. -->
+    <!-- Offline-only: no INTERNET permission. -->
     <application android:label="@string/app_name"
                  android:theme="@android:style/Theme.Material.NoActionBar"
-                 android:usesCleartextTraffic="false"
-                 android:allowBackup="false">
-        <activity android:name=".MainActivity"
-                  android:screenOrientation="unspecified"
-                  android:exported="true">
+                 android:usesCleartextTraffic="false" android:allowBackup="false">
+        <activity android:name=".DiscoverHomeActivity" android:exported="true">
             <intent-filter>
-                <action android:name="android.intent.action.MAIN"/>
-                <category android:name="android.intent.category.LAUNCHER"/>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity android:name=".PdfReadActivity" android:exported="false" />
+        <activity android:name=".MainActivity" android:exported="false" />
+        <provider android:name="androidx.core.content.FileProvider"
+                  android:authorities="com.rasaser.free.kurankelime.provider"
+                  android:exported="false" android:grantUriPermissions="true">
+            <meta-data android:name="android.support.FILE_PROVIDER_PATHS"
+                       android:resource="@xml/share_paths" />
+        </provider>
     </application>
 </manifest>
