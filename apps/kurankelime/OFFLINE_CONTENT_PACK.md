@@ -24,3 +24,15 @@ Bu nedenle bu derleme tam sayfa okuma ve sayfa düzeyinde OCR araması içindir;
 ## Dağıtım güvenliği
 
 90MB PDF ve Türkçe kaynak içeriği açık kaynak public depoya yüklenmez. Telif koşullarının ve kaynak gösterme gerekliliklerinin ayrıca denetlenmesi gerekir. Public GitHub Actions test APK'si bu içeriği barındırmaz; kullanıcının indirdiği özel içerik ZIP'iyle yerel/özel derleme yapılır. PDF'nin kullanıcıya tekrar seçtirilmesi hedeflenen nihai davranış değildir.
+
+## 11 Kasım 2026 — içerik paketi ölçüm sonucu
+
+Özel dağıtım dosyası: `Kurani_Kesfet_304_Sayfa_Cevrimdisi_Icerik_Paketi.zip` (106.337.183 bayt).
+
+- 304/304 PDF sayfası; içeride 1.208 gömülü sayfa görseli ve 605 orijinal dizgi sayfası
+- 144.453 Türkçe, 84.490 Arapça **OCR sözcük adayı** (farklı sayfalarda tekrarlanan kelimeler ve okuma hataları dahildir)
+- 61.139 doğrulanmamış Arapça–Türkçe görsel komşuluk adayı
+- SQLite bütünlük testi `ok`, PDF SHA-256 kontrolü başarılı
+- Verifiye sure–ayet–kelime eşleştirmesi: **0**; EN/DE/ES/ZH çevirileri: **henüz sağlanmamış**
+
+Bu sayılar asla 228.943 doğrulanmış Kur'an kelimesi veya 61.139 doğru çeviri olarak sunulmaz. Çevrimdışı altyapı çalışır, ancak tam ayet-konum ve beş dil kelime eşleştirme doğruluğu henüz tamamlanmamıştır.
