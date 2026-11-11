@@ -1,0 +1,52 @@
+name: KURAN 114 SURE - TEK PDF - ARAPCA TURKCE
+on:
+  push:
+    branches:
+      - feature/kelime-mealli-kuran-pdf-v1
+    paths:
+      - "apps/kelime-mealli-kuran/render_single_volume.py"
+      - ".github/workflows/10-quran-single-volume.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  complete-quran-book:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Open-source fonts and Arabic rendering
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y fonts-hosny-amiri fonts-dejavu-core poppler-utils
+      - name: Install offline PDF renderer
+        run: python -m pip install --disable-pip-version-check weasyprint==66.0 pypdf==5.9.0
+      - name: Compose all 114 surahs and all 6236 Turkish ayah meanings in a single PDF
+        run: |
+          python apps/kelime-mealli-kuran/render_single_volume.py --out output/RaSaSeR-KURAN-114-SURE-ARAPCA-TURKCE-TEK-CILT.pdf --jobs 2
+      - name: Verify complete single-file PDF
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from pypdf import PdfReader
+          p=Path('output/RaSaSeR-KURAN-114-SURE-ARAPCA-TURKCE-TEK-CILT.pdf')
+          doc=PdfReader(str(p))
+          assert len(doc.pages)>200
+          assert len(doc.pages)<3000
+          assert p.stat().st_size>1000000
+          print('READY:',len(doc.pages),'pages; ',p.stat().st_size,'bytes')
+          PY
+          sha256sum output/*.pdf > output/SHA256SUMS.txt
+          pdfinfo output/*.pdf | head -22
+      - name: Deliver one finished PDF
+        uses: actions/upload-artifact@v4
+        with:
+          name: RaSaSeR-TEK-PDF-114-SURE-ARAPCA-TURKCE
+          path: output/
+          retention-days: 30
+          if-no-files-found: error
