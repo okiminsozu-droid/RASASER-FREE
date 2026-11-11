@@ -13,6 +13,7 @@ import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.RectF
 import android.os.Bundle
+import android.content.res.Configuration
 import android.view.GestureDetector
 import android.view.Gravity
 import android.view.MotionEvent
@@ -103,6 +104,7 @@ class StableReaderActivity : Activity() {
         }
         bottom("−"){pageView.zoomBy(-.5f)}
         bottom("+"){pageView.zoomBy(.5f)}
+        bottom("Sığdır"){pageView.toggleFit()}
         bottom("Paylaş"){share()}
         bottom("Gizle"){pageView.onToggle()}
         main.addView(footer,FrameLayout.LayoutParams(-1,dp(52),Gravity.BOTTOM))
@@ -130,6 +132,11 @@ class StableReaderActivity : Activity() {
         )
     }
 
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        // Existing reader and current page survive device rotation.
+        pageView.post { pageView.invalidate() }
+    }
     private fun updateToolbar() {
         counter.text=page.toString()+" / 304"
         bookmark.text=if(store.isFavorite(page)) "★" else "☆"
@@ -249,6 +256,7 @@ class StableReaderActivity : Activity() {
         private var word:PageWord?=null
         private val imageRect=RectF()
         private var zoom=1f
+        private var fitWholePage=false
         private var panX=0f
         private var panY=0f
         private var downX=0f
@@ -277,7 +285,9 @@ class StableReaderActivity : Activity() {
                 return true
             }
             override fun onScroll(e1:MotionEvent?,e2:MotionEvent,dx:Float,dy:Float):Boolean {
-                if(zoom>1.01f) {panX-=dx;panY-=dy;invalidate();return true}
+                // In fullscreen mode the page extends outside the viewport, so pan
+                // even at zoom=1. Swipe-release still advances pages as before.
+                if(zoom>1.01f || !fitWholePage) {panX-=dx;panY-=dy;invalidate();return true}
                 return false
             }
         })
@@ -289,16 +299,27 @@ class StableReaderActivity : Activity() {
             }
         })
         fun setPage(img:Bitmap){source=img;message=null;word=null;invalidate()}
-        fun clearPage(){source=null;message=null;word=null;zoom=1f;panX=0f;panY=0f;invalidate()}
+        fun clearPage(){source=null;message=null;word=null;zoom=1f;fitWholePage=false;panX=0f;panY=0f;invalidate()}
         fun showError(msg:String){source=null;message=msg;invalidate()}
         fun highlight(w:PageWord){word=w;invalidate()}
+        fun toggleFit(){
+            fitWholePage=!fitWholePage
+            zoom=1f
+            panX=0f
+            panY=0f
+            invalidate()
+        }
         fun zoomBy(delta:Float){
             zoom=(zoom+delta).coerceIn(1f,3f)
             if(zoom==1f){panX=0f;panY=0f}
             invalidate()
         }
         private fun updateRect(b:Bitmap) {
-            val scale=min(width.toFloat()/b.width,height.toFloat()/b.height)*zoom
+            // Fullscreen uses CENTER_CROP without stretching Arabic glyphs.
+            // Reader can pan clipped portions; Sığdır toggles the entire page overview.
+            val baseScale=if(fitWholePage) min(width.toFloat()/b.width,height.toFloat()/b.height)
+                else max(width.toFloat()/b.width,height.toFloat()/b.height)
+            val scale=baseScale*zoom
             val w=b.width*scale;val h=b.height*scale
             panX=panX.coerceIn(-max(0f,(w-width)/2f),max(0f,(w-width)/2f))
             panY=panY.coerceIn(-max(0f,(h-height)/2f),max(0f,(h-height)/2f))
@@ -321,6 +342,11 @@ class StableReaderActivity : Activity() {
                     c.drawRoundRect(r,5f,5f,line)
                 }
             } else c.drawText((message?:"Sayfa açılıyor…").take(100),width/2f,height/2f,textPaint)
+        }
+        override fun onSizeChanged(w:Int,h:Int,oldw:Int,oldh:Int){
+            super.onSizeChanged(w,h,oldw,oldh)
+            panX=0f;panY=0f
+            invalidate()
         }
         override fun onTouchEvent(e:MotionEvent):Boolean {
             pinch.onTouchEvent(e);gestures.onTouchEvent(e)
