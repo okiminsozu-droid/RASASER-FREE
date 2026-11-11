@@ -3,6 +3,11 @@ package com.rasaser.free.kurankelime
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
+import android.content.ClipData
+import android.os.Build
+import android.view.View
+import android.view.WindowInsets
+import android.view.WindowInsetsController
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Paint
@@ -56,8 +61,30 @@ private val GoldSand = Color(0xFFE8CEAC)
 private val Forest = Color(0xFF17422F)
 
 class PdfReadActivity : ComponentActivity() {
+    @Suppress("DEPRECATION")
+    private fun enableImmersiveReading() {
+        if (Build.VERSION.SDK_INT >= 30) {
+            window.setDecorFitsSystemWindows(false)
+            window.insetsController?.let {
+                it.hide(WindowInsets.Type.systemBars())
+                it.systemBarsBehavior = WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            }
+        } else {
+            window.decorView.systemUiVisibility =
+                View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY or
+                View.SYSTEM_UI_FLAG_FULLSCREEN or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
+                View.SYSTEM_UI_FLAG_LAYOUT_STABLE or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or
+                View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+        }
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) enableImmersiveReading()
+    }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        enableImmersiveReading()
         val first = intent.getIntExtra("page", 0)
         val highlight = intent.getIntExtra("highlight_ayah", 0)
         val wordId = intent.getIntExtra("highlight_word_id", 0)
@@ -101,7 +128,7 @@ private fun verifyPdf(file: File): Boolean {
 } catch (_: Exception) { false }
 }
 
-private fun installedBook(context: Context): File? {
+internal fun installedBook(context: Context): File? {
     val target = File(context.filesDir, "quran_original_304.pdf")
     if (target.isFile && verifyPdf(target)) return target
     val temp = File(context.filesDir, "quran_original_304.pending")
@@ -196,8 +223,12 @@ private fun PdfReaderScreen(initialPage: Int, highlightAyah: Int, highlightWordI
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val prefs = remember { PageStore(context) }
-    val wordIndex = remember { PageWordIndex(context.applicationContext) }
-    var page by rememberSaveable { mutableIntStateOf(if (initialPage in 1..EXPECTED_PAGES) initialPage else prefs.lastPage()) }
+    val privateIndex = remember { PageWordIndex(context.applicationContext) }
+    val localEngine = remember { PdfTextEngine(context.applicationContext) }
+    var page by rememberSaveable {
+        mutableIntStateOf(if (initialPage in 1..EXPECTED_PAGES) initialPage else prefs.lastPage())
+    }
+    var controlsVisible by rememberSaveable { mutableStateOf(true) }
     var pageDialog by remember { mutableStateOf(false) }
     var pageDraft by remember { mutableStateOf(page.toString()) }
     var pdfFile by remember { mutableStateOf<File?>(null) }
@@ -218,8 +249,11 @@ private fun PdfReaderScreen(initialPage: Int, highlightAyah: Int, highlightWordI
         loading = false
     }
     LaunchedEffect(page, highlightWordId) {
-        chosen = if (highlightWordId > 0) {
-            withContext(Dispatchers.Default) { wordIndex.byId(highlightWordId)?.takeIf { it.page == page } }
+        chosen = if (highlightWordId != 0) {
+            withContext(Dispatchers.IO) {
+                (if (highlightWordId < 0) localEngine.byId(highlightWordId)
+                 else privateIndex.byId(highlightWordId))?.takeIf { it.page == page }
+            }
         } else null
     }
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
@@ -243,15 +277,17 @@ private fun PdfReaderScreen(initialPage: Int, highlightAyah: Int, highlightWordI
     LaunchedEffect(pdfFile, page, zoom) {
         val file = pdfFile ?: return@LaunchedEffect
         bitmap = null
-        val desiredWidth = when {
+        val width = when {
             zoom >= 2f -> 2400
             zoom >= 1.5f -> 1800
             else -> 1400
         }
         try {
-            bitmap = withContext(Dispatchers.IO) { renderPage(file, page, desiredWidth) }
+            bitmap = withContext(Dispatchers.IO) { renderPage(file, page, width) }
             error = null
-        } catch (e: Exception) { error = "Sayfa açılamadı: " + e.message }
+        } catch (e: Exception) {
+            error = "Sayfa açılamadı: " + e.message
+        }
     }
     if (pageDialog) {
         AlertDialog(
@@ -260,7 +296,7 @@ private fun PdfReaderScreen(initialPage: Int, highlightAyah: Int, highlightWordI
             text = {
                 OutlinedTextField(
                     value = pageDraft,
-                    onValueChange = { value -> pageDraft = value.filter(Char::isDigit).take(3) },
+                    onValueChange = { pageDraft = it.filter(Char::isDigit).take(3) },
                     label = { Text("1–304 arasında sayfa") },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
@@ -271,8 +307,8 @@ private fun PdfReaderScreen(initialPage: Int, highlightAyah: Int, highlightWordI
                     val target = pageDraft.toIntOrNull()
                     if (target != null && target in 1..EXPECTED_PAGES) {
                         page = target
-                        pageDialog = false
                         zoom = 1f
+                        pageDialog = false
                     }
                 }, enabled = (pageDraft.toIntOrNull() ?: 0) in 1..EXPECTED_PAGES) { Text("Git") }
             },
@@ -280,69 +316,19 @@ private fun PdfReaderScreen(initialPage: Int, highlightAyah: Int, highlightWordI
         )
     }
 
-    Column(Modifier.fillMaxSize().background(Color.White)) {
-        Row(
-            Modifier.fillMaxWidth().background(Color(0xFFF9F3E7)).height(54.dp).padding(horizontal = 4.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = { if (page < EXPECTED_PAGES) { page++; zoom = 1f } }, enabled = page < EXPECTED_PAGES) {
-                Icon(Icons.Default.ArrowBack, contentDescription = "Sonraki sayfa - sola git")
-            }
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    if (page == 1) "Fâtiha Sûresi" else if (page == 2) "Bakara Sûresi" else "KURANI KEŞFET",
-                    color = Forest, style = MaterialTheme.typography.labelMedium
-                )
-                TextButton(onClick = { pageDraft = page.toString(); pageDialog = true },
-                    contentPadding = PaddingValues(0.dp),
-                    modifier = Modifier.height(27.dp)) {
-                    Text("Sayfa " + page + " / " + EXPECTED_PAGES, style = MaterialTheme.typography.labelSmall)
-                }
-            }
-            IconButton(onClick = home) { Icon(Icons.Default.Home, contentDescription = "Ana sayfa", tint = Forest) }
-            IconButton(onClick = { if (page > 1) { page--; zoom = 1f } }, enabled = page > 1) {
-                Icon(Icons.Default.ArrowForward, contentDescription = "Önceki sayfa - sağa git")
-            }
-        }
-        Row(
-            Modifier.fillMaxWidth().height(44.dp).padding(horizontal = 10.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = { prefs.toggleFavorite(page); favoriteRevision++ }) {
-                Icon(if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                    contentDescription = "Sayfayı favorilere kaydet",
-                    tint = if (isFavorite) Color(0xFFB58A36) else Forest)
-            }
-            IconButton(onClick = {
-                val file = pdfFile
-                if (file == null) {
-                    Toast.makeText(context, "Önce PDF'yi seçin.", Toast.LENGTH_SHORT).show()
-                } else {
-                    scope.launch {
-                        try {
-                            val send = withContext(Dispatchers.IO) { buildPageShare(context, file, page) }
-                            context.startActivity(Intent.createChooser(send, "Sayfayı paylaş"))
-                        } catch (_: Exception) {
-                            Toast.makeText(context, "Paylaşım hazırlanamadı.", Toast.LENGTH_LONG).show()
-                        }
-                    }
-                }
-            }) { Icon(Icons.Default.Share, contentDescription = "Sayfayı logolu görsel olarak paylaş") }
-            val selected = chosen
-            if (selected != null) {
-                Text(selected.gloss, modifier = Modifier.weight(1f).padding(horizontal = 5.dp),
-                    maxLines = 1, style = MaterialTheme.typography.labelMedium,
-                    color = Color(0xFF885E20))
-            } else Spacer(Modifier.weight(1f))
-            IconButton(onClick = { zoom = (zoom - .5f).coerceAtLeast(1f) }) {
-                Icon(Icons.Default.ZoomOut, contentDescription = "Küçült")
-            }
-            Text((zoom * 100).toInt().toString() + "%", style = MaterialTheme.typography.labelSmall)
-            IconButton(onClick = { zoom = (zoom + .5f).coerceAtMost(3f) }) {
-                Icon(Icons.Default.ZoomIn, contentDescription = "Büyüt")
-            }
-        }
+    BoxWithConstraints(Modifier.fillMaxSize().background(Paper)) {
+        // Toolbar overlays DO NOT subtract height from the reading page.
+        // Preserve the real PDF aspect ratio rather than distorting letters.
+        val aspect = bitmap?.let { it.width.toFloat() / it.height } ?: (595f / 842f)
+        val fittingWidth = minOf(maxWidth, maxHeight * aspect)
+        val paperWidth = fittingWidth * zoom
+        val paperHeight = paperWidth / aspect
+        val containerWidth = maxOf(maxWidth, paperWidth)
+        val containerHeight = maxOf(maxHeight, paperHeight)
+        val panning = if (zoom > 1.01f)
+            Modifier.horizontalScroll(horizontal).verticalScroll(vertical)
+        else Modifier
+
         if (loading) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(color = Forest)
@@ -356,110 +342,210 @@ private fun PdfReaderScreen(initialPage: Int, highlightAyah: Int, highlightWordI
                     colors = ButtonDefaults.buttonColors(containerColor = GoldSand, contentColor = Forest)) {
                     Text("PDF'yi bir kez seç")
                 }
-                Text("PDF yerel saklanır; tekrar seçim veya internet gerekmez.",
+                Text("PDF yerel saklanır; internetsiz çalışır.",
                     modifier = Modifier.padding(12.dp), style = MaterialTheme.typography.bodySmall)
             }
         } else if (error != null) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(error ?: "", color = Color.Red)
-            }
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text(error ?: "", color = Color.Red) }
         } else {
-            BoxWithConstraints(
-                modifier = Modifier.fillMaxWidth().weight(1f),
-                contentAlignment = Alignment.Center
+            Box(
+                Modifier.fillMaxSize()
+                    .pointerInput(page, zoom) {
+                        if (zoom <= 1.01f) detectHorizontalDragGestures(
+                            onDragStart = { dragDistance = 0f },
+                            onHorizontalDrag = { change, dx ->
+                                dragDistance += dx
+                                change.consume()
+                            },
+                            onDragEnd = {
+                                if (dragDistance < -65f && page < EXPECTED_PAGES) {
+                                    page++; zoom = 1f; controlsVisible = false
+                                } else if (dragDistance > 65f && page > 1) {
+                                    page--; zoom = 1f; controlsVisible = false
+                                }
+                                dragDistance = 0f
+                            },
+                            onDragCancel = { dragDistance = 0f }
+                        )
+                    }
+                    .then(panning)
             ) {
-                // Fit the complete A4 page in the remaining screen without cropping.
-                val fittingWidth = minOf(maxWidth, maxHeight * (595f / 842f))
-                val paperWidth = fittingWidth * zoom
-                val paperHeight = paperWidth * (842f / 595f)
-                val containerWidth = maxOf(maxWidth, paperWidth)
-                val containerHeight = maxOf(maxHeight, paperHeight)
-
-                Box(Modifier.fillMaxSize().horizontalScroll(horizontal).verticalScroll(vertical)) {
+                Box(Modifier.width(containerWidth).height(containerHeight),
+                    contentAlignment = Alignment.Center) {
                     Box(
-                        Modifier.width(containerWidth).height(containerHeight),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Box(
-                            Modifier.width(paperWidth).height(paperHeight)
-                                .pointerInput(page, zoom) {
-                                    detectHorizontalDragGestures(
-                                        onDragStart = { dragDistance = 0f },
-                                        onHorizontalDrag = { change, drag ->
-                                            if (zoom <= 1.01f) {
-                                                dragDistance += drag
-                                                change.consume()
+                        Modifier.width(paperWidth).height(paperHeight)
+                            .pointerInput(page, zoom, paperWidth, paperHeight) {
+                                detectTapGestures(
+                                    onDoubleTap = { controlsVisible = !controlsVisible },
+                                    onTap = { touch ->
+                                        val x = (touch.x / paperWidth.toPx() * 595f).coerceIn(0f, 595f)
+                                        val y = (touch.y / paperHeight.toPx() * 842f).coerceIn(0f, 842f)
+                                        val current = page
+                                        chosen = privateIndex.nearestWord(current, x, y)
+                                        manualMarker = if (chosen == null)
+                                            Offset(x / 595f, y / 842f) else null
+                                        val file = pdfFile
+                                        if (file != null && Build.VERSION.SDK_INT >= 35) scope.launch {
+                                            val actual = withContext(Dispatchers.IO) {
+                                                localEngine.selectAt(file, current, x, y)
                                             }
-                                        },
-                                        onDragEnd = {
-                                            if (zoom <= 1.01f && dragDistance < -75f && page < EXPECTED_PAGES) {
-                                                page++
-                                            } else if (zoom <= 1.01f && dragDistance > 75f && page > 1) {
-                                                page--
+                                            if (current == page && actual != null) {
+                                                chosen = actual
+                                                manualMarker = null
+                                                controlsVisible = true
                                             }
-                                            dragDistance = 0f
                                         }
-                                    )
-                                }
-                                .pointerInput(page, zoom) {
-                                    detectTapGestures { point ->
-                                        val x = point.x / paperWidth.toPx() * 595f
-                                        val y = point.y / paperHeight.toPx() * 842f
-                                        val word = wordIndex.nearestWord(page, x, y)
-                                        chosen = word
-                                        manualMarker = if (word == null) Offset(point.x / paperWidth.toPx(),
-                                            point.y / paperHeight.toPx()) else null
+                                    },
+                                    onLongPress = { touch ->
+                                        val x = (touch.x / paperWidth.toPx() * 595f).coerceIn(0f, 595f)
+                                        val y = (touch.y / paperHeight.toPx() * 842f).coerceIn(0f, 842f)
+                                        val current = page
+                                        val file = pdfFile
+                                        if (file != null && Build.VERSION.SDK_INT >= 35) scope.launch {
+                                            val actual = withContext(Dispatchers.IO) {
+                                                localEngine.selectAt(file, current, x, y)
+                                            }
+                                            if (current == page && actual != null) {
+                                                chosen = actual
+                                                manualMarker = null
+                                                controlsVisible = true
+                                            }
+                                        } else {
+                                            chosen = privateIndex.nearestWord(current, x, y)
+                                            controlsVisible = true
+                                        }
                                     }
-                                }
-                        ) {
-                            val image = bitmap
-                            if (image != null) {
-                                Image(
-                                    bitmap = image.asImageBitmap(),
-                                    contentDescription = "Kelime mealli Kur'an sayfa " + page,
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentScale = ContentScale.FillBounds
                                 )
-                                if (chosen != null) {
-                                    val word = chosen!!
-                                    val left = (paperWidth * (word.x / 595f) - 3.dp).coerceAtLeast(0.dp)
-                                    val top = (paperHeight * ((word.y - 20f) / 842f) - 2.dp).coerceAtLeast(0.dp)
-                                    val width = paperWidth * (word.width / 595f) + 7.dp
-                                    val height = paperHeight * ((word.height + 25f) / 842f) + 4.dp
-                                    Box(
-                                        Modifier.offset(x = left, y = top).width(width).height(height)
-                                            .border(2.dp, Color(0xFFBE8C22), androidx.compose.foundation.shape.RoundedCornerShape(5.dp))
-                                            .background(Color(0x50F5D66D))
-                                    )
-                                } else if (manualMarker != null) {
-                                    val point = manualMarker!!
-                                    Box(
-                                        Modifier.offset(
-                                            x = paperWidth * point.x - 12.dp,
-                                            y = paperHeight * point.y - 12.dp
-                                        ).size(24.dp)
-                                            .border(2.dp, Color(0xFFBE8C22),
-                                                androidx.compose.foundation.shape.CircleShape)
-                                            .background(Color(0x55F5D66D),
-                                                androidx.compose.foundation.shape.CircleShape)
-                                    )
-                                } else if (page == 1 && highlightAyah in 1..7) {
-                                    // Safe fallback for the historical Fatiha-only demo index.
-                                    val starts = listOf(.134f,.239f,.328f,.421f,.516f,.608f,.698f,.813f)
-                                    val top = starts[highlightAyah - 1]
-                                    val height = starts[highlightAyah] - top
-                                    Box(
-                                        Modifier.offset(y = paperHeight * top).fillMaxWidth()
-                                            .height(paperHeight * height)
-                                            .background(Color(0x30F5D66D))
-                                    )
-                                }
-                            } else Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            }
+                    ) {
+                        val image = bitmap
+                        if (image != null) {
+                            Image(image.asImageBitmap(),
+                                contentDescription = "Kur'an PDF, sayfa $page",
+                                modifier = Modifier.fillMaxSize(), contentScale = ContentScale.FillBounds)
+                            val selected = chosen
+                            if (selected != null) {
+                                val left = (paperWidth * (selected.x / 595f) - 3.dp).coerceAtLeast(0.dp)
+                                val top = (paperHeight * ((selected.y - 4f) / 842f) - 2.dp).coerceAtLeast(0.dp)
+                                val width = paperWidth * (selected.width / 595f) + 7.dp
+                                val height = paperHeight * ((selected.height + 8f) / 842f) + 4.dp
+                                Box(Modifier.offset(x = left, y = top).width(width).height(height)
+                                    .border(2.dp, Color(0xFFBE8C22),
+                                        androidx.compose.foundation.shape.RoundedCornerShape(5.dp))
+                                    .background(Color(0x40F5D66D)))
+                            } else if (manualMarker != null) {
+                                val point = manualMarker!!
+                                Box(Modifier.offset(
+                                    x = paperWidth * point.x - 12.dp,
+                                    y = paperHeight * point.y - 12.dp
+                                ).size(24.dp)
+                                    .border(2.dp, Color(0xFFBE8C22),
+                                        androidx.compose.foundation.shape.CircleShape))
+                            } else if (page == 1 && highlightAyah in 1..7) {
+                                val starts = listOf(.134f,.239f,.328f,.421f,.516f,.608f,.698f,.813f)
+                                Box(Modifier.offset(y = paperHeight * starts[highlightAyah-1])
+                                    .fillMaxWidth().height(paperHeight *
+                                        (starts[highlightAyah]-starts[highlightAyah-1]))
+                                    .background(Color(0x30F5D66D)))
+                            }
+                        } else {
+                            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                                 CircularProgressIndicator(color = Forest)
                             }
                         }
                     }
                 }
+            }
+        }
+
+        if (controlsVisible) {
+            Row(
+                Modifier.align(Alignment.TopCenter).fillMaxWidth()
+                    .background(Color(0xF5F9F3E7)).height(56.dp)
+                    .padding(horizontal = 4.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = { if (page < EXPECTED_PAGES) { page++; zoom = 1f } },
+                    enabled = page < EXPECTED_PAGES) {
+                    Icon(Icons.Default.ArrowBack, contentDescription = "Sonraki sayfa")
+                }
+                TextButton(onClick = { pageDraft = page.toString(); pageDialog = true }) {
+                    Text("$page / $EXPECTED_PAGES", color = Forest)
+                }
+                IconButton(onClick = { prefs.toggleFavorite(page); favoriteRevision++ }) {
+                    Icon(if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                        contentDescription = "Favori",
+                        tint = if (isFavorite) Color(0xFFB58A36) else Forest)
+                }
+                IconButton(onClick = home) {
+                    Icon(Icons.Default.Home, contentDescription = "Ana sayfa", tint = Forest)
+                }
+                IconButton(onClick = { if (page > 1) { page--; zoom = 1f } },
+                    enabled = page > 1) {
+                    Icon(Icons.Default.ArrowForward, contentDescription = "Önceki sayfa")
+                }
+            }
+            Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth()
+                .background(Color(0xF5FFFFFF))) {
+                val selected = chosen
+                if (selected != null) {
+                    Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically) {
+                        Text(selected.gloss, color = Forest,
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.weight(1f), maxLines = 2)
+                        IconButton(onClick = {
+                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE)
+                                as android.content.ClipboardManager
+                            clipboard.setPrimaryClip(ClipData.newPlainText("Kur'an seçili metin", selected.gloss))
+                            Toast.makeText(context, "Seçili metin kopyalandı", Toast.LENGTH_SHORT).show()
+                        }) {
+                            Icon(Icons.Default.ContentCopy, contentDescription = "Metni kopyala")
+                        }
+                    }
+                }
+                Row(Modifier.fillMaxWidth().height(48.dp).padding(horizontal = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = { controlsVisible = false }) {
+                        Icon(Icons.Default.Fullscreen, contentDescription = "Tam ekran oku")
+                    }
+                    IconButton(onClick = {
+                        val file = pdfFile
+                        if (file == null) {
+                            Toast.makeText(context, "Önce PDF'yi seçin.", Toast.LENGTH_SHORT).show()
+                        } else scope.launch {
+                            try {
+                                val send = withContext(Dispatchers.IO) {
+                                    buildPageShare(context, file, page)
+                                }
+                                context.startActivity(Intent.createChooser(send, "Sayfayı paylaş"))
+                            } catch (_: Exception) {
+                                Toast.makeText(context, "Paylaşım hazırlanamadı.", Toast.LENGTH_LONG).show()
+                            }
+                        }
+                    }) {
+                        Icon(Icons.Default.Share, contentDescription = "Sayfayı paylaş")
+                    }
+                    Spacer(Modifier.weight(1f))
+                    IconButton(onClick = { zoom = (zoom - .5f).coerceAtLeast(1f) }) {
+                        Icon(Icons.Default.ZoomOut, contentDescription = "Küçült")
+                    }
+                    Text((zoom * 100).toInt().toString() + "%",
+                        style = MaterialTheme.typography.labelSmall)
+                    IconButton(onClick = { zoom = (zoom + .5f).coerceAtMost(3f) }) {
+                        Icon(Icons.Default.ZoomIn, contentDescription = "Büyüt")
+                    }
+                }
+            }
+        } else {
+            IconButton(
+                onClick = { controlsVisible = true },
+                modifier = Modifier.align(Alignment.TopEnd).padding(8.dp)
+                    .background(Color(0xDDF9F3E7), androidx.compose.foundation.shape.CircleShape)
+            ) {
+                Icon(Icons.Default.FullscreenExit, contentDescription = "Okuma araçlarını göster",
+                    tint = Forest)
             }
         }
     }
