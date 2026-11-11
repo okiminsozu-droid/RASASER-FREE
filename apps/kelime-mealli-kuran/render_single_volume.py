@@ -52,8 +52,8 @@ body {font-family:"DejaVu Sans";color:#30362f}
 .wordgrid{direction:rtl;text-align:right;line-height:1.3;}
 .pair {display:inline-block;vertical-align:top;margin:2px 2px 3px;padding:1px 3px 2px;
 min-width:44px;max-width:135px;text-align:center;border-radius:4px;}
-.pair .ar {font-family:Amiri;font-size:20pt;line-height:1.8;direction:rtl;}
-.pair .tr {font-family:"DejaVu Sans";font-size:8pt;line-height:1.25;font-weight:bold;margin-top:1px;}
+.pair .ar {display:block;font-family:Amiri;font-size:20pt;line-height:1.8;direction:rtl;unicode-bidi:isolate;}
+.pair .tr {display:block;direction:ltr;font-family:"DejaVu Sans";font-size:8pt;line-height:1.25;font-weight:bold;margin-top:2px;}
 .translation {direction:ltr;text-align:left;margin:5px 0 1px;
 font-size:9.8pt;line-height:1.48;color:#3c403a;}
 .surahEnd {margin:7px auto;color:#bca16e;text-align:center;font-size:11pt;}
