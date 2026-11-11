@@ -224,6 +224,7 @@ private fun PdfReaderScreen(initialPage: Int, highlightAyah: Int, highlightWordI
     val scope = rememberCoroutineScope()
     val prefs = remember { PageStore(context) }
     val privateIndex = remember { PageWordIndex(context.applicationContext) }
+    val bundledIndex = remember { BundledWordIndex(context.applicationContext) }
     val localEngine = remember { PdfTextEngine(context.applicationContext) }
     var page by rememberSaveable {
         mutableIntStateOf(if (initialPage in 1..EXPECTED_PAGES) initialPage else prefs.lastPage())
@@ -252,6 +253,7 @@ private fun PdfReaderScreen(initialPage: Int, highlightAyah: Int, highlightWordI
         chosen = if (highlightWordId != 0) {
             withContext(Dispatchers.IO) {
                 (if (highlightWordId < 0) localEngine.byId(highlightWordId)
+                 else if (highlightWordId >= 1000000) bundledIndex.byId(highlightWordId)
                  else privateIndex.byId(highlightWordId))?.takeIf { it.page == page }
             }
         } else null
@@ -336,13 +338,9 @@ private fun PdfReaderScreen(initialPage: Int, highlightAyah: Int, highlightWordI
         } else if (pdfFile == null) {
             Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(error ?: "304 sayfalık PDF henüz cihazda bulunmuyor.")
+                Text(error ?: "304 sayfalık Kur’an PDF bu APK içinde bulunmuyor. Eksiksiz çevrimdışı paketle kurulmalıdır.")
                 Spacer(Modifier.height(12.dp))
-                Button(onClick = { picker.launch(arrayOf("application/pdf")) },
-                    colors = ButtonDefaults.buttonColors(containerColor = GoldSand, contentColor = Forest)) {
-                    Text("PDF'yi bir kez seç")
-                }
-                Text("PDF yerel saklanır; internetsiz çalışır.",
+                Text("Kullanıcıdan PDF seçmesi istenmez. Çevrimdışı paket yeniden oluşturulmalıdır.",
                     modifier = Modifier.padding(12.dp), style = MaterialTheme.typography.bodySmall)
             }
         } else if (error != null) {
@@ -384,6 +382,16 @@ private fun PdfReaderScreen(initialPage: Int, highlightAyah: Int, highlightWordI
                                         chosen = privateIndex.nearestWord(current, x, y)
                                         manualMarker = if (chosen == null)
                                             Offset(x / 595f, y / 842f) else null
+                                        scope.launch {
+                                            val candidate = withContext(Dispatchers.IO) {
+                                                bundledIndex.nearest(current, x, y)
+                                            }
+                                            if (page == current && candidate != null && chosen == null) {
+                                                chosen = candidate
+                                                manualMarker = null
+                                                controlsVisible = true
+                                            }
+                                        }
                                         val file = pdfFile
                                         if (file != null && Build.VERSION.SDK_INT >= 35) scope.launch {
                                             val actual = withContext(Dispatchers.IO) {
@@ -411,8 +419,16 @@ private fun PdfReaderScreen(initialPage: Int, highlightAyah: Int, highlightWordI
                                                 controlsVisible = true
                                             }
                                         } else {
-                                            chosen = privateIndex.nearestWord(current, x, y)
-                                            controlsVisible = true
+                                            scope.launch {
+                                                val candidate = withContext(Dispatchers.IO) {
+                                                    privateIndex.nearestWord(current,x,y)
+                                                        ?: bundledIndex.nearest(current,x,y)
+                                                }
+                                                if (page == current) {
+                                                    chosen = candidate
+                                                    controlsVisible = true
+                                                }
+                                            }
                                         }
                                     }
                                 )
