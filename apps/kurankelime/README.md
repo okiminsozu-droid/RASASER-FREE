@@ -48,3 +48,14 @@ Okuma: sol ok sonraki PDF sayfası, sağ ok önceki PDF sayfası, üstte ana say
 - Yeni deneme APK'sinin `debug.applicationIdSuffix=".trial"` değeri vardır. Böylece önceki test APK'si ve onun favorileri silinmeden **yan yana kurulabilir**. Favorilerin otomatik aktarılması yapılmamıştır.
 - Kaynak Android derlemesi GitHub Actions ile doğrulanmış; özel test APK'sinin PDF (SHA-256 `387674c9a3bfb2c501c2dcca4b63946ea05f386dcd4d6fa4b63b4060b01397ea`) ve indeks bütünlüğü ayrı kontrol edilmiştir. Cihaz üzerinde uçtan uca test için kullanıcı incelemesi gereklidir.
 - Kamuya açık dağıtımdan önce PDF ve kelime karşılıkları için telif izni, ayet eşleştirme ve 5 dil içeriği uzman kontrolü gerekir. PDF'nin içindeki anlamlar yalnız Türkçedir; ana ekran dili değişse de PDF metni otomatik çevrilmez.
+
+
+## 11 Kasım 2026 — v0.2.1: çevrimdışı metin motoru ve dokunma onarımı
+
+- PDF okuma etkinliğinde Android sistem çubukları gizlenir. Gezinme araçları sayfa alanını daraltmak yerine üstte/ altta sayfanın üstüne çizilir; tam sayfa orantılı sığdırılır, metin bozulmaz. Çift dokunuş araçları açıp kapatır; büyütmede iki yönlü kaydırma çalışır.
+- %100'de sola kaydırma **sonraki**, sağa kaydırma **önceki** sayfa; büyütmede sayfa değiştirmek yerine içeriği kaydırır.
+- PDF üzerinde tek dokunuş veya uzun basma, Android 15+ sistem PDF metin seçicisini kullanır; seçili metin vurgulanıp kopyalanabilir. Metin katmanı bulunmadığında uydurma sözcük gösterilmez.
+- Yerleşik `PdfTextEngine.kt`, Android 15+ üzerinde **uygulama içindeki veya bir kez cihazdan alınmış gerçek PDF'nin metin katmanını** çevrimdışı tarar ve cihazın kendi SQLite FTS4 veritabanına konumlarıyla indeksler. Tarama kaldığı sayfadan devam edebilir. Arama sonuçlarından ilgili PDF sayfasına gidilir.
+- Android 8–14 için, lisansı doğrulanmış tam kelime dizini ayrıca uygulama içinde varsa eski yerel dizin kullanılır; bulunmuyorsa yalnız Fâtiha önizleme araması kalır. Android 15+ üzerinde PDF sadece taranmış görüntüden oluşuyorsa **OCR yapılmaz** ve tam metin araması vaat edilmez.
+- Bu açık kaynak depo 90 MB PDF'yi veya çevirisinin hakları belirsiz metinlerini içermez. Yerel metin motoru PDF'yi cihaz içinde işler ve internete göndermez. İlk tarama tamamlanmadan tüm sayfaları kapsayan arama sonuçları gösterilmez.
+- Sürüm `0.2.1` (versionCode 3). Bu bir test önizlemesidir; Android 15 cihazda gerçek PDF ile uçtan uca doğrulama ve içerik/lisans kontrolü tamamlanmadan yayımlanmaz.
