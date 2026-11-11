@@ -122,6 +122,95 @@ class BundledWordIndex(private val context: Context) {
         }
     }
 
+    /**
+     * Verifiable reference information for each OCR result.
+     * Per-token verse numbers are shown ONLY when manually verified.
+     * Otherwise display the estimated / visually checked verse RANGE of its page,
+     * explicitly distinguishing that range from an exact word-to-verse link.
+     */
+    fun referenceLabel(id: Int, page: Int): String? {
+        val database = ready() ?: return null
+        if (id >= FIRST_ID) {
+            try {
+                database.rawQuery(
+                    "SELECT sura,ayah,verified FROM ocr_tokens WHERE id=?",
+                    arrayOf((id - FIRST_ID).toString())
+                ).use { c ->
+                    if (c.moveToFirst() && c.getInt(2)==1 && !c.isNull(0) && !c.isNull(1)) {
+                        val sura=c.getInt(0);val ayah=c.getInt(1)
+                        return chapterName(database,sura) + " Suresi · " + ayah + ". ayet"
+                    }
+                }
+            } catch (_: android.database.sqlite.SQLiteException) { }
+        }
+        return try {
+            database.rawQuery(
+                "SELECT start_sura,start_ayah,end_sura,end_ayah,status " +
+                    "FROM page_verse_bounds WHERE page=?",
+                arrayOf(page.toString())
+            ).use { c ->
+                if (!c.moveToFirst()) return@use null
+                val firstS=c.getInt(0);val firstA=c.getInt(1)
+                val lastS=c.getInt(2);val lastA=c.getInt(3)
+                val confirmed=c.getString(4)=="VISUALLY_CONFIRMED_PAGE"
+                val chapter=chapterName(database,firstS)
+                val chapterText=if (firstS==lastS) chapter + " Suresi"
+                    else chapter + " – " + chapterName(database,lastS) + " sureleri"
+                val verseText=if (firstS==lastS) "$firstA–$lastA. ayetler"
+                    else "$firstS:$firstA – $lastS:$lastA"
+                val quality=if (confirmed) " · sayfa aralığı"
+                    else " · yaklaşık sayfa aralığı"
+                chapterText + " · " + verseText + quality
+            }
+        } catch (_: android.database.sqlite.SQLiteException) { null }
+    }
+
+    private fun chapterName(database: SQLiteDatabase, sura: Int): String {
+        return try {
+            database.rawQuery(
+                "SELECT name_latin FROM reference_verses WHERE sura=? LIMIT 1",
+                arrayOf(sura.toString())
+            ).use { c ->
+                if (c.moveToFirst()) {
+                    when(sura) {
+                        1 -> "Fâtiha"
+                        2 -> "Bakara"
+                        3 -> "Âl-i İmrân"
+                        4 -> "Nisâ"
+                        5 -> "Mâide"
+                        18 -> "Kehf"
+                        36 -> "Yâsîn"
+                        55 -> "Rahmân"
+                        67 -> "Mülk"
+                        93 -> "Duhâ"
+                        94 -> "İnşirâh"
+                        95 -> "Tîn"
+                        96 -> "Alak"
+                        97 -> "Kadir"
+                        98 -> "Beyyine"
+                        99 -> "Zilzâl"
+                        100 -> "Âdiyât"
+                        101 -> "Kâria"
+                        102 -> "Tekâsür"
+                        103 -> "Asr"
+                        104 -> "Hümeze"
+                        105 -> "Fîl"
+                        106 -> "Kureyş"
+                        107 -> "Mâûn"
+                        108 -> "Kevser"
+                        109 -> "Kâfirûn"
+                        110 -> "Nasr"
+                        111 -> "Tebbet"
+                        112 -> "İhlâs"
+                        113 -> "Felak"
+                        114 -> "Nâs"
+                        else -> c.getString(0).replace("Al-","El-")
+                    }
+                } else sura.toString()
+            }
+        } catch (_: Exception) { sura.toString() }
+    }
+
     fun isVerified(id: Int): Boolean {
         val database = ready() ?: return false
         if (id < FIRST_ID) return false
