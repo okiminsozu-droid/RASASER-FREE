@@ -5,7 +5,7 @@ Bağımsız ve internet gerektirmeyen Kur’an PDF dizgi projesi. **Bu dal tamam
 ## Doğrulanmış mevcut çıktı
 - **Arapça:** 114 sure, 6236 numaralı ayet; kaynağı ve sürümü dondurulmuş Tanzil Uthmani v1.1.
 - **Arayüz:** Her Arapça kelime sırasıyla renkli, seçilebilir Unicode yazı olarak basılır.
-- **Fâtiha örneği:** 7 ayet, 29 bağımsız Türkçe kelime açıklaması; ilmî editör onayı bekliyor.
+- **Fâtiha örneği (renk eşleşmeli):** 7 ayette 29 özgün taslak Türkçe kelime karşılığı bulunur. Her Türkçe karşılığın rengi üstündeki Arapça kelimeyle **birebir aynıdır**. İlmî editör onayı bekliyor.
 - **Çalışma tablosu:** Yaklaşık 77.881 Arapça kelime girdisi, 4.364 durak işareti ve 114 sure için Türkçe anlam, izin, çevirmen ve hakem alanları.
 - **Tam kelime mealli baskı:** Ancak bütün Türkçe karşılıklar doldurulup lisans ve ilmî kontrollerden geçtikten sonra yayımlanır.
 
@@ -36,3 +36,10 @@ Her proje bağımsızdır; CAR LAUNCHER, VARAK, KATİP, BENİMLESİN, SAYHA, EZA
 2. Her kelimenin konuma göre tek tek kontrolü ve gereken bağlam açıklamaları.
 3. Bütün Türkçe anlamları alan tam alt-alta renkli A4/mobil PDF baskısı.
 4. Aynı doğrulanmış metinden bağımsız SQLite Android uygulaması.
+
+## Renkli Türkçe karşılık kontrolü (11 Kasım 2026)
+
+- Arapça renk paleti: `#157e76`, `#a66b31`, `#456db3`, `#98659a`, `#4f8260`, `#a55650`.
+- `render_pdf.py/words_html()`: Türkçe anlamı aynı renk değerinden üretir; Arapça sözcük ile Türkçe anlam daima aynı kelime kutusundadır.
+- Kaynak çalışma tablosunda **77.881** Arapça sözcük girişi, **4.364** durak işareti, **29** taslak Türkçe karşılık ve **77.852** henüz boş Türkçe karşılık vardır. Bu nedenle tam Türkçe renkli kelime mealli Kur’an henüz nihai eser değildir.
+- Hakları açık olmayan üçüncü taraf Türkçe meal verisi otomatik kopyalanmaz. Tam Kur’an için kelime karşılıklarının tamamının tamamlanması ve dinî ilimler incelemesi zorunlu.
