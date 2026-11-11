@@ -42,6 +42,7 @@ class QuranStore(private val appContext: Context) :
         db.execSQL("CREATE VIRTUAL TABLE word_fts USING fts4(ar,tr,en,de,es,zh,tokenize=unicode61)")
         db.execSQL("CREATE TABLE verse_favorite (sura INTEGER NOT NULL, ayah INTEGER NOT NULL, PRIMARY KEY(sura,ayah))")
         db.execSQL("CREATE TABLE word_favorite (word_id INTEGER PRIMARY KEY)")
+        db.execSQL("CREATE TABLE word_learned (word_id INTEGER PRIMARY KEY)")
         importPreviewSeed(db)
     }
 
@@ -193,6 +194,26 @@ class QuranStore(private val appContext: Context) :
             }, SQLiteDatabase.CONFLICT_IGNORE)
         }
     }
+    fun isLearnedWord(wordId: Long): Boolean {
+        readableDatabase.rawQuery(
+            "SELECT 1 FROM word_learned WHERE word_id=?", arrayOf(wordId.toString())
+        ).use { return it.moveToFirst() }
+    }
+    fun toggleLearnedWord(wordId: Long) {
+        if (isLearnedWord(wordId)) {
+            writableDatabase.delete("word_learned", "word_id=?", arrayOf(wordId.toString()))
+        } else {
+            writableDatabase.insertWithOnConflict("word_learned", null, ContentValues().apply {
+                put("word_id", wordId)
+            }, SQLiteDatabase.CONFLICT_IGNORE)
+        }
+    }
+    fun learnedCount(): Int {
+        readableDatabase.rawQuery("SELECT COUNT(*) FROM word_learned", null).use { c ->
+            return if (c.moveToFirst()) c.getInt(0) else 0
+        }
+    }
+
     fun favoriteWords(): List<WordToken> {
         val output = mutableListOf<WordToken>()
         readableDatabase.rawQuery(
