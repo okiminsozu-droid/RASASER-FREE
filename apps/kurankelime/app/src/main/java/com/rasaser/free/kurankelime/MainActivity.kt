@@ -27,6 +27,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -68,6 +71,8 @@ private fun WordByWordApplication() {
     var language by rememberSaveable { mutableStateOf(store.language()) }
     var dark by rememberSaveable { mutableStateOf(store.isDark()) }
     var favoritesRevision by remember { mutableIntStateOf(0) }
+    var learnedRevision by remember { mutableIntStateOf(0) }
+    var focusPosition by rememberSaveable { mutableIntStateOf(0) }
     var wordMenu by remember { mutableStateOf<WordToken?>(null) }
     var query by rememberSaveable { mutableStateOf("") }
     var searchResults by remember { mutableStateOf(emptyList<SearchHit>()) }
@@ -89,6 +94,7 @@ private fun WordByWordApplication() {
 
     fun openAyah(number: Int) {
         ayah = number.coerceIn(1, verses.size)
+        focusPosition = 0
         store.saveProgress(ayah)
         screen = "reader"
     }
@@ -182,7 +188,13 @@ private fun WordByWordApplication() {
         ) { inner ->
             when (screen) {
                 "home" -> HomeBody(
-                    lastAyah = store.lastAyah(), onContinue = { openAyah(store.lastAyah()) },
+                    lastAyah = store.lastAyah(),
+                    learnedPercent = remember(learnedRevision) { store.learnedCount() * 100 / 29 },
+                    onContinue = {
+                        ayah = store.lastAyah()
+                        focusPosition = store.lastPosition()
+                        screen = "reader"
+                    },
                     onOpen = ::openAyah,
                     modifier = Modifier.padding(inner)
                 )
@@ -192,7 +204,9 @@ private fun WordByWordApplication() {
                     words = readerWords,
                     language = language,
                     dark = dark,
+                    focusPosition = focusPosition,
                     onWord = { token ->
+                        focusPosition = token.position
                         store.saveProgress(ayah, token.position)
                         wordMenu = token
                     },
@@ -223,11 +237,16 @@ private fun WordByWordApplication() {
             WordActionSheet(
                 word = chosen,
                 language = language,
-                favorite = store.isFavoriteWord(chosen.id),
+                favorite = remember(chosen.id, favoritesRevision) { store.isFavoriteWord(chosen.id) },
+                learned = remember(chosen.id, learnedRevision) { store.isLearnedWord(chosen.id) },
                 onDismiss = { wordMenu = null },
                 onFavorite = {
                     store.toggleWordFavorite(chosen.id)
                     favoritesRevision++
+                },
+                onLearned = {
+                    store.toggleLearnedWord(chosen.id)
+                    learnedRevision++
                 },
                 onShare = {
                     shareText(context, "Fâtiha " + chosen.ayah + ":" + chosen.position + "\n" +
@@ -247,7 +266,7 @@ private val languageLabels = listOf(
 
 @Composable
 private fun HomeBody(
-    lastAyah: Int, onContinue: () -> Unit, onOpen: (Int) -> Unit, modifier: Modifier = Modifier
+    lastAyah: Int, learnedPercent: Int, onContinue: () -> Unit, onOpen: (Int) -> Unit, modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier.fillMaxSize().padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Text("Zihinsel Huzur ve Odak", color = MaterialTheme.colorScheme.primary, fontSize = 15.sp)
@@ -271,7 +290,7 @@ private fun HomeBody(
                 Column(modifier = Modifier.weight(1f)) {
                     Text("1 · Fâtiha", fontWeight = FontWeight.Bold, fontSize = 17.sp)
                     Spacer(Modifier.height(5.dp))
-                    Text("7 ayet · 29 kelime · 5 dil", fontSize = 12.sp)
+                    Text("7 ayet · 29 kelime · 5 dil · %" + learnedPercent + " öğrenildi", fontSize = 12.sp)
                 }
                 Icon(Icons.Default.ChevronRight, contentDescription = "Fâtiha'yı aç", tint = MaterialTheme.colorScheme.primary)
             }
@@ -292,6 +311,7 @@ private fun ReaderBody(
     words: List<WordToken>,
     language: String,
     dark: Boolean,
+    focusPosition: Int,
     onWord: (WordToken) -> Unit,
     onVerseAudio: () -> Unit,
     onPrevious: () -> Unit,
@@ -332,6 +352,7 @@ private fun ReaderBody(
                             Column(
                                 modifier = Modifier.widthIn(min = 85.dp, max = 150.dp)
                                     .clip(RoundedCornerShape(12.dp))
+                                    .background(if (focusPosition == word.position) Gold.copy(alpha = .16f) else Color.Transparent)
                                     .clickable { onWord(word) }
                                     .padding(vertical = 9.dp, horizontal = 3.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally
@@ -395,8 +416,10 @@ private fun WordActionSheet(
     word: WordToken,
     language: String,
     favorite: Boolean,
+    learned: Boolean,
     onDismiss: () -> Unit,
     onFavorite: () -> Unit,
+    onLearned: () -> Unit,
     onShare: () -> Unit,
     onLanguage: (String) -> Unit,
     onListen: () -> Unit
@@ -431,7 +454,11 @@ private fun WordActionSheet(
                     }
                 }
             }
-            Spacer(Modifier.height(28.dp))
+            Spacer(Modifier.height(14.dp))
+            TextButton(onClick = onLearned) {
+                Text(if (learned) "✓ Öğrenildi · Geri al" else "Bu kelimeyi öğrendim ✓")
+            }
+            Spacer(Modifier.height(16.dp))
         }
     }
 }
@@ -484,7 +511,17 @@ private fun SearchBody(
                             Text("Fâtiha Suresi · " + hit.ayah + ". Ayet",
                                 color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
                             Spacer(Modifier.height(8.dp))
-                            Text(verseArabic, fontFamily = FontFamily.Serif, fontSize = 22.sp,
+                            val matchPosition = verseArabic.indexOf(hit.arabic)
+                            val highlighted = buildAnnotatedString {
+                                if (matchPosition >= 0) {
+                                    append(verseArabic.take(matchPosition))
+                                    withStyle(SpanStyle(color = Gold, fontWeight = FontWeight.Bold)) {
+                                        append(hit.arabic)
+                                    }
+                                    append(verseArabic.substring(matchPosition + hit.arabic.length))
+                                } else append(verseArabic)
+                            }
+                            Text(highlighted, fontFamily = FontFamily.Serif, fontSize = 22.sp,
                                 textAlign = TextAlign.Right, modifier = Modifier.fillMaxWidth())
                             Spacer(Modifier.height(8.dp))
                             Text(hit.arabic + " · " + hit.meaning,
