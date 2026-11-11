@@ -12,7 +12,7 @@
 ## Doğrulama
 - [x] Orijinal ZIP'in 10 dosyası değişmeden korunuyor (source-packed SHA-256).
 - [x] Değişiklikler yalnız yeni V2.1 feature dalında ve FREE deposunda.
-- [ ] GitHub Actions V2.1 **son ikonlu** debug derlemesi başarılı.
+- [x] GitHub Actions V2.1 **son ikonlu** debug derlemesi başarılı — run #42962133310.
 - [ ] Ülke listesine dokunulduğunda uygulama ana ekrana atmıyor (Android 15 gerçek cihaz testi).
 - [ ] Türkiye/Almanya/Japonya ülkeleri listeleniyor ve önceki/sonraki istasyonlar çalışıyor (ağ + cihaz testi).
 - [ ] Harita sürüş modu uygulamanın kendi penceresinde çalışıyor (GPS + cihaz testi).
@@ -21,3 +21,16 @@
 - [ ] Çalışan diğer bölümlerin gerileme testi tamamlandı.
 
 **Not:** Başarılı bir Gradle derlemesi, cihaz üzerinde radyo yayınları, GPS ve dinamik menü davranışının tamamını kanıtlamaz. Bu bir DEBUG test APK'sıdır; Play hedef API ve AAB imzalama işlemleri ayrıca yapılacak.
+
+## Doğrulanmış V2.1 APK kaydı (11 Kasım 2026)
+
+- Actions: https://github.com/okiminsozu-droid/RASASER-FREE/actions/runs/42962133310
+- Run sonucu: **SUCCESS**, kaynak doğrulama ve Android debug derleme başarılı.
+- Artifact ID: **13830036568**, arşiv adı `RaSaSeR-CAR-LAUNCHER-V2-1-TEST-APK`
+- GitHub artifact sona erme tarihi: **18 Kasım 2026 04:56 UTC**.
+- Paket: `app-debug.apk`, **11.997.984 bayt**.
+- APK SHA-256: `c65dbc1a0e34c4c867f303a68ef61e614f1f7d298b05a0f2a2090fb0aa6fdc69`.
+- Orijinal JPG ikon APK içinde: `res/drawable-nodpi-v4/car_launcher_icon.jpg`.
+- APK içindeki ikon SHA-256: `cf161e4b44f40f099cc12be78d27de5b13f603735ddd2f40a706e9108e5d1707` — kaynak ikonla **eşleşiyor**.
+- `AndroidManifest.xml` ve dört DEX bölümü paket içinde doğrulandı.
+- Kurulabilir DEBUG test sürümü; henüz cihaz çalıştırma, radyo yayın testi, yol testi veya Play Store yayın testi yapılmadı.
