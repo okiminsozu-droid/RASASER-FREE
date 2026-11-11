@@ -36,17 +36,17 @@ GLOSS_BASMALA=["Adıyla","Allah'ın","Rahmân","Rahîm"]
 CSS="""
 @page {
  size:A4; margin:15mm 14mm 17mm 14mm;
- @bottom-center{content:"Tanzil Project · tanzil.net   •   Elmalılı Hamdi Yazır   •   " counter(page);
+ @bottom-center{content:"Tanzil Project · tanzil.net   •   Elmalılı Hamdi Yazır";
  color:#8b7b65; font-size:7pt; font-family:"DejaVu Sans";}
 }
 html, body {margin:0;padding:0}
 body {font-family:"DejaVu Sans";color:#30362f}
-.heading {background:#f5efe2;border-bottom:2px solid #bd9655;padding:9px 12px;margin:0 0 14px;}
+.heading {background:#f5efe2;border-bottom:2px solid #bd9655;padding:9px 12px;margin:0 0 14px;break-after:avoid;}
 .heading h1 {font-weight:700;font-size:17pt;color:#96703c;margin:0 0 2px;}
 .heading .arname {font-family:Amiri; font-size:21pt;color:#176f68;direction:rtl;float:right;line-height:1.1}
 .heading .sub {font-size:8pt;color:#786f61}
-.verse {margin-bottom:5px; padding:4px 1px 6px; border-bottom:1px solid #e8e3d9;}
-.vnum{color:#9b7745;font-size:8.3pt;font-weight:bold;margin-bottom:2px;}
+.verse {margin-bottom:5px; padding:4px 1px 6px; border-bottom:1px solid #e8e3d9;break-inside:avoid;}
+.vnum{color:#9b7745;font-size:8.3pt;font-weight:bold;margin-bottom:2px;break-after:avoid;}
 .arline{direction:rtl;text-align:right; unicode-bidi:isolate;font-family:Amiri;line-height:1.9;}
 .arline span{font-size:19pt;margin-right:4px}
 .wordgrid{direction:rtl;text-align:right;line-height:1.3;}
