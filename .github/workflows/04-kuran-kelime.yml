@@ -1,0 +1,41 @@
+name: Kur'an Kelime Atölyesi - Bağımsız Önizleme CI
+on:
+  push:
+    branches:
+      - feature/kurankelime-five-language-offline-v1
+    paths:
+      - 'apps/kurankelime/**'
+      - '.github/workflows/04-kuran-kelime.yml'
+  pull_request:
+    paths:
+      - 'apps/kurankelime/**'
+      - '.github/workflows/04-kuran-kelime.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  integrity-and-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - name: Android SDK
+        run: sdkmanager --install "platforms;android-35" "build-tools;35.0.0"
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Repository and license guards
+        run: |
+          python3 tools/check_repo.py
+          python3 tools/validate_app.py kurankelime false
+      - name: Check Quran preview dataset
+        run: python3 -m unittest discover -s apps/kurankelime/tests -v
+      - name: Build Android debug and unit tests (no public APK artifact)
+        run: gradle --no-daemon --project-dir apps/kurankelime :app:assembleDebug :app:testDebugUnitTest
