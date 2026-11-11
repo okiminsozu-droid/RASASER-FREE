@@ -25,6 +25,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -186,13 +189,15 @@ private fun PdfReaderScreen(initialPage: Int, highlightAyah: Int, home: () -> Un
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val prefs = remember { PageStore(context) }
-    var page by remember { mutableIntStateOf(if (initialPage in 1..304) initialPage else prefs.lastPage()) }
+    var page by rememberSaveable { mutableIntStateOf(if (initialPage in 1..EXPECTED_PAGES) initialPage else prefs.lastPage()) }
+    var pageDialog by remember { mutableStateOf(false) }
+    var pageDraft by remember { mutableStateOf(page.toString()) }
     var pdfFile by remember { mutableStateOf<File?>(null) }
     var bitmap by remember { mutableStateOf<Bitmap?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
     var loading by remember { mutableStateOf(true) }
     var isFavorite by remember(page) { mutableStateOf(prefs.isFavorite(page)) }
-    var zoom by remember { mutableFloatStateOf(1f) }
+    var zoom by rememberSaveable { mutableFloatStateOf(1f) }
     val vertical = rememberScrollState()
     val horizontal = rememberScrollState()
     LaunchedEffect(Unit) {
@@ -212,16 +217,50 @@ private fun PdfReaderScreen(initialPage: Int, highlightAyah: Int, home: () -> Un
             }
         }
     }
-    LaunchedEffect(pdfFile, page) {
+    LaunchedEffect(page) {
+        prefs.setLastPage(page)
+        vertical.scrollTo(0)
+        horizontal.scrollTo(0)
+    }
+    LaunchedEffect(pdfFile, page, zoom) {
         val file = pdfFile ?: return@LaunchedEffect
         bitmap = null
+        val desiredWidth = when {
+            zoom >= 2f -> 2400 // stays under ~42 MiB for A4 at ARGB_8888
+            zoom >= 1.5f -> 1800
+            else -> 1400
+        }
         try {
-            bitmap = withContext(Dispatchers.IO) { renderPage(file, page, 1400) }
-            prefs.setLastPage(page)
-            vertical.scrollTo(0)
-            horizontal.scrollTo(0)
+            bitmap = withContext(Dispatchers.IO) { renderPage(file, page, desiredWidth) }
             error = null
         } catch (e: Exception) { error = "Sayfa açılamadı: " + e.message }
+    }
+    if (pageDialog) {
+        AlertDialog(
+            onDismissRequest = { pageDialog = false },
+            title = { Text("Sayfaya git") },
+            text = {
+                OutlinedTextField(
+                    value = pageDraft,
+                    onValueChange = { value -> pageDraft = value.filter(Char::isDigit).take(3) },
+                    label = { Text("1–304 arasında sayfa") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    val target = pageDraft.toIntOrNull()
+                    if (target != null && target in 1..EXPECTED_PAGES) {
+                        page = target
+                        pageDialog = false
+                    }
+                }, enabled = pageDraft.toIntOrNull() in 1..EXPECTED_PAGES) { Text("Git") }
+            },
+            dismissButton = {
+                TextButton(onClick = { pageDialog = false }) { Text("İptal") }
+            }
+        )
     }
     Column(Modifier.fillMaxSize().background(Color.White)) {
         Row(Modifier.fillMaxWidth().background(Color(0xFFF9F3E7)).padding(4.dp),
@@ -231,7 +270,9 @@ private fun PdfReaderScreen(initialPage: Int, highlightAyah: Int, home: () -> Un
             }
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(if (page == 1) "Fâtiha Sûresi" else if (page == 2) "Bakara Sûresi" else "Kelime Mealli Kur'an", color = Forest)
-                Text("Sayfa " + page + " / " + EXPECTED_PAGES, style = MaterialTheme.typography.labelMedium)
+                TextButton(onClick = { pageDraft = page.toString(); pageDialog = true }, contentPadding = PaddingValues(0.dp)) {
+                    Text("Sayfa " + page + " / " + EXPECTED_PAGES, style = MaterialTheme.typography.labelMedium)
+                }
                 IconButton(onClick = home, modifier = Modifier.size(34.dp)) {
                     Icon(Icons.Default.Home, contentDescription = "Ana sayfa")
                 }
