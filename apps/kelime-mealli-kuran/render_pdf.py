@@ -56,17 +56,17 @@ h1,h2,h3,p { margin: 0; }
 .verse-name { font-family:"DejaVu Sans"; color:#826c45; font-size:9pt; font-weight:bold; margin:4px 0 5px; }
 .tokens { direction:rtl; text-align:right; line-height:1.45; }
 .word { display:inline-block; vertical-align:top; text-align:center;
-        min-width:51px; max-width:142px; margin:3px 3px 5px;
+        min-width:95px; max-width:156px; margin:3px 3px 5px;
         padding:5px 4px 3px; border-radius:6px; background:#faf7f0;
         border: 1px solid #e8dfcf; break-inside:avoid; }
 .ar { direction:rtl; unicode-bidi:isolate; font-family:"Amiri", "Noto Naskh Arabic",serif;
-      font-size:21pt; line-height:1.7; min-height:35px; }
+      font-size:21pt; line-height:2.2; min-height:65px; }
 .tr { direction:ltr; font-family:"DejaVu Sans"; font-size:9pt; line-height:1.2;
-      color:#524b40; min-height:13px; margin-top:3px; }
+      color:#524b40; min-height:16px; margin-top:7px; }
 .ornament {font-size:8pt;color:#a19076;line-height:1.1}
 .word.pending .tr { color:#b3a693; font-size:7.5pt; }
 .word.pending { background:#fffdfa; }
-.legal { page-break-before:always; }
+.arabic-inline {font-family:"Amiri", "Noto Naskh Arabic",serif; font-size:20pt; line-height:1.8; color:#18776b; direction:rtl; text-align:right; unicode-bidi:isolate;}\n.arabic-inline span {display:inline; padding: 0 1.8px;}\n.verse.arabic-full {margin-bottom:6px; padding-bottom:4px;}\n.legal { page-break-before:always; }
 .legal h2 { color:#9b7839; font-size:17pt; margin-bottom:9mm; }
 .legal p {font-size:10pt;line-height:1.6;margin:5mm 0;}
 """
@@ -133,8 +133,18 @@ def build_html(src, sample=False):
             vn=verse["number"]
             gloss = FATIHA.get(vn) if n==1 and vn>0 else None
             title = "Besmele" if vn == 0 else f"{n}:{vn}"
-            chunks.append(f'<div class="verse"><div class="verse-name">{title}</div>'
-                          f'<div class="tokens">{words_html(verse["text"],gloss,f"{n}:{vn}")}</div></div>')
+            if sample:
+                chunks.append(f'<div class="verse"><div class="verse-name">{title}</div>'
+                              f'<div class="tokens">{words_html(verse["text"],gloss,f"{n}:{vn}")}</div></div>')
+            else:
+                # Full original Arabic edition is lean and reliably printable.
+                # Turkish meanings are NOT fabricated for the other 6,229 verses.
+                parts = [
+                    f'<span style="color:{PALETTE[k % len(PALETTE)]}">{html.escape(word)}</span>'
+                    for k, word in enumerate(clean_tokens(verse["text"]))
+                ]
+                chunks.append(f'<div class="verse arabic-full"><div class="verse-name">{title}</div>'
+                              f'<div class="arabic-inline" lang="ar">{" ".join(parts)}</div></div>')
         chunks.append('</section>')
     chunks += ['<section class="legal"><h2>Kaynak ve yayın notu</h2>',
                '<p><b>Arapça metin:</b> Tanzil Quran Text, Uthmani Version 1.1, '
