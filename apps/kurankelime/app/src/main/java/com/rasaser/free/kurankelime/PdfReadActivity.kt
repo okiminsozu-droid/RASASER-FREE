@@ -278,10 +278,12 @@ private fun PdfReaderScreen(initialPage: Int, highlightAyah: Int, highlightWordI
     val horizontal = rememberScrollState()
 
     LaunchedEffect(Unit) {
-        // Do not wait on a 90 MB PDF copy to show the first page.
+        // The complete Quran is already inside the APK as rendered pages.
+        // Do not duplicate its 90 MB PDF in internal phone storage.
         renderedPagesReady = withContext(Dispatchers.IO) { hasRenderedPages(context) }
-        loading = !renderedPagesReady
-        pdfFile = withContext(Dispatchers.IO) { installedBook(context) }
+        if (!renderedPagesReady) {
+            pdfFile = withContext(Dispatchers.IO) { installedBook(context) }
+        }
         loading = false
     }
     LaunchedEffect(page, highlightWordId) {
