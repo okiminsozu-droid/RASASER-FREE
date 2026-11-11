@@ -234,11 +234,17 @@ private fun DiscoverHome() {
                             Card(onClick={openBookPage(context,hit.page,highlightWordId=hit.id)},
                                 shape=RoundedCornerShape(14.dp)) {
                                 Column(Modifier.fillMaxWidth().padding(15.dp)) {
-                                    Text("Kur’anı Keşfet · Sayfa " + hit.page,
+                                    val verifiedRange = remember(hit.id,hit.page) {
+                                        if (bundledReady) bundledIndex.referenceLabel(hit.id,hit.page)
+                                        else null
+                                    }
+                                    Text(verifiedRange ?: ("Kur’anı Keşfet · Sayfa " + hit.page),
                                         color=HomeGreen,fontWeight=FontWeight.SemiBold,fontSize=13.sp)
                                     Spacer(Modifier.height(5.dp))
                                     Text(hit.gloss,fontSize=17.sp,color=Color(0xFF885E20),
                                         fontWeight=FontWeight.Bold)
+                                    Text("PDF sayfa " + hit.page + " · Kelimeye git",
+                                        color=HomeBrown,fontSize=11.sp)
                                 }
                             }
                         }
