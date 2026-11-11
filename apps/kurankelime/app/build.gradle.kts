@@ -15,6 +15,11 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     buildTypes {
+        debug {
+            // Dedicated trial install; never overwrite an already installed reader or its favorites.
+            applicationIdSuffix = ".trial"
+            versionNameSuffix = "-trial"
+        }
         release {
             isMinifyEnabled = true
             isShrinkResources = true

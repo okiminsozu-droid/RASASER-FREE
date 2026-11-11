@@ -13,7 +13,7 @@
         <activity android:name=".PdfReadActivity" android:exported="false" />
         <activity android:name=".MainActivity" android:exported="false" />
         <provider android:name="androidx.core.content.FileProvider"
-                  android:authorities="com.rasaser.free.kurankelime.provider"
+                  android:authorities="${applicationId}.provider"
                   android:exported="false" android:grantUriPermissions="true">
             <meta-data android:name="android.support.FILE_PROVIDER_PATHS"
                        android:resource="@xml/share_paths" />
