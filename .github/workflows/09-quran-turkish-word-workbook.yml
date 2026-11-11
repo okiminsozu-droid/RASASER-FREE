@@ -1,0 +1,41 @@
+name: KELIME MEALLI KURAN - Turkish Word Review Workbook
+on:
+  push:
+    branches: [feature/kelime-mealli-kuran-pdf-v1]
+    paths:
+      - "apps/kelime-mealli-kuran/generate_word_workbook.py"
+      - "apps/kelime-mealli-kuran/data/quran-uthmani-tanzil-v1.1.json"
+      - ".github/workflows/09-quran-turkish-word-workbook.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build-word-workbook:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Generate UTF-8 word-position workbook with 114 surahs
+        run: |
+          python3 apps/kelime-mealli-kuran/generate_word_workbook.py --out output
+      - name: Sanity check and checksums
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+          d=json.loads(Path("output/TRANSLATION-QA-STATUS.json").read_text())
+          assert d["surahs"]==114 and d["numbered_verses"]==6236
+          assert d["draft_meanings"]==29
+          assert d["word_entries"]>77000
+          print("SCOPE:",d["word_entries"],"Arabic words,",d["pause_markers"],"pause marks")
+          print("DRAFT ONLY; translator and scholarly review pending.")
+          PY
+      - name: Upload independent editable word alignment sheet
+        uses: actions/upload-artifact@v4
+        with:
+          name: RaSaSeR-Quran-114-Sure-Turkce-Kelime-Calisma-Tablosu-TASLAK
+          path: output
+          retention-days: 21
+          if-no-files-found: error
