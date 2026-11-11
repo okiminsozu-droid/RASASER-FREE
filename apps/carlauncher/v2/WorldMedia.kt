@@ -9,8 +9,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -97,21 +95,63 @@ fun loadInternetTV(countryCode: String): List<TvChannel> {
 @Composable
 fun CountryMenu(lang: String, selected: String, accent: Color, onSelect: (String) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
+    var search by remember { mutableStateOf("") }
     val countries = remember(lang) { worldCountries(lang) }
-    val current = countries.find { it.iso == selected }
-    Box {
-        Text(
-            text = "${current?.flag ?: "🌍"} ${current?.name ?: selected} ▾",
-            color = accent, fontSize = 12.sp,
-            modifier = Modifier.clickable { expanded = true }.padding(vertical = 3.dp)
-        )
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            LazyColumn(Modifier.heightIn(max = 320.dp).width(260.dp)) {
-                items(countries) { entry ->
-                    DropdownMenuItem(
-                        text = { Text("${entry.flag} ${entry.name}", fontSize = 13.sp) },
-                        onClick = { expanded = false; onSelect(entry.iso) }
+    val current = remember(countries, selected) { countries.find { it.iso == selected } }
+    // A LazyColumn inside DropdownMenu crashes on some Compose versions because it
+    // requests SubcomposeLayout intrinsic measurements. A separate, in-app Dialog
+    // is layout-safe and keeps the dashboard visible behind it.
+    Text(
+        text = "${current?.flag ?: "🌍"} ${current?.name ?: selected}  ▾",
+        color = accent, fontSize = 12.sp, maxLines = 1,
+        modifier = Modifier.clickable { search = ""; expanded = true }.padding(vertical = 3.dp)
+    )
+    if (expanded) {
+        val filtered = remember(countries, search) {
+            if (search.isBlank()) countries
+            else countries.filter { it.name.contains(search, ignoreCase = true) ||
+                it.iso.contains(search, ignoreCase = true) }
+        }
+        Dialog(
+            onDismissRequest = { expanded = false },
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            Surface(
+                modifier = Modifier.fillMaxWidth(0.64f).fillMaxHeight(0.82f),
+                color = Color(0xFF15110B),
+                border = BorderStroke(1.dp, accent),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Column(Modifier.fillMaxSize().padding(14.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(uiText(lang, "country"), color = accent,
+                            modifier = Modifier.weight(1f))
+                        Text("✕", color = Color.White, fontSize = 22.sp,
+                            modifier = Modifier.clickable { expanded = false }.padding(6.dp))
+                    }
+                    androidx.compose.material3.TextField(
+                        value = search,
+                        onValueChange = { search = it.take(60) },
+                        placeholder = { Text("🔎  ${uiText(lang, "country")}") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
                     )
+                    Spacer(Modifier.height(8.dp))
+                    LazyColumn(Modifier.fillMaxSize()) {
+                        items(filtered, key = { it.iso }) { country ->
+                            Row(
+                                Modifier.fillMaxWidth().clickable {
+                                    expanded = false
+                                    onSelect(country.iso)
+                                }.padding(vertical = 9.dp, horizontal = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(country.flag, fontSize = 22.sp)
+                                Spacer(Modifier.width(12.dp))
+                                Text(country.name, color = Color.White, fontSize = 16.sp)
+                            }
+                        }
+                    }
                 }
             }
         }
