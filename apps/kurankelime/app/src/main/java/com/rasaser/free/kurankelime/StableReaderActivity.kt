@@ -135,7 +135,7 @@ class StableReaderActivity : Activity() {
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
         // Existing reader and current page survive device rotation.
-        pageView.post { pageView.invalidate() }
+        pageView.post { pageView.restoreFullscreen() }
     }
     private fun updateToolbar() {
         counter.text=page.toString()+" / 304"
@@ -302,6 +302,13 @@ class StableReaderActivity : Activity() {
         fun clearPage(){source=null;message=null;word=null;zoom=1f;fitWholePage=false;panX=0f;panY=0f;invalidate()}
         fun showError(msg:String){source=null;message=msg;invalidate()}
         fun highlight(w:PageWord){word=w;invalidate()}
+        fun restoreFullscreen(){
+            fitWholePage=false
+            zoom=1f
+            panX=0f
+            panY=0f
+            invalidate()
+        }
         fun toggleFit(){
             fitWholePage=!fitWholePage
             zoom=1f
