@@ -1,0 +1,60 @@
+name: KELIME MEALLI KURAN - PDF Builder
+on:
+  push:
+    branches: [feature/kelime-mealli-kuran-pdf-v1]
+    paths:
+      - "apps/kelime-mealli-kuran/**"
+      - ".github/workflows/08-quran-colored-word-pdf.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: quran-pdf-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  quran-pdf:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install open-source Arabic and Turkish typesetting fonts
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y fonts-hosny-amiri fonts-dejavu-core
+          fc-cache -f
+      - name: Install independent PDF renderer
+        run: python -m pip install --disable-pip-version-check weasyprint==66.0 pypdf==5.9.0
+      - name: Build complete Fatiha word-meaning sample PDF
+        run: |
+          python apps/kelime-mealli-kuran/render_pdf.py --mode sample-fatiha --out output/01-FATIHA-KELIME-MEALI-ORNEK.pdf
+          pdfinfo output/01-FATIHA-KELIME-MEALI-ORNEK.pdf | head -18
+      - name: Build all 114 surahs with colored unaltered Arabic text
+        run: |
+          python apps/kelime-mealli-kuran/render_pdf.py --mode full-arabic --out output/02-KURAN-114-SURE-RENKLI-ARAPCA-KELIMELER.pdf
+          pdfinfo output/02-KURAN-114-SURE-RENKLI-ARAPCA-KELIMELER.pdf | head -18
+      - name: Check output and generate SHAs
+        run: |
+          python - <<'PY'
+          from pypdf import PdfReader
+          from pathlib import Path
+          paths=sorted(Path('output').glob('*.pdf'))
+          assert len(paths)==2
+          for p in paths:
+              doc=PdfReader(str(p))
+              print(f'{p.name}: {len(doc.pages)} pages; {p.stat().st_size} bytes')
+              assert len(doc.pages)>0
+          assert len(PdfReader('output/02-KURAN-114-SURE-RENKLI-ARAPCA-KELIMELER.pdf').pages)>114
+          PY
+          sha256sum output/*.pdf > output/SHA256SUMS.txt
+      - name: Publish PDF files only; never publish unverified Turkish word data
+        uses: actions/upload-artifact@v4
+        with:
+          name: RaSaSeR-Kelime-Mealli-Kuran-PDF-Cizgi-V1-TASLAK
+          path: output/
+          retention-days: 21
+          if-no-files-found: error
