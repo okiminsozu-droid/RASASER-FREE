@@ -4,6 +4,7 @@ import android.graphics.BitmapFactory
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.os.Build
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.compose.BackHandler
@@ -82,15 +83,50 @@ private fun DiscoverHome() {
     val store = remember { PageStore(context) }
     val quranIndex = remember { QuranStore(context) }
     val fullIndex = remember { PageWordIndex(context.applicationContext) }
+    val localEngine = remember { PdfTextEngine(context.applicationContext) }
     var language by remember { mutableStateOf(settings.getString("lang", "tr") ?: "tr") }
     var menu by remember { mutableStateOf(false) }
-    var screen by remember { mutableStateOf("home") }
+    var screen by remember { mutableStateOf(if ((context as? android.app.Activity)?.intent?.getBooleanExtra("open_search", false) == true) "search" else "home") }
     var query by remember { mutableStateOf("") }
     var updated by remember { mutableIntStateOf(0) }
     var fullHits by remember { mutableStateOf(emptyList<PageWord>()) }
-    LaunchedEffect(screen, query) {
-        fullHits = if (screen == "search" && query.isNotBlank() && fullIndex.hasFullIndex) {
-            withContext(Dispatchers.Default) { fullIndex.search(query) }
+    var onDeviceReady by remember { mutableStateOf(false) }
+    var indexing by remember { mutableStateOf(false) }
+    var scannedPages by remember { mutableIntStateOf(0) }
+    var pageCount by remember { mutableIntStateOf(304) }
+    var noTextLayer by remember { mutableStateOf(false) }
+    var bookPresent by remember { mutableStateOf(false) }
+    LaunchedEffect(screen) {
+        if (screen != "search") return@LaunchedEffect
+        val file = withContext(Dispatchers.IO) { installedBook(context) }
+        bookPresent = file != null
+        if (file != null && Build.VERSION.SDK_INT >= 35) {
+            indexing = true
+            try {
+                onDeviceReady = withContext(Dispatchers.IO) {
+                    localEngine.buildIfNeeded(file) { done, total ->
+                        scannedPages = done
+                        pageCount = total
+                    }
+                }
+                noTextLayer = !onDeviceReady
+            } catch (_: Exception) {
+                // Malformed or image-only PDFs can still use an explicitly supplied private index.
+                noTextLayer = true
+            } finally {
+                indexing = false
+            }
+        }
+    }
+    LaunchedEffect(screen, query, onDeviceReady) {
+        fullHits = if (screen == "search" && query.isNotBlank()) {
+            withContext(Dispatchers.IO) {
+                when {
+                    onDeviceReady -> localEngine.search(query)
+                    fullIndex.hasFullIndex -> fullIndex.search(query)
+                    else -> emptyList()
+                }
+            }
         } else emptyList()
     }
     val l = labels(language)
@@ -168,16 +204,28 @@ private fun DiscoverHome() {
                 }
                 OutlinedTextField(query,{query=it},modifier=Modifier.fillMaxWidth(),
                     placeholder={Text(l.searchHint)}, singleLine=true)
-                Text(
-                    if (fullIndex.hasFullIndex) "304 sayfa boyunca çevrimdışı Türkçe kelime anlamı araması"
-                    else "Tam arama dizini bu APK'de yok; Fâtiha örnek araması etkin.",
-                    fontSize=11.sp, color=HomeBrown, modifier=Modifier.padding(vertical=8.dp))
-                val fallback = remember(query, language) {
-                    if (query.isBlank() || fullIndex.hasFullIndex) emptyList()
-                    else quranIndex.search(query,if (language=="ar") "tr" else language)
+                val hasFullSearch = onDeviceReady || fullIndex.hasFullIndex
+                val searchMessage = when {
+                    indexing -> "Çevrimdışı metin dizini hazırlanıyor: $scannedPages / $pageCount sayfa"
+                    onDeviceReady -> "PDF'den oluşturulan yerel arama dizini hazır · internet gerekmez"
+                    fullIndex.hasFullIndex -> "Uygulamaya eklenmiş 304 sayfalık arama dizini hazır"
+                    noTextLayer -> "Bu PDF'nin metin katmanı okunamadı. Kelime dizini eklenmeli."
+                    !bookPresent -> "Tam arama için PDF'yi OKU bölümünden bir kez seçin."
+                    Build.VERSION.SDK_INT < 35 -> "Android 15 altında tam arama için yerel kelime dizini gereklidir."
+                    else -> "Tam arama verisi henüz hazır değil; Fâtiha örnek araması açık."
+                }
+                Text(searchMessage, fontSize=11.sp, color=HomeBrown,
+                    modifier=Modifier.padding(vertical=8.dp))
+                if (indexing) LinearProgressIndicator(
+                    progress = { scannedPages.toFloat() / pageCount.coerceAtLeast(1) },
+                    modifier=Modifier.fillMaxWidth()
+                )
+                val fallback = remember(query, language, hasFullSearch) {
+                    if (query.isBlank() || hasFullSearch) emptyList()
+                    else quranIndex.search(query, if (language=="ar") "tr" else language)
                 }
                 LazyColumn(verticalArrangement=Arrangement.spacedBy(8.dp)) {
-                    if (fullIndex.hasFullIndex) {
+                    if (hasFullSearch) {
                         items(fullHits, key={ "hit" + it.id }) { hit ->
                             Card(onClick={openBookPage(context,hit.page,highlightWordId=hit.id)},
                                 shape=RoundedCornerShape(14.dp)) {
@@ -202,7 +250,7 @@ private fun DiscoverHome() {
                             }
                         }
                     }
-                    if (query.isNotBlank() && fullHits.isEmpty() && fallback.isEmpty()) {
+                    if (query.isNotBlank() && !indexing && fullHits.isEmpty() && fallback.isEmpty()) {
                         item { Text(l.empty,modifier=Modifier.padding(16.dp)) }
                     }
                 }
