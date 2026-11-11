@@ -176,7 +176,7 @@ private fun DiscoverHome() {
                     items(pages) { page ->
                         Card(onClick={openBookPage(context,page)}) {
                             Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment=Alignment.CenterVertically) {
-                                Icon(Icons.Default.Star,color=Color(0xFFC69C51), contentDescription=null)
+                                Icon(Icons.Default.Star,tint=Color(0xFFC69C51), contentDescription=null)
                                 Spacer(Modifier.width(12.dp))
                                 Text("PDF Sayfa " + page,color=HomeGreen)
                             }
