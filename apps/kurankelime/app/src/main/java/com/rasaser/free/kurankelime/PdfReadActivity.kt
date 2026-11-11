@@ -163,22 +163,53 @@ private fun importBook(context: Context, uri: android.net.Uri): File {
     } finally { temp.delete() }
 }
 
-private fun renderPage(file: File, page: Int, width: Int): Bitmap {
-    ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY).use { descriptor ->
+private fun pageAssetPath(page: Int): String =
+    "quran/rendered/page_" + page.toString().padStart(4, '0') + ".webp"
+
+private fun hasRenderedPages(context: Context): Boolean = try {
+    context.assets.open(pageAssetPath(1)).use {
+        it.read() >= 0
+    }
+} catch (_: Exception) { false }
+
+/**
+ * Prefer pre-rendered pages: decoding one small WebP doesn't initialize Android PdfRenderer
+ * or allocate a whole PDF document's native bitmaps. Keep original PDF as archival source.
+ */
+private fun renderPage(context: Context, file: File?, page: Int, width: Int): Bitmap {
+    require(page in 1..EXPECTED_PAGES)
+    try {
+        context.assets.open(pageAssetPath(page)).use { stream ->
+            val opts = BitmapFactory.Options().apply {
+                inPreferredConfig = Bitmap.Config.RGB_565
+            }
+            val decoded = BitmapFactory.decodeStream(stream, null, opts)
+            if (decoded != null && decoded.width > 0 && decoded.height > 0) return decoded
+        }
+    } catch (_: Exception) { /* Older, source-only APK: PDF fallback below */ }
+    val existing = file ?: throw IllegalStateException("Yerleşik sayfa verisi bulunamadı.")
+    ParcelFileDescriptor.open(existing, ParcelFileDescriptor.MODE_READ_ONLY).use { descriptor ->
         PdfRenderer(descriptor).use { pdf ->
             require(page in 1..pdf.pageCount)
             pdf.openPage(page - 1).use { p ->
-                val bitmap = Bitmap.createBitmap(width, (width.toFloat() * p.height / p.width).toInt(), Bitmap.Config.ARGB_8888)
-                bitmap.eraseColor(android.graphics.Color.WHITE)
-                p.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
-                return bitmap
+                val renderWidth = width.coerceIn(600, 1200)
+                val h = (renderWidth.toFloat() * p.height / p.width).toInt()
+                val image = Bitmap.createBitmap(renderWidth, h, Bitmap.Config.ARGB_8888)
+                image.eraseColor(android.graphics.Color.WHITE)
+                try {
+                    p.render(image, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
+                    return image
+                } catch (e: Exception) {
+                    image.recycle()
+                    throw e
+                }
             }
         }
     }
 }
 
-private fun buildPageShare(context: Context, file: File, page: Int): Intent {
-    val original = renderPage(file, page, 1200)
+private fun buildPageShare(context: Context, file: File?, page: Int): Intent {
+    val original = renderPage(context, file, page, 1200)
     val output = Bitmap.createBitmap(original.width, original.height + 180, Bitmap.Config.ARGB_8888)
     try {
         val canvas = Canvas(output)
@@ -233,6 +264,7 @@ private fun PdfReaderScreen(initialPage: Int, highlightAyah: Int, highlightWordI
     var pageDialog by remember { mutableStateOf(false) }
     var pageDraft by remember { mutableStateOf(page.toString()) }
     var pdfFile by remember { mutableStateOf<File?>(null) }
+    var renderedPagesReady by remember { mutableStateOf(false) }
     var bitmap by remember { mutableStateOf<Bitmap?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
     var loading by remember { mutableStateOf(true) }
@@ -246,6 +278,9 @@ private fun PdfReaderScreen(initialPage: Int, highlightAyah: Int, highlightWordI
     val horizontal = rememberScrollState()
 
     LaunchedEffect(Unit) {
+        // Do not wait on a 90 MB PDF copy to show the first page.
+        renderedPagesReady = withContext(Dispatchers.IO) { hasRenderedPages(context) }
+        loading = !renderedPagesReady
         pdfFile = withContext(Dispatchers.IO) { installedBook(context) }
         loading = false
     }
@@ -276,8 +311,8 @@ private fun PdfReaderScreen(initialPage: Int, highlightAyah: Int, highlightWordI
         vertical.scrollTo(0)
         horizontal.scrollTo(0)
     }
-    LaunchedEffect(pdfFile, page, zoom) {
-        val file = pdfFile ?: return@LaunchedEffect
+    LaunchedEffect(pdfFile, renderedPagesReady, page, zoom) {
+        if (pdfFile == null && !renderedPagesReady) return@LaunchedEffect
         bitmap = null
         val width = when {
             zoom >= 2f -> 2400
@@ -285,7 +320,7 @@ private fun PdfReaderScreen(initialPage: Int, highlightAyah: Int, highlightWordI
             else -> 1400
         }
         try {
-            bitmap = withContext(Dispatchers.IO) { renderPage(file, page, width) }
+            bitmap = withContext(Dispatchers.IO) { renderPage(context, pdfFile, page, width) }
             error = null
         } catch (e: Exception) {
             error = "Sayfa açılamadı: " + e.message
@@ -335,7 +370,7 @@ private fun PdfReaderScreen(initialPage: Int, highlightAyah: Int, highlightWordI
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(color = Forest)
             }
-        } else if (pdfFile == null) {
+        } else if (pdfFile == null && !renderedPagesReady) {
             Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(error ?: "304 sayfalık Kur’an PDF bu APK içinde bulunmuyor. Eksiksiz çevrimdışı paketle kurulmalıdır.")
@@ -515,7 +550,7 @@ private fun PdfReaderScreen(initialPage: Int, highlightAyah: Int, highlightWordI
                     }
                     IconButton(onClick = {
                         val file = pdfFile
-                        if (file == null) {
+                        if (file == null && !renderedPagesReady) {
                             Toast.makeText(context, "Önce PDF'yi seçin.", Toast.LENGTH_SHORT).show()
                         } else scope.launch {
                             try {
