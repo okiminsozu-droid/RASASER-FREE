@@ -46,7 +46,10 @@ class BundledWordIndex(private val context: Context) {
             val count = opened.rawQuery("SELECT COUNT(*) FROM pages", null).use {
                 if (it.moveToFirst()) it.getInt(0) else 0
             }
-            if (count != 304) {
+            val sourceSha = opened.rawQuery("SELECT value FROM meta WHERE key='source_pdf_sha256'", null).use {
+                if (it.moveToFirst()) it.getString(0) else ""
+            }
+            if (count != 304 || sourceSha != "387674c9a3bfb2c501c2dcca4b63946ea05f386dcd4d6fa4b63b4060b01397ea") {
                 opened.close()
                 return@synchronized null
             }
@@ -76,14 +79,15 @@ class BundledWordIndex(private val context: Context) {
         val terms = normalized(query).split(' ').filter { it.isNotBlank() }.take(6)
         if (terms.isEmpty()) return emptyList()
         val match = terms.joinToString(" ") { it + "*" }
+        val searchLang = if (query.any { it.code in 0x0600..0x06FF }) "ara" else "tur"
         val output = ArrayList<PageWord>()
         try {
             database.rawQuery(
                 "SELECT t.id,t.page,t.x,t.y,t.w,t.h,t.token FROM ocr_fts f " +
                     "JOIN ocr_tokens t ON t.id=f.docid " +
-                    "WHERE ocr_fts MATCH ? AND t.lang='tur' AND t.confidence>=40 " +
+                    "WHERE ocr_fts MATCH ? AND t.lang=? AND t.confidence>=40 " +
                     "ORDER BY t.page,t.y,t.x LIMIT ?",
-                arrayOf(match, limit.coerceIn(1, 500).toString())
+                arrayOf(match, searchLang, limit.coerceIn(1, 500).toString())
             ).use { c -> while (c.moveToNext()) output += fromCursor(c) }
         } catch (_: android.database.sqlite.SQLiteException) {}
         return output
