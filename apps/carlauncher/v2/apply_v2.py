@@ -605,5 +605,20 @@ m=MANIFEST.read_text(encoding="utf-8")
 m=replace(m, '    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />',
 '''    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.BIND_APPWIDGET" />''', "widget permission")
+
+# Selected premium black-gold CAR LAUNCHER logo; never modify the original ZIP asset.
+from hashlib import sha256
+logo_source = HERE / "assets" / "car_launcher_icon.jpg"
+if not logo_source.is_file():
+    raise SystemExit("Approved launcher icon asset missing")
+logo_bytes = logo_source.read_bytes()
+if sha256(logo_bytes).hexdigest() != "cf161e4b44f40f099cc12be78d27de5b13f603735ddd2f40a706e9108e5d1707":
+    raise SystemExit("Launcher icon SHA-256 mismatch")
+logo_dir = PROJECT / "app/src/main/res/drawable-nodpi"
+logo_dir.mkdir(parents=True, exist_ok=True)
+(logo_dir / "car_launcher_icon.jpg").write_bytes(logo_bytes)
+m = replace(m, 'android:icon="@drawable/ic_launcher"',
+    'android:icon="@drawable/car_launcher_icon"', "approved launcher icon")
+
 MANIFEST.write_text(m,encoding="utf-8")
 print(f"Dashboard v2 patch applied to {MAIN}; original packed ZIP remains unchanged")
