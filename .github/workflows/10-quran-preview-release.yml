@@ -1,0 +1,75 @@
+name: KELIME MEALLI KURAN - Publish PDF Preview Archive
+on:
+  push:
+    branches: [feature/kelime-mealli-kuran-pdf-v1]
+    paths:
+      - ".github/workflows/10-quran-preview-release.yml"
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  archive-quran-pdf:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install free open source fonts and PDF tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y fonts-hosny-amiri fonts-dejavu-core
+          python -m pip install --disable-pip-version-check weasyprint==66.0 pypdf==5.9.0
+      - name: Build full Arabic and Fatiha draft PDFs independently
+        run: |
+          python apps/kelime-mealli-kuran/render_pdf.py --mode sample-fatiha --out output/01-FATIHA-KELIME-MEALI-ORNEK.pdf
+          python apps/kelime-mealli-kuran/render_pdf.py --mode full-arabic --out output/02-KURAN-114-SURE-RENKLI-ARAPCA-KELIMELER.pdf
+          python apps/kelime-mealli-kuran/generate_word_workbook.py --out output
+          sha256sum output/*.pdf output/*.tsv > output/SHA256SUMS.txt
+      - name: Verify full Arabic coverage and workbook before archive
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from pypdf import PdfReader
+          import json
+          files=list(Path('output').glob('*.pdf'))
+          assert len(files)==2
+          full=Path('output/02-KURAN-114-SURE-RENKLI-ARAPCA-KELIMELER.pdf')
+          pdf=PdfReader(str(full))
+          assert len(pdf.pages)>114
+          assert '114:6' in pdf.pages[-2].extract_text() or '114:6' in pdf.pages[-3].extract_text()
+          summary=json.loads(Path('output/TRANSLATION-QA-STATUS.json').read_text())
+          assert summary['surahs']==114
+          assert summary['numbered_verses']==6236
+          assert summary['word_entries']>77000
+          assert summary['draft_meanings']==29
+          print('Validated',len(pdf.pages),'pages,',summary['word_entries'],'word entries')
+          PY
+      - name: Create or update permanent clearly labeled preview release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tag="quran-pdf-preview-v0.1"
+          cat > /tmp/RELEASE-NOTES.md <<'NOTES'
+          # RaSaSeR Quran PDF — preview, NOT a complete Turkish word translation
+
+          This release contains:
+          - 114 surahs and 6,236 ayahs of Tanzil Uthmani v1.1 Arabic text in a 770-page color-word PDF.
+          - Fatiha 7-ayah design example with 29 provisional original Turkish glosses (not scholarly reviewed).
+          - UTF-8 spreadsheet-style Arabic/Turkish word mapping workbook for the entire Quran; translations are intentionally blank outside Fatiha.
+          - QA summary and SHA256 file digests.
+
+          **This package is a work in progress. It is NOT yet a complete word-by-word Turkish Quran PDF.**
+          The Arabic Quran data is kept unaltered, attributed to Tanzil (CC BY 3.0; https://tanzil.net/docs/Text_License).
+          Turkish glosses require licensing and scholarly review before public release as a translation.
+          No paid API, subscription, remote service, private signing key, or third-party runtime is required to open these PDFs.
+          NOTES
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release upload "$tag" output/*.pdf output/*.tsv output/*.json output/SHA256SUMS.txt --clobber
+          else
+            gh release create "$tag" output/*.pdf output/*.tsv output/*.json output/SHA256SUMS.txt --target "${GITHUB_SHA}" --title "RaSaSeR Quran PDF - Arabic complete / Turkish prototype v0.1" --prerelease --notes-file /tmp/RELEASE-NOTES.md
+          fi
