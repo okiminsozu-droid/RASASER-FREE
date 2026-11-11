@@ -10,7 +10,7 @@ permissions:
   contents: read
 concurrency:
   group: quran-pdf-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 jobs:
   quran-pdf:
     runs-on: ubuntu-latest
