@@ -1,0 +1,76 @@
+name: CAR LAUNCHER - API36 Unsigned Play AAB
+on:
+  push:
+    branches: [release/carlauncher-play-draft-api36]
+    paths:
+      - "apps/carlauncher/play-draft/**"
+      - "apps/carlauncher/v2/**"
+      - "apps/carlauncher/source-packed/**"
+      - "apps/carlauncher/unpack_original.py"
+      - ".github/workflows/07-carlauncher-play-aab.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: carlauncher-play-aab-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  unsigned-play-aab:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Check out pinned public source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Python for lossless original ZIP source
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Restore approved CAR LAUNCHER original sources
+        run: |
+          python3 -m pip install --disable-pip-version-check brotli==1.1.0
+          python3 apps/carlauncher/unpack_original.py
+      - name: Apply V2.1 and approved TV change without touching original
+        run: python3 apps/carlauncher/v2/apply_v2.py
+      - name: Prepare API36 unsigned Google Play candidate
+        run: python3 apps/carlauncher/play-draft/prepare_release.py
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Android SDK
+        uses: android-actions/setup-android@v4
+        with:
+          packages: "platform-tools"
+      - name: Install Android 16 SDK and Build Tools
+        run: sdkmanager --install "platforms;android-36" "build-tools;35.0.0"
+      - name: Install Gradle 8.13
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.13"
+      - name: Build UNSIGNED Play App Bundle
+        run: gradle --no-daemon --project-dir apps/carlauncher/original :app:bundleRelease
+      - name: Verify AAB packaging and record digest
+        run: |
+          find apps/carlauncher/original/app/build/outputs/bundle/release -name '*.aab' -exec sha256sum {} \;
+          python3 - <<'PY'
+          from pathlib import Path
+          from zipfile import ZipFile
+          folder=Path('apps/carlauncher/original/app/build/outputs/bundle/release')
+          candidates=list(folder.glob('*.aab'))
+          assert len(candidates)==1, f'Expected exactly one AAB, got {candidates}'
+          with ZipFile(candidates[0]) as bundle:
+              names=set(bundle.namelist())
+              assert 'base/manifest/AndroidManifest.xml' in names
+              assert 'base/dex/classes.dex' in names
+          print(f'Valid unsigned bundle: {candidates[0].name}')
+          PY
+      - name: Publish UNSIGNED candidate only (never upload private keys)
+        uses: actions/upload-artifact@v4
+        with:
+          name: CAR-LAUNCHER-API36-UNSIGNED-AAB-NOT-FOR-PLAY-UPLOAD
+          path: apps/carlauncher/original/app/build/outputs/bundle/release/*.aab
+          if-no-files-found: error
+          retention-days: 7
