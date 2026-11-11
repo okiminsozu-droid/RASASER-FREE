@@ -37,20 +37,13 @@ if 'applicationId = "com.rasaser.launcher"' not in content:
 if "minSdk = 26" not in content:
     raise RuntimeError("Android 8+ compatibility has changed")
 
-# Retain the original landscape dashboard on Android 16 large-screen test devices
-# where temporary compatibility opt-out is still permitted (does not affect Android 15).
+# Preserve the landscape dashboard where Android 16 permits a compatibility opt-out.
 replace_once(
     manifest,
-    '            android:screenOrientation="landscape"',
-    '            android:screenOrientation="landscape"',
-    "preserve landscape orientation"
-)
-replace_once(
-    manifest,
-    '            <intent-filter>\n                <action android:name="android.intent.action.MAIN" />',
-    '            <property android:name="android.window.PROPERTY_COMPAT_ALLOW_RESTRICTED_RESIZABILITY" '
-    'android:value="true" />\n\n'
-    '            <intent-filter>\n                <action android:name="android.intent.action.MAIN" />',
-    "Android 16 landscape compatibility"
+    'android:configChanges="orientation|screenSize|keyboardHidden|uiMode|screenLayout|smallestScreenSize|locale|layoutDirection">',
+    'android:configChanges="orientation|screenSize|keyboardHidden|uiMode|screenLayout|smallestScreenSize|locale|layoutDirection">'
+    '\n            <property android:name="android.window.PROPERTY_COMPAT_ALLOW_RESTRICTED_RESIZABILITY" '
+    'android:value="true" />',
+    "Android 16 temporary large-screen orientation compatibility"
 )
 print("Prepared unsigned AAB candidate: package=com.rasaser.launcher, API36, versionCode=4, versionName=1.2.2")
