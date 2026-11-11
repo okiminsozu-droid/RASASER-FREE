@@ -1,6 +1,8 @@
 package com.rasaser.free.kurankelime
 
 import android.graphics.BitmapFactory
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -16,6 +18,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -74,11 +80,18 @@ private fun DiscoverHome() {
     val settings = remember { context.getSharedPreferences("discovery_home", android.content.Context.MODE_PRIVATE) }
     val store = remember { PageStore(context) }
     val quranIndex = remember { QuranStore(context) }
+    val fullIndex = remember { PageWordIndex(context.applicationContext) }
     var language by remember { mutableStateOf(settings.getString("lang", "tr") ?: "tr") }
     var menu by remember { mutableStateOf(false) }
     var screen by remember { mutableStateOf("home") }
     var query by remember { mutableStateOf("") }
     var updated by remember { mutableIntStateOf(0) }
+    var fullHits by remember { mutableStateOf(emptyList<PageWord>()) }
+    LaunchedEffect(screen, query) {
+        fullHits = if (screen == "search" && query.isNotBlank() && fullIndex.hasFullIndex) {
+            withContext(Dispatchers.Default) { fullIndex.search(query) }
+        } else emptyList()
+    }
     val l = labels(language)
     val logo = remember {
         try {
@@ -102,8 +115,7 @@ private fun DiscoverHome() {
                     }
                 }
             }
-            Text(l.slogan, modifier=Modifier.weight(1f).padding(horizontal=6.dp),
-                fontSize=12.sp, textAlign=TextAlign.Center, color=HomeBrown)
+            Spacer(Modifier.weight(1f))
             if (logo != null) {
                 Image(logo, contentDescription="Kurani Keşfet logosu",
                     modifier=Modifier.size(68.dp), contentScale=ContentScale.Fit)
@@ -112,21 +124,33 @@ private fun DiscoverHome() {
                     modifier=Modifier.size(46.dp))
             }
         }
+        if (screen == "home") {
+            Column(Modifier.fillMaxWidth().padding(top=10.dp, bottom=6.dp),
+                horizontalAlignment=Alignment.CenterHorizontally) {
+                Text("❦  Yaratıcından Sana Bir Mektup  ❦",
+                    color=HomeBrown, fontSize=21.sp, fontFamily=FontFamily.Serif,
+                    fontWeight=FontWeight.Bold, textAlign=TextAlign.Center, lineHeight=26.sp)
+                Text("A Letter to You from Your Creator",
+                    color=HomeBrown.copy(alpha=.86f), fontSize=14.sp,
+                    fontFamily=FontFamily.Serif, fontStyle=FontStyle.Italic,
+                    textAlign=TextAlign.Center, modifier=Modifier.padding(top=4.dp))
+            }
+        }
         when(screen) {
             "home" -> {
-                Column(Modifier.weight(1f).fillMaxWidth(), verticalArrangement=Arrangement.Center,
-                    horizontalAlignment=Alignment.CenterHorizontally) {
+                Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(androidx.compose.foundation.rememberScrollState()),
+                    verticalArrangement=Arrangement.Center, horizontalAlignment=Alignment.CenterHorizontally) {
                     if(logo!=null) {
                         Image(logo, contentDescription=l.title,
-                            modifier=Modifier.size(192.dp), contentScale=ContentScale.Fit)
+                            modifier=Modifier.size(154.dp), contentScale=ContentScale.Fit)
                     } else {
                         Icon(Icons.Default.AutoStories, contentDescription=null,
-                            modifier=Modifier.size(105.dp), tint=HomeGreen)
+                            modifier=Modifier.size(90.dp), tint=HomeGreen)
                     }
-                    Text(l.title, color=HomeGreen, fontSize=30.sp, fontWeight=FontWeight.Bold,
+                    Text(l.title, color=HomeGreen, fontSize=27.sp, fontWeight=FontWeight.Bold,
                         textAlign=TextAlign.Center)
                     Text(l.subtitle, color=HomeBrown, fontSize=13.sp,
-                        modifier=Modifier.padding(top=8.dp,bottom=28.dp), textAlign=TextAlign.Center)
+                        modifier=Modifier.padding(top=5.dp,bottom=18.dp), textAlign=TextAlign.Center)
                     HomeAction(Icons.Default.MenuBook, l.read) { openBookPage(context) }
                     Spacer(Modifier.height(12.dp))
                     HomeAction(Icons.Default.Search, l.search) { screen="search" }
@@ -143,22 +167,42 @@ private fun DiscoverHome() {
                 }
                 OutlinedTextField(query,{query=it},modifier=Modifier.fillMaxWidth(),
                     placeholder={Text(l.searchHint)}, singleLine=true)
-                Text("Kelime dizini: şu an Fâtiha örneği. PDF görsel içeriğinin tamamı henüz aranabilir değil.",
+                Text(
+                    if (fullIndex.hasFullIndex) "304 sayfa boyunca çevrimdışı Türkçe kelime anlamı araması"
+                    else "Tam arama dizini bu APK'de yok; Fâtiha örnek araması etkin.",
                     fontSize=11.sp, color=HomeBrown, modifier=Modifier.padding(vertical=8.dp))
-                val hits = remember(query,language) {
-                    if(query.isBlank()) emptyList() else quranIndex.search(query,language)
+                val fallback = remember(query, language) {
+                    if (query.isBlank() || fullIndex.hasFullIndex) emptyList()
+                    else quranIndex.search(query,if (language=="ar") "tr" else language)
                 }
                 LazyColumn(verticalArrangement=Arrangement.spacedBy(8.dp)) {
-                    items(hits.distinctBy { it.ayah }) { hit ->
-                        Card(onClick={openBookPage(context,1,hit.ayah)}, shape=RoundedCornerShape(14.dp)) {
-                            Column(Modifier.fillMaxWidth().padding(15.dp)) {
-                                Text("Fâtiha • " + hit.ayah + ". Ayet • PDF sayfa 1",color=HomeGreen)
-                                Text(hit.arabic + " · " + hit.meaning, fontSize=16.sp)
+                    if (fullIndex.hasFullIndex) {
+                        items(fullHits, key={ "hit" + it.id }) { hit ->
+                            Card(onClick={openBookPage(context,hit.page,highlightWordId=hit.id)},
+                                shape=RoundedCornerShape(14.dp)) {
+                                Column(Modifier.fillMaxWidth().padding(15.dp)) {
+                                    Text("Kur’anı Keşfet · Sayfa " + hit.page,
+                                        color=HomeGreen,fontWeight=FontWeight.SemiBold,fontSize=13.sp)
+                                    Spacer(Modifier.height(5.dp))
+                                    Text(hit.gloss,fontSize=17.sp,color=Color(0xFF885E20),
+                                        fontWeight=FontWeight.Bold)
+                                }
+                            }
+                        }
+                    } else {
+                        items(fallback.distinctBy { it.ayah }) { hit ->
+                            Card(onClick={openBookPage(context,1,hit.ayah)},
+                                shape=RoundedCornerShape(14.dp)) {
+                                Column(Modifier.fillMaxWidth().padding(15.dp)) {
+                                    Text("Fâtiha · " + hit.ayah + ". Ayet · PDF sayfa 1",
+                                        color=HomeGreen)
+                                    Text(hit.arabic + " · " + hit.meaning,fontSize=16.sp)
+                                }
                             }
                         }
                     }
-                    if(query.isNotBlank() && hits.isEmpty()) {
-                        item { Text(l.empty, modifier=Modifier.padding(16.dp)) }
+                    if (query.isNotBlank() && fullHits.isEmpty() && fallback.isEmpty()) {
+                        item { Text(l.empty,modifier=Modifier.padding(16.dp)) }
                     }
                 }
             }
@@ -185,10 +229,38 @@ private fun DiscoverHome() {
                 }
             }
         }
-        Text("RaSaSeR APPS & TECHNOLOGY",modifier=Modifier.fillMaxWidth().padding(top=10.dp),
-            textAlign=TextAlign.Center,color=HomeBrown,fontSize=12.sp,letterSpacing=1.sp)
-        Text(l.free,modifier=Modifier.fillMaxWidth().padding(top=6.dp,bottom=14.dp),
-            textAlign=TextAlign.Center,color=HomeBrown,fontSize=12.sp)
+        if (screen == "home") {
+            Column(Modifier.fillMaxWidth().padding(top=8.dp,bottom=14.dp),
+                horizontalAlignment=Alignment.CenterHorizontally) {
+                Row(verticalAlignment=Alignment.CenterVertically,
+                    horizontalArrangement=Arrangement.Center) {
+                    Icon(Icons.Default.AutoAwesome,contentDescription=null,
+                        tint=Color(0xFFB38C4D),modifier=Modifier.size(23.dp))
+                    Spacer(Modifier.width(7.dp))
+                    Text("RaSaSeR",fontFamily=FontFamily.Serif,
+                        fontWeight=FontWeight.ExtraBold,fontSize=24.sp,
+                        color=HomeGreen)
+                    Spacer(Modifier.width(7.dp))
+                    Icon(Icons.Default.AutoAwesome,contentDescription=null,
+                        tint=Color(0xFFB38C4D),modifier=Modifier.size(23.dp))
+                }
+                Text("APPS & TECHNOLOGY",letterSpacing=2.sp,
+                    fontSize=13.sp,fontWeight=FontWeight.Bold,color=HomeBrown)
+                Spacer(Modifier.height(8.dp))
+                Text("ÜCRETSİZDİR · HİÇBİR MADDİ AMACIMIZ YOKTUR",
+                    fontFamily=FontFamily.Serif,fontSize=14.sp,
+                    fontWeight=FontWeight.Bold,textAlign=TextAlign.Center,color=HomeGreen)
+                Text("COMPLETELY FREE · NO COMMERCIAL PURPOSE",
+                    fontFamily=FontFamily.Serif,fontSize=12.sp,
+                    fontStyle=FontStyle.Italic,textAlign=TextAlign.Center,color=HomeBrown)
+                Text("www.okiminsozu.com",
+                    modifier=Modifier.padding(top=5.dp).clickable {
+                        context.startActivity(Intent(Intent.ACTION_VIEW,
+                            Uri.parse("https://www.okiminsozu.com")))
+                    },fontSize=16.sp,fontWeight=FontWeight.SemiBold,
+                    color=Color(0xFF92652E),textAlign=TextAlign.Center)
+            }
+        }
     }
 }
 @Composable
