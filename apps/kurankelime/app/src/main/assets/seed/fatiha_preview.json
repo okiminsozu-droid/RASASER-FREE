@@ -1,0 +1,341 @@
+{
+  "schema": 1,
+  "status": "linguistic-review-required",
+  "license": "New instructional draft; not copied from source PDF",
+  "sura": 1,
+  "suraName": "Fâtiha",
+  "verses": [
+    {
+      "ayah": 1,
+      "arabic": "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ",
+      "words": [
+        {
+          "position": 1,
+          "arabic": "بِسْمِ",
+          "kind": "noun",
+          "tr": "Adıyla",
+          "en": "In the name",
+          "de": "Im Namen",
+          "es": "En el nombre",
+          "zh": "奉……之名"
+        },
+        {
+          "position": 2,
+          "arabic": "اللَّهِ",
+          "kind": "noun",
+          "tr": "Allah'ın",
+          "en": "of Allah",
+          "de": "Allahs",
+          "es": "de Alá",
+          "zh": "真主的"
+        },
+        {
+          "position": 3,
+          "arabic": "الرَّحْمَٰنِ",
+          "kind": "adjective",
+          "tr": "Rahmân",
+          "en": "the Most Merciful",
+          "de": "des Allerbarmers",
+          "es": "el Misericordiosísimo",
+          "zh": "至仁的"
+        },
+        {
+          "position": 4,
+          "arabic": "الرَّحِيمِ",
+          "kind": "adjective",
+          "tr": "Rahîm",
+          "en": "the Especially Merciful",
+          "de": "des Barmherzigen",
+          "es": "el Misericordioso",
+          "zh": "至慈的"
+        }
+      ]
+    },
+    {
+      "ayah": 2,
+      "arabic": "الْحَمْدُ لِلَّهِ رَبِّ الْعَالَمِينَ",
+      "words": [
+        {
+          "position": 1,
+          "arabic": "الْحَمْدُ",
+          "kind": "noun",
+          "tr": "Hamd",
+          "en": "All praise",
+          "de": "Alles Lob",
+          "es": "Toda alabanza",
+          "zh": "一切赞颂"
+        },
+        {
+          "position": 2,
+          "arabic": "لِلَّهِ",
+          "kind": "particle",
+          "tr": "Allah'a aittir",
+          "en": "belongs to Allah",
+          "de": "gebührt Allah",
+          "es": "pertenece a Alá",
+          "zh": "归于真主"
+        },
+        {
+          "position": 3,
+          "arabic": "رَبِّ",
+          "kind": "noun",
+          "tr": "Rabbine",
+          "en": "Lord of",
+          "de": "dem Herrn",
+          "es": "Señor de",
+          "zh": "养育者"
+        },
+        {
+          "position": 4,
+          "arabic": "الْعَالَمِينَ",
+          "kind": "noun",
+          "tr": "âlemlerin",
+          "en": "the worlds",
+          "de": "der Welten",
+          "es": "los mundos",
+          "zh": "众世界的"
+        }
+      ]
+    },
+    {
+      "ayah": 3,
+      "arabic": "الرَّحْمَٰنِ الرَّحِيمِ",
+      "words": [
+        {
+          "position": 1,
+          "arabic": "الرَّحْمَٰنِ",
+          "kind": "adjective",
+          "tr": "Rahmân",
+          "en": "the Most Merciful",
+          "de": "dem Allerbarmer",
+          "es": "el Misericordiosísimo",
+          "zh": "至仁的"
+        },
+        {
+          "position": 2,
+          "arabic": "الرَّحِيمِ",
+          "kind": "adjective",
+          "tr": "Rahîm",
+          "en": "the Especially Merciful",
+          "de": "dem Barmherzigen",
+          "es": "el Misericordioso",
+          "zh": "至慈的"
+        }
+      ]
+    },
+    {
+      "ayah": 4,
+      "arabic": "مَالِكِ يَوْمِ الدِّينِ",
+      "words": [
+        {
+          "position": 1,
+          "arabic": "مَالِكِ",
+          "kind": "noun",
+          "tr": "Mâliki",
+          "en": "Master of",
+          "de": "Herrscher über",
+          "es": "Soberano de",
+          "zh": "掌管者"
+        },
+        {
+          "position": 2,
+          "arabic": "يَوْمِ",
+          "kind": "noun",
+          "tr": "gününün",
+          "en": "the Day of",
+          "de": "den Tag",
+          "es": "el Día de",
+          "zh": "……日的"
+        },
+        {
+          "position": 3,
+          "arabic": "الدِّينِ",
+          "kind": "noun",
+          "tr": "hesabın",
+          "en": "Recompense",
+          "de": "des Gerichts",
+          "es": "la Retribución",
+          "zh": "报应"
+        }
+      ]
+    },
+    {
+      "ayah": 5,
+      "arabic": "إِيَّاكَ نَعْبُدُ وَإِيَّاكَ نَسْتَعِينُ",
+      "words": [
+        {
+          "position": 1,
+          "arabic": "إِيَّاكَ",
+          "kind": "pronoun",
+          "tr": "Yalnız sana",
+          "en": "You alone",
+          "de": "Dir allein",
+          "es": "Solo a Ti",
+          "zh": "唯独你"
+        },
+        {
+          "position": 2,
+          "arabic": "نَعْبُدُ",
+          "kind": "verb",
+          "tr": "kulluk ederiz",
+          "en": "we worship",
+          "de": "dienen wir",
+          "es": "adoramos",
+          "zh": "我们崇拜"
+        },
+        {
+          "position": 3,
+          "arabic": "وَإِيَّاكَ",
+          "kind": "pronoun",
+          "tr": "ve yalnız senden",
+          "en": "and You alone",
+          "de": "und Dich allein",
+          "es": "y solo a Ti",
+          "zh": "也唯独向你"
+        },
+        {
+          "position": 4,
+          "arabic": "نَسْتَعِينُ",
+          "kind": "verb",
+          "tr": "yardım dileriz",
+          "en": "we ask for help",
+          "de": "bitten wir um Hilfe",
+          "es": "pedimos ayuda",
+          "zh": "我们求助"
+        }
+      ]
+    },
+    {
+      "ayah": 6,
+      "arabic": "اهْدِنَا الصِّرَاطَ الْمُسْتَقِيمَ",
+      "words": [
+        {
+          "position": 1,
+          "arabic": "اهْدِنَا",
+          "kind": "verb",
+          "tr": "Bizi ilet",
+          "en": "Guide us",
+          "de": "Leite uns",
+          "es": "Guíanos",
+          "zh": "求你引导我们"
+        },
+        {
+          "position": 2,
+          "arabic": "الصِّرَاطَ",
+          "kind": "noun",
+          "tr": "yola",
+          "en": "to the path",
+          "de": "auf den Weg",
+          "es": "al camino",
+          "zh": "道路"
+        },
+        {
+          "position": 3,
+          "arabic": "الْمُسْتَقِيمَ",
+          "kind": "adjective",
+          "tr": "dosdoğru",
+          "en": "the straight",
+          "de": "den geraden",
+          "es": "recto",
+          "zh": "正直的"
+        }
+      ]
+    },
+    {
+      "ayah": 7,
+      "arabic": "صِرَاطَ الَّذِينَ أَنْعَمْتَ عَلَيْهِمْ غَيْرِ الْمَغْضُوبِ عَلَيْهِمْ وَلَا الضَّالِّينَ",
+      "words": [
+        {
+          "position": 1,
+          "arabic": "صِرَاطَ",
+          "kind": "noun",
+          "tr": "yoluna",
+          "en": "the path of",
+          "de": "den Weg",
+          "es": "el camino de",
+          "zh": "……的道路"
+        },
+        {
+          "position": 2,
+          "arabic": "الَّذِينَ",
+          "kind": "pronoun",
+          "tr": "kimselerin",
+          "en": "those whom",
+          "de": "derjenigen",
+          "es": "aquellos a quienes",
+          "zh": "那些人"
+        },
+        {
+          "position": 3,
+          "arabic": "أَنْعَمْتَ",
+          "kind": "verb",
+          "tr": "nimet verdin",
+          "en": "You favored",
+          "de": "Du begnadet hast",
+          "es": "has agraciado",
+          "zh": "你赐予恩典"
+        },
+        {
+          "position": 4,
+          "arabic": "عَلَيْهِمْ",
+          "kind": "pronoun",
+          "tr": "kendilerine",
+          "en": "upon them",
+          "de": "ihnen",
+          "es": "a ellos",
+          "zh": "他们"
+        },
+        {
+          "position": 5,
+          "arabic": "غَيْرِ",
+          "kind": "particle",
+          "tr": "değil",
+          "en": "not",
+          "de": "nicht",
+          "es": "no",
+          "zh": "不是"
+        },
+        {
+          "position": 6,
+          "arabic": "الْمَغْضُوبِ",
+          "kind": "noun",
+          "tr": "gazaba uğrayanların",
+          "en": "of those who incurred wrath",
+          "de": "derer, denen gezürnt wird",
+          "es": "de quienes reciben ira",
+          "zh": "遭受震怒者"
+        },
+        {
+          "position": 7,
+          "arabic": "عَلَيْهِمْ",
+          "kind": "pronoun",
+          "tr": "üzerlerine",
+          "en": "upon them",
+          "de": "über sie",
+          "es": "sobre ellos",
+          "zh": "在他们身上"
+        },
+        {
+          "position": 8,
+          "arabic": "وَلَا",
+          "kind": "particle",
+          "tr": "ve ne de",
+          "en": "nor",
+          "de": "und nicht",
+          "es": "ni",
+          "zh": "也不"
+        },
+        {
+          "position": 9,
+          "arabic": "الضَّالِّينَ",
+          "kind": "noun",
+          "tr": "sapanların",
+          "en": "those who stray",
+          "de": "der Irrenden",
+          "es": "los extraviados",
+          "zh": "迷误者"
+        }
+      ]
+    }
+  ]
+}

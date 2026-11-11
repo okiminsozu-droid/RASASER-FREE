@@ -1,0 +1,11 @@
+Kur’an Kelime Atölyesi — veri ve lisans bilgileri
+
+Yayıncı adı: RaSaSeR Apps & Technology
+
+Bu önizlemedeki Fâtiha kelime karşılıkları yeni eğitim taslaklarıdır. Uzman ve ana metin doğrulaması tamamlanmamıştır. Kaynak PDF'den kelime mealleri aktarılmamıştır.
+
+Bu örnek henüz tam Kur’an, kıraat kayıtları veya Uthmanic yazı tipi içermez. Tam metin için güvenilir kaynakların izinleri ayrıca denetlenecektir.
+
+Tanzil metni eklenmesi halinde izin koşulları: https://tanzil.net/docs/Text_License
+
+Üçüncü taraf bağımlılık lisansları yayın öncesi ayrıca doğrulanacaktır.
