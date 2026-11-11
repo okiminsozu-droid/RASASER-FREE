@@ -100,8 +100,9 @@ private fun DiscoverHome() {
     var bookPresent by remember { mutableStateOf(false) }
     LaunchedEffect(screen) {
         if (screen != "search") return@LaunchedEffect
-        val file = withContext(Dispatchers.IO) { installedBook(context) }
-        bookPresent = file != null
+        val file = if (bundledReady) null
+            else withContext(Dispatchers.IO) { installedBook(context) }
+        bookPresent = bundledReady || file != null
         if (file != null && Build.VERSION.SDK_INT >= 35 && !bundledReady && !fullIndex.hasFullIndex) {
             indexing = true
             try {
