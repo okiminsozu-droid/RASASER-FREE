@@ -17,4 +17,23 @@ class PageStore(context: Context) {
         if (!pages.add(page.toString())) pages.remove(page.toString())
         prefs.edit().putStringSet("favorites", pages).apply()
     }
+    /**
+     * Search-result bookmarks are separate from the original page-favorites set.
+     * Persist OCR token IDs (and Fatiha preview IDs) without altering page bookmarks.
+     */
+    fun wordFavorites(): List<Int> =
+        (prefs.getStringSet("word_favorites", emptySet()) ?: emptySet())
+            .mapNotNull { it.toIntOrNull() }.filter { it != 0 }.distinct().sorted()
+
+    fun isWordFavorite(wordId: Int): Boolean =
+        wordId != 0 && prefs.getStringSet("word_favorites", emptySet())
+            ?.contains(wordId.toString()) == true
+
+    fun toggleWordFavorite(wordId: Int) {
+        if (wordId == 0) return
+        val items = (prefs.getStringSet("word_favorites", emptySet()) ?: emptySet()).toMutableSet()
+        if (!items.add(wordId.toString())) items.remove(wordId.toString())
+        prefs.edit().putStringSet("word_favorites", items).apply()
+    }
+
 }
