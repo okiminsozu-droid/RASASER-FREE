@@ -33,6 +33,10 @@ jobs:
         run: |
           python apps/kelime-mealli-kuran/render_pdf.py --mode sample-fatiha --out output/01-FATIHA-KELIME-MEALI-ORNEK.pdf
           pdfinfo output/01-FATIHA-KELIME-MEALI-ORNEK.pdf | head -18
+      - name: Build expanded 14-surah-selection Turkish word-color PDF draft
+        run: |
+          python apps/kelime-mealli-kuran/render_pdf.py --mode word-meaning-draft --out output/03-RENKLI-ARAPCA-TURKCE-14-SURE-SECIMI-TASLAK.pdf
+          pdfinfo output/03-RENKLI-ARAPCA-TURKCE-14-SURE-SECIMI-TASLAK.pdf | head -18
       - name: Build all 114 surahs with colored unaltered Arabic text
         run: |
           python apps/kelime-mealli-kuran/render_pdf.py --mode full-arabic --out output/02-KURAN-114-SURE-RENKLI-ARAPCA-KELIMELER.pdf
@@ -43,7 +47,7 @@ jobs:
           from pypdf import PdfReader
           from pathlib import Path
           paths=sorted(Path('output').glob('*.pdf'))
-          assert len(paths)==2
+          assert len(paths)==3
           for p in paths:
               doc=PdfReader(str(p))
               print(f'{p.name}: {len(doc.pages)} pages; {p.stat().st_size} bytes')
