@@ -91,7 +91,7 @@ s = replace(s, '''                if (p0.hasSpeed()) speed = (p0.speed * 3.6f).r
                 if (drivingMode) {
                     mapView.controller.setCenter(GeoPoint(p0.latitude, p0.longitude))
                     if (p0.hasBearing() && p0.hasSpeed() && p0.speed > 0.5f)
-                        mapView.mapOrientation = p0.bearing
+                        mapView.mapOrientation = -p0.bearing
                 }
 ''', "follow car and GPS heading")
 
@@ -212,6 +212,12 @@ s = replace(s, '''                    // Harita
 
 s = replace(s, '''                        Box(Modifier.align(Alignment.TopEnd).padding(10.dp)) { MapBtn("🧭") { mapView.mapOrientation = 0f } }
 ''', '''                        Row(Modifier.align(Alignment.TopEnd).padding(10.dp)) {
+                            MapBtn("🚗") {
+                                drivingMode = true
+                                mapView.controller.setZoom(17.0)
+                                loc?.let { mapView.controller.setCenter(it) }
+                            }
+                            Spacer(Modifier.width(6.dp))
                             MapBtn("G") {
                                 try {
                                     val p = loc ?: DEFAULT_POINT
@@ -228,7 +234,7 @@ s = replace(s, '''                        Box(Modifier.align(Alignment.TopEnd).p
                                 .background(Color(0xBB0D141A), RoundedCornerShape(35.dp))
                                 .border(2.dp, accent, RoundedCornerShape(35.dp)),
                                 contentAlignment = Alignment.Center) {
-                                T("▲", 48, accent, bold = true)
+                                CarUiIcon("drive", accent, Modifier.size(54.dp))
                             }
                         }
                         if (placeName.isNotBlank()) {
@@ -250,32 +256,45 @@ s = replace(s, '''                                T("✔ " + t("inactive"), 15)
 
 start = s.index('                    // Müzik\n                    Card2(')
 end = s.index('                    // Hava durumu\n', start)
-s = s[:start] + '''                    // Aynı radyo kartı: ülke listesi ve istasyon ileri/geri.
+s = s[:start] + '''                    // Online radyo: ülke araması ve ileri/geri, aynı kartta görünür.
                     Card2(Modifier.weight(1.6f).fillMaxHeight(), accent) {
-                        Row(Modifier.fillMaxSize().padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Box(Modifier.size(84.dp).clip(RoundedCornerShape(10.dp))
-                                .background(Brush.verticalGradient(listOf(Color(0xFFFF9A3C), Color(0xFF3A1F5C)))),
-                                contentAlignment = Alignment.Center) { T("📻", 40) }
-                            Spacer(Modifier.width(12.dp))
-                            Column(Modifier.weight(1f)) {
-                                CountryMenu(lang, radioCountry, accent) { radioCountry = it }
-                                T(t("radio"), 18, bold = true)
-                                T(if (radioLoading) t("loading")
-                                  else stations.getOrNull(stationIndex)?.title ?: t("noStations"),
-                                  13, Color.LightGray, maxLines = 1)
-                                Spacer(Modifier.height(5.dp))
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Box(Modifier.clickable { nextStation(-1) }) { T("⏮", 22) }
-                                    Spacer(Modifier.width(12.dp))
-                                    Box(Modifier.size(46.dp).clip(CircleShape).border(2.dp, accent, CircleShape)
-                                        .clickable { togglePlay() }, contentAlignment = Alignment.Center) {
-                                        T(if (playing) "⏸" else "▶", 20, accent)
-                                    }
-                                    Spacer(Modifier.width(12.dp))
-                                    Box(Modifier.clickable { nextStation(1) }) { T("⏭", 22) }
-                                    Spacer(Modifier.width(10.dp))
-                                    T(if (playing) "●" else "○", 12, accent)
+                        Column(Modifier.fillMaxSize().padding(8.dp),
+                            verticalArrangement = Arrangement.SpaceBetween) {
+                            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                Box(Modifier.size(50.dp).clip(RoundedCornerShape(10.dp))
+                                    .background(Brush.verticalGradient(listOf(
+                                        Color(0xFF39280C), Color(0xFF15110B))))
+                                    .border(1.dp, accent, RoundedCornerShape(10.dp)),
+                                    contentAlignment = Alignment.Center) {
+                                    CarUiIcon("radio", accent, Modifier.size(38.dp))
                                 }
+                                Spacer(Modifier.width(9.dp))
+                                Column(Modifier.weight(1f)) {
+                                    CountryMenu(lang, radioCountry, accent) { radioCountry = it }
+                                    T(t("radio"), 16, bold = true, maxLines = 1)
+                                    T(if (radioLoading) t("loading")
+                                      else stations.getOrNull(stationIndex)?.title ?: t("noStations"),
+                                      12, Color.LightGray, maxLines = 1)
+                                }
+                            }
+                            Row(Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceEvenly,
+                                verticalAlignment = Alignment.CenterVertically) {
+                                Box(Modifier.size(40.dp).clip(CircleShape)
+                                    .border(1.dp, accent, CircleShape)
+                                    .clickable { nextStation(-1) },
+                                    contentAlignment = Alignment.Center) { T("⏮", 23, accent) }
+                                Box(Modifier.size(46.dp).clip(CircleShape)
+                                    .border(2.dp, accent, CircleShape)
+                                    .clickable { togglePlay() },
+                                    contentAlignment = Alignment.Center) {
+                                    T(if (playing) "⏸" else "▶", 24, accent)
+                                }
+                                Box(Modifier.size(40.dp).clip(CircleShape)
+                                    .border(1.dp, accent, CircleShape)
+                                    .clickable { nextStation(1) },
+                                    contentAlignment = Alignment.Center) { T("⏭", 23, accent) }
+                                T(if (playing) "●" else "○", 14, accent)
                             }
                         }
                     }
@@ -335,17 +354,16 @@ end=s.index('\n    if (showApps) AppsDialog(', start)
 s=s[:start]+'''        // Önceki alt çubuk düzeni ve görünümü korunuyor; istenen tuş değişiklikleri.
         val tools: List<Triple<String, String, () -> Unit>> = listOf(
             Triple("🛒", t("playstore")) { act.launchPkg("com.android.vending") },
-            Triple("▦", t("apps")) { addingShortcut = false; showApps = true },
+            Triple("APP_ICON", t("apps")) { addingShortcut = false; showApps = true },
             Triple("📺", t("tv")) { tvOpen = !tvOpen },
             Triple("📁", t("files")) { act.tryStart(Intent(DownloadManager.ACTION_VIEW_DOWNLOADS)) },
             Triple("📷", t("camera")) { act.tryStart(Intent(MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA)) },
             Triple("🎙", t("rec")) { act.tryStart(Intent(MediaStore.Audio.Media.RECORD_SOUND_ACTION)) },
-            Triple("📡", t("cast")) { act.tryStart(Intent(Settings.ACTION_CAST_SETTINGS)) },
             Triple("ᛒ", t("bt")) { act.tryStart(Intent(Settings.ACTION_BLUETOOTH_SETTINGS)) },
             Triple("＋", t("addapp")) { addingShortcut = true; showApps = true },
             Triple("🎨", t("themes")) { accentIdx = (accentIdx + 1) % accents.size },
-            Triple("▦", t("widget")) { widgetsOpen = true },
-            Triple("⏻", t("close")) { act.moveTaskToBack(true) }
+            Triple("WIDGET_ICON", t("widget")) { widgetsOpen = true },
+            Triple("POWER_ICON", t("close")) { act.moveTaskToBack(true) }
         )
         Row(Modifier.fillMaxWidth().height(62.dp)) {
             tools.forEach { (emoji, label, action) ->
@@ -358,7 +376,10 @@ s=s[:start]+'''        // Önceki alt çubuk düzeni ve görünümü korunuyor; 
                 Card2(Modifier.weight(1f).fillMaxHeight().then(touch), accent) {
                     Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.Center,
                         horizontalAlignment = Alignment.CenterHorizontally) {
-                        T(emoji, 20)
+                        if (emoji == "APP_ICON") CarUiIcon("apps", accent, Modifier.size(28.dp))
+                        else if (emoji == "WIDGET_ICON") CarUiIcon("widget", accent, Modifier.size(28.dp))
+                        else if (emoji == "POWER_ICON") CarUiIcon("power", accent, Modifier.size(28.dp))
+                        else T(emoji, 20)
                         T(label, 10, maxLines = 1)
                     }
                 }
@@ -498,10 +519,6 @@ s = replace(s, '''    if (tvOpen) TelevisionWindow(
     ) { tvOpen = false }
     if (widgetsOpen) DashboardWidgets''',
 '''    if (widgetsOpen) DashboardWidgets''', "remove prior modal TV placement")
-# Retain the original radio artwork; only content labels/controls change.
-s = replace(s, '''contentAlignment = Alignment.Center) { T("📻", 40) }''',
-'''contentAlignment = Alignment.Center) { T("🕌", 40) }''', "original media artwork")
-
 # Weather labels and missing-GPS text must follow the selected language too.
 s = replace(s, '''T(w?.let { wDesc(it.code, lang == "tr") } ?: "", 14)''',
 '''T(w?.let { weatherText(it.code, lang) } ?: "", 14)''', "all-language weather")
@@ -546,9 +563,19 @@ if last_close < apps_start:
     raise SystemExit("Cannot locate AppsDialog closing brace")
 s = s[:last_close] + "\n" + alert_code + s[last_close:]
 
+# Nav entry must keep driving inside the existing embedded MapView.
+s = replace(s,
+'''NavItem("🧭", t("route"), navSel == "route", accent) { navSel = "route"; loc?.let { mapView.controller.animateTo(it) } }''',
+'''NavItem("🧭", t("route"), navSel == "route", accent) {
+                        navSel = "route"
+                        drivingMode = true
+                        mapView.controller.setZoom(17.0)
+                        loc?.let { mapView.controller.setCenter(it) }
+                    }''', "in-panel driving map entry")
+
 MAIN.write_text(s,encoding="utf-8")
 
-for kotlin in ["Translations.kt", "WorldMedia.kt", "DashboardWidgets.kt", "CameraAlerts.kt"]:
+for kotlin in ["Translations.kt", "WorldMedia.kt", "DashboardWidgets.kt", "CameraAlerts.kt", "CarUiIcons.kt"]:
     shutil.copy2(HERE / kotlin, JAVA / kotlin)
 
 g=GRADLE.read_text(encoding="utf-8")
