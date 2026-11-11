@@ -71,7 +71,8 @@ fun openBookPage(context: Context, page: Int = 0, highlightAyah: Int = 0) {
     })
 }
 
-private fun verifyPdf(file: File): Boolean = try {
+private fun verifyPdf(file: File): Boolean {
+    return try {
     if (file.length() != EXPECTED_LENGTH) return false
     val digest = MessageDigest.getInstance("SHA-256")
     file.inputStream().use { input ->
@@ -88,6 +89,7 @@ private fun verifyPdf(file: File): Boolean = try {
         PdfRenderer(descriptor).use { it.pageCount == EXPECTED_PAGES }
     }
 } catch (_: Exception) { false }
+}
 
 private fun installedBook(context: Context): File? {
     val target = File(context.filesDir, "quran_original_304.pdf")
