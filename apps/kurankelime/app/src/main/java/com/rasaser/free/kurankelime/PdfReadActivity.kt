@@ -378,56 +378,43 @@ private fun PdfReaderScreen(initialPage: Int, highlightAyah: Int, highlightWordI
                                     onTap = { touch ->
                                         val x = (touch.x / paperWidth.toPx() * 595f).coerceIn(0f, 595f)
                                         val y = (touch.y / paperHeight.toPx() * 842f).coerceIn(0f, 842f)
-                                        val current = page
-                                        chosen = privateIndex.nearestWord(current, x, y)
-                                        manualMarker = if (chosen == null)
-                                            Offset(x / 595f, y / 842f) else null
+                                        val tappedPage = page
+                                        chosen = null
+                                        manualMarker = Offset(x / 595f, y / 842f)
                                         scope.launch {
-                                            val candidate = withContext(Dispatchers.IO) {
-                                                bundledIndex.nearest(current, x, y)
+                                            val result = withContext(Dispatchers.IO) {
+                                                privateIndex.nearestWord(tappedPage, x, y)
+                                                    ?: bundledIndex.nearest(tappedPage, x, y)
+                                                    ?: if (Build.VERSION.SDK_INT >= 35 && !bundledIndex.isBundled)
+                                                        pdfFile?.let { localEngine.selectAt(it, tappedPage, x, y) }
+                                                       else null
                                             }
-                                            if (page == current && candidate != null && chosen == null) {
-                                                chosen = candidate
-                                                manualMarker = null
-                                                controlsVisible = true
-                                            }
-                                        }
-                                        val file = pdfFile
-                                        if (file != null && Build.VERSION.SDK_INT >= 35) scope.launch {
-                                            val actual = withContext(Dispatchers.IO) {
-                                                localEngine.selectAt(file, current, x, y)
-                                            }
-                                            if (current == page && actual != null) {
-                                                chosen = actual
-                                                manualMarker = null
-                                                controlsVisible = true
+                                            if (page == tappedPage) {
+                                                chosen = result
+                                                if (result != null) {
+                                                    manualMarker = null
+                                                    controlsVisible = true
+                                                }
                                             }
                                         }
                                     },
                                     onLongPress = { touch ->
                                         val x = (touch.x / paperWidth.toPx() * 595f).coerceIn(0f, 595f)
                                         val y = (touch.y / paperHeight.toPx() * 842f).coerceIn(0f, 842f)
-                                        val current = page
-                                        val file = pdfFile
-                                        if (file != null && Build.VERSION.SDK_INT >= 35) scope.launch {
-                                            val actual = withContext(Dispatchers.IO) {
-                                                localEngine.selectAt(file, current, x, y)
+                                        val tappedPage = page
+                                        chosen = null
+                                        scope.launch {
+                                            val result = withContext(Dispatchers.IO) {
+                                                privateIndex.nearestWord(tappedPage, x, y)
+                                                    ?: bundledIndex.nearest(tappedPage, x, y)
+                                                    ?: if (Build.VERSION.SDK_INT >= 35)
+                                                        pdfFile?.let { localEngine.selectAt(it, tappedPage, x, y) }
+                                                       else null
                                             }
-                                            if (current == page && actual != null) {
-                                                chosen = actual
-                                                manualMarker = null
+                                            if (page == tappedPage) {
+                                                chosen = result
                                                 controlsVisible = true
-                                            }
-                                        } else {
-                                            scope.launch {
-                                                val candidate = withContext(Dispatchers.IO) {
-                                                    privateIndex.nearestWord(current,x,y)
-                                                        ?: bundledIndex.nearest(current,x,y)
-                                                }
-                                                if (page == current) {
-                                                    chosen = candidate
-                                                    controlsVisible = true
-                                                }
+                                                if (result != null) manualMarker = null
                                             }
                                         }
                                     }
