@@ -101,7 +101,7 @@ class PdfReadActivity : ComponentActivity() {
 }
 
 fun openBookPage(context: Context, page: Int = 0, highlightAyah: Int = 0, highlightWordId: Int = 0) {
-    context.startActivity(Intent(context, PdfReadActivity::class.java).apply {
+    context.startActivity(Intent(context, StableReaderActivity::class.java).apply {
         putExtra("page", page)
         putExtra("highlight_ayah", highlightAyah)
         putExtra("highlight_word_id", highlightWordId)
