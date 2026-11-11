@@ -185,8 +185,8 @@ fun TelevisionWindow(
             catch (_: Exception) { error = uiText(lang, "tvUnavailable"); emptyList() }
         loading = false
     }
-    LaunchedEffect(chosen, speedKmh, parkedVerified) {
-        if (!parkedVerified || speedKmh >= 5 || chosen == null) {
+    LaunchedEffect(chosen) {
+        if (chosen == null) {
             player.pause()
         } else {
             try {
@@ -215,9 +215,7 @@ fun TelevisionWindow(
                 Spacer(Modifier.height(7.dp))
                 Row(Modifier.fillMaxSize()) {
                     Box(Modifier.weight(2f).fillMaxHeight().background(Color.Black), contentAlignment = Alignment.Center) {
-                        if (!parkedVerified || speedKmh >= 5) {
-                            Text(uiText(lang, "tvParked"), color = Color.White, modifier = Modifier.padding(16.dp))
-                        } else if (chosen == null) {
+                        if (chosen == null) {
                             Text(uiText(lang, "selectChannel"), color = Color.LightGray)
                         } else {
                             AndroidView(factory = { PlayerView(it).apply {
