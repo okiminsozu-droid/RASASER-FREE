@@ -110,10 +110,13 @@ def words_html(text, glosses=None, verse_id=""):
         )
     return "".join(out)
 
-def build_html(src, sample=False):
-    edition = "FÂTİHA: ÇİFT RENKLİ KELİME MEALİ TASLAĞI" if sample else "TAM KUR’AN: RENKLİ ARAPÇA METİN"
+def build_html(src, sample=False, word_draft=False):
+    edition = ("FÂTİHA: ÇİFT RENKLİ KELİME MEALİ TASLAĞI" if sample else
+               "KELİME ALTINDA TÜRKÇE: İLK 14 SURE SEÇKİSİ / TASLAK" if word_draft else
+               "TAM KUR’AN: RENKLİ ARAPÇA METİN")
     status = ("İlk 7 ayette Arapça kelime ile altındaki Türkçe karşılık AYNI renktedir. Türkçe anlamlar ilmî inceleme bekleyen taslaktır."
               if sample else
+              "Arapça kelimeler ve Türkçeleri eş renkli. Fâtiha, Bakara 1–7, 103–114. sureler; tamamlanmış Kur’an meali değildir." if word_draft else
               "114 sure / 6.236 ayet Arapça tam metin. Türkçe kelime meali henüz tamamlanmadı; bu kitap son meal baskısı değildir.")
     chunks = ['<html lang="tr"><head><meta charset="utf-8"><style>',CSS,
               '</style></head><body><section class="cover">',
@@ -123,17 +126,20 @@ def build_html(src, sample=False):
               '<p class="notice">',html.escape(status),'<br>',
               'Arapça kaynak: Tanzil Quran Text (Uthmani v1.1), CC BY 3.0 — tanzil.net</p>',
               '</section>']
-    selections = src["surahs"][:1] if sample else src["surahs"]
+    draft_glosses = (json.loads((ROOT / "data/turkish-word-meanings-editorial-draft.json").read_text(encoding="utf-8"))["word_glosses"] if word_draft else {})
+    selections = (src["surahs"][:1] if sample else [src["surahs"][i-1] for i in [1,2,*range(103,115)]] if word_draft else src["surahs"])
     for surah in selections:
         n=surah["number"]
-        all_verses = [v for v in surah["ayahs"] if v["number"]>=0]
+        all_verses = [v for v in surah["ayahs"] if v["number"]>=0 and (not word_draft or n!=2 or v["number"]<=7)]
         chunks.append(f'<section class="surah"><div class="surah-head"><h2>{n:03} · {html.escape(surah["name"])}</h2>'
                       f'<span>Sure {n} — {sum(v["number"]>0 for v in all_verses)} ayet</span></div>')
         for verse in all_verses:
             vn=verse["number"]
-            gloss = FATIHA.get(vn) if n==1 and vn>0 else None
+            gloss = FATIHA.get(vn) if n==1 and vn>0 else (["Adıyla","Allah\x27ın","Rahmân","Rahîm"] if word_draft and vn==0 else draft_glosses.get(f"{n}:{vn}"))
+            if word_draft and gloss is None:
+                raise ValueError(f"Turkish meaning incomplete for {n}:{vn}")
             title = "Besmele" if vn == 0 else f"{n}:{vn}"
-            if sample:
+            if sample or word_draft:
                 chunks.append(f'<div class="verse"><div class="verse-name">{title}</div>'
                               f'<div class="tokens">{words_html(verse["text"],gloss,f"{n}:{vn}")}</div></div>')
             else:
@@ -164,14 +170,14 @@ def build_html(src, sample=False):
 
 def main():
     parser=argparse.ArgumentParser()
-    parser.add_argument("--mode", choices=["full-arabic","sample-fatiha"],default="sample-fatiha")
+    parser.add_argument("--mode", choices=["full-arabic","sample-fatiha","word-meaning-draft"],default="sample-fatiha")
     parser.add_argument("--out", required=True)
     args=parser.parse_args()
     raw=SOURCE.read_bytes()
     src=json.loads(raw)
     count=verify(src)
     print(f"Verified {len(src['surahs'])} surahs, {len(count)} verses; SHA256 {hashlib.sha256(raw).hexdigest()}",flush=True)
-    doc=build_html(src,sample=args.mode=="sample-fatiha")
+    doc=build_html(src,sample=args.mode=="sample-fatiha",word_draft=args.mode=="word-meaning-draft")
     out=Path(args.out);out.parent.mkdir(parents=True,exist_ok=True)
     HTML(string=doc,base_url=str(ROOT)).write_pdf(str(out))
     print(f"Written {out}: {out.stat().st_size} bytes",flush=True)
