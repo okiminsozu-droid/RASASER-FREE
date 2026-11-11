@@ -10,8 +10,8 @@ android {
         applicationId = "com.rasaser.free.kurankelime"
         minSdk = 26
         targetSdk = 35
-        versionCode = 3
-        versionName = "0.2.1"
+        versionCode = 4
+        versionName = "0.2.2"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     buildTypes {
@@ -24,6 +24,14 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+        }
+        // Optimized testing only. The debug key is NOT a production release key.
+        create("offlineTest") {
+            initWith(getByName("release"))
+            applicationIdSuffix = ".trial"
+            versionNameSuffix = "-offline-test"
+            signingConfig = signingConfigs.getByName("debug")
+            matchingFallbacks += listOf("release")
         }
     }
     buildFeatures { compose = true }
