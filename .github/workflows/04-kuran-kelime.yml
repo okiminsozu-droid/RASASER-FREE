@@ -52,6 +52,15 @@ jobs:
               assert 'classes.dex' in z.namelist()
           print('Verified public test APK: PDF not bundled; device import supported')
           PY
+      - name: Publish optimized code-only offlineTest APK for private content assembly
+        if: ${{ github.ref == 'refs/heads/feature/kurankelime-five-language-offline-v1' && github.event_name == 'push' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: Kurani_Kesfet_0_2_2_OPTIMIZED_CODE_ONLY
+          path: apps/kurankelime/app/build/outputs/apk/offlineTest/app-offlineTest.apk
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 0
       - name: Publish installable preview APK (7-day artifact)
         if: ${{ github.ref == 'refs/heads/feature/kurankelime-five-language-offline-v1' && github.event_name == 'push' }}
         uses: actions/upload-artifact@v4
