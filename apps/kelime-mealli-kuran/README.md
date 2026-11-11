@@ -43,3 +43,12 @@ Her proje bağımsızdır; CAR LAUNCHER, VARAK, KATİP, BENİMLESİN, SAYHA, EZA
 - `render_pdf.py/words_html()`: Türkçe anlamı aynı renk değerinden üretir; Arapça sözcük ile Türkçe anlam daima aynı kelime kutusundadır.
 - Kaynak çalışma tablosunda **77.881** Arapça sözcük girişi, **4.364** durak işareti, **29** taslak Türkçe karşılık ve **77.852** henüz boş Türkçe karşılık vardır. Bu nedenle tam Türkçe renkli kelime mealli Kur’an henüz nihai eser değildir.
 - Hakları açık olmayan üçüncü taraf Türkçe meal verisi otomatik kopyalanmaz. Tam Kur’an için kelime karşılıklarının tamamının tamamlanması ve dinî ilimler incelemesi zorunlu.
+
+## Türkçe renkli kelime baskısı — ilk genişletme (11 Kasım 2026)
+
+- **Renk eşleştirme:** Arapça kelime ile hemen altındaki Türkçe kelime karşılığı aynı renk ve aynı kutu içinde.
+- **Kapsam:** Fâtiha (1), Bakara 1–7 (2), Asr-Nâs (103–114) seçkisi; 14 sure seçimi, 388 kelime/karşılık eşlemesi, 87 ayet/besmele bölümü.
+- **PDF oluşturma:** `python render_pdf.py --mode word-meaning-draft --out output/kelime-meali-taslak.pdf`.
+- **Özgün editoryal Türkçe sözlük:** `data/turkish-word-meanings-editorial-draft.json` (Fâtiha kelimeleri PDF betiğinin içinde). Bu sözlük **taslaktır**, ilmî incelemesi yapılmadı.
+- **Ücretsiz Actions:** `.github/workflows/08-quran-colored-word-pdf.yml` aynı kaynakla renkli çift dilli PDF yanında tam Arapça Kur’an PDF'sini üretir.
+- **Önemli:** Bu seçim tam 114 surenin Türkçe kelime meali olarak sunulmaz. Tüm Kur’an meali henüz tamamlanmadı. Üçüncü taraf Türkçe çeviri kopyalanmadı.
