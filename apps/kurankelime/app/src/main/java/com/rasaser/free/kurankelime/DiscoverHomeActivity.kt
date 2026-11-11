@@ -91,6 +91,7 @@ private fun DiscoverHome() {
     var screen by remember { mutableStateOf(if ((context as? android.app.Activity)?.intent?.getBooleanExtra("open_search", false) == true) "search" else "home") }
     var query by remember { mutableStateOf("") }
     var updated by remember { mutableIntStateOf(0) }
+    var savedWordHits by remember { mutableStateOf(emptyList<PageWord>()) }
     var fullHits by remember { mutableStateOf(emptyList<PageWord>()) }
     var onDeviceReady by remember { mutableStateOf(false) }
     var indexing by remember { mutableStateOf(false) }
@@ -132,6 +133,20 @@ private fun DiscoverHome() {
                 }
             }
         } else emptyList()
+    }
+    LaunchedEffect(screen, updated, bundledReady, onDeviceReady) {
+        if (screen == "favorites") {
+            savedWordHits = withContext(Dispatchers.IO) {
+                store.wordFavorites().mapNotNull { id ->
+                    when {
+                        id in -10007..-10001 -> null // Preview Fâtiha ayah; displayed separately.
+                        id >= 1000000 -> bundledIndex.byId(id)
+                        id < 0 -> localEngine.byId(id)
+                        else -> fullIndex.byId(id)
+                    }
+                }
+            }
+        }
     }
     val l = labels(language)
     val logo = remember {
@@ -232,31 +247,55 @@ private fun DiscoverHome() {
                 LazyColumn(verticalArrangement=Arrangement.spacedBy(8.dp)) {
                     if (hasFullSearch) {
                         items(fullHits, key={ "hit" + it.id }) { hit ->
+                            val isSaved = remember(hit.id, updated) { store.isWordFavorite(hit.id) }
                             Card(onClick={openBookPage(context,hit.page,highlightWordId=hit.id)},
                                 shape=RoundedCornerShape(14.dp)) {
-                                Column(Modifier.fillMaxWidth().padding(15.dp)) {
-                                    val verifiedRange = remember(hit.id,hit.page) {
-                                        if (bundledReady) bundledIndex.referenceLabel(hit.id,hit.page)
-                                        else null
+                                Row(Modifier.fillMaxWidth().padding(start=15.dp, top=10.dp, end=6.dp, bottom=10.dp),
+                                    verticalAlignment=Alignment.CenterVertically) {
+                                    Column(Modifier.weight(1f)) {
+                                        val verifiedRange = remember(hit.id,hit.page) {
+                                            if (bundledReady) bundledIndex.referenceLabel(hit.id,hit.page)
+                                            else null
+                                        }
+                                        Text(verifiedRange ?: ("Kur’anı Keşfet · Sayfa " + hit.page),
+                                            color=HomeGreen,fontWeight=FontWeight.SemiBold,fontSize=13.sp)
+                                        Spacer(Modifier.height(5.dp))
+                                        Text(hit.gloss,fontSize=17.sp,color=Color(0xFF885E20),
+                                            fontWeight=FontWeight.Bold)
+                                        Text("Sayfa " + hit.page + " · Kelimeye git",
+                                            color=HomeBrown,fontSize=11.sp)
                                     }
-                                    Text(verifiedRange ?: ("Kur’anı Keşfet · Sayfa " + hit.page),
-                                        color=HomeGreen,fontWeight=FontWeight.SemiBold,fontSize=13.sp)
-                                    Spacer(Modifier.height(5.dp))
-                                    Text(hit.gloss,fontSize=17.sp,color=Color(0xFF885E20),
-                                        fontWeight=FontWeight.Bold)
-                                    Text("PDF sayfa " + hit.page + " · Kelimeye git",
-                                        color=HomeBrown,fontSize=11.sp)
+                                    IconButton(onClick={
+                                        store.toggleWordFavorite(hit.id)
+                                        updated++
+                                    }) {
+                                        Icon(if(isSaved) Icons.Default.Star else Icons.Default.StarBorder,
+                                            tint=if(isSaved) Color(0xFFC69C51) else HomeGreen,
+                                            contentDescription=if(isSaved) "Favorilerden çıkar" else "Favorilere ekle")
+                                    }
                                 }
                             }
                         }
                     } else {
                         items(fallback.distinctBy { it.ayah }) { hit ->
+                            val id = -10000-hit.ayah
+                            val isSaved = remember(id,updated) { store.isWordFavorite(id) }
                             Card(onClick={openBookPage(context,1,hit.ayah)},
                                 shape=RoundedCornerShape(14.dp)) {
-                                Column(Modifier.fillMaxWidth().padding(15.dp)) {
-                                    Text("Fâtiha · " + hit.ayah + ". Ayet · PDF sayfa 1",
-                                        color=HomeGreen)
-                                    Text(hit.arabic + " · " + hit.meaning,fontSize=16.sp)
+                                Row(Modifier.fillMaxWidth().padding(start=15.dp,top=10.dp,end=6.dp,bottom=10.dp),
+                                    verticalAlignment=Alignment.CenterVertically) {
+                                    Column(Modifier.weight(1f)) {
+                                        Text("Fâtiha · " + hit.ayah + ". Ayet · Sayfa 1",color=HomeGreen)
+                                        Text(hit.arabic + " · " + hit.meaning,fontSize=16.sp)
+                                    }
+                                    IconButton(onClick={
+                                        store.toggleWordFavorite(id)
+                                        updated++
+                                    }) {
+                                        Icon(if(isSaved) Icons.Default.Star else Icons.Default.StarBorder,
+                                            tint=if(isSaved) Color(0xFFC69C51) else HomeGreen,
+                                            contentDescription=if(isSaved) "Favorilerden çıkar" else "Favorilere ekle")
+                                    }
                                 }
                             }
                         }
@@ -274,15 +313,53 @@ private fun DiscoverHome() {
                     Text(l.favorites,color=HomeGreen,fontSize=20.sp)
                 }
                 val pages = remember(updated) { store.favorites() }
-                if(pages.isEmpty()) {
-                    Text("Henüz favori sayfa yok.",modifier=Modifier.padding(20.dp))
+                val previewAyahs = remember(updated) {
+                    store.wordFavorites().filter { it in -10007..-10001 }.map { -10000-it }.sorted()
+                }
+                if (pages.isEmpty() && savedWordHits.isEmpty() && previewAyahs.isEmpty()) {
+                    Text("Henüz favori sayfa veya kelime yok.",modifier=Modifier.padding(20.dp))
                 } else LazyColumn(verticalArrangement=Arrangement.spacedBy(10.dp)) {
-                    items(pages) { page ->
+                    items(savedWordHits,key={"saved-word-"+it.id}) { word ->
+                        Card(onClick={openBookPage(context,word.page,highlightWordId=word.id)}) {
+                            Row(Modifier.fillMaxWidth().padding(12.dp),
+                                verticalAlignment=Alignment.CenterVertically) {
+                                Column(Modifier.weight(1f)) {
+                                    Text(word.gloss,color=HomeGreen,fontSize=17.sp,fontWeight=FontWeight.Bold)
+                                    Text("Sayfa "+word.page+" · Kelimeye git",
+                                        color=HomeBrown,fontSize=12.sp)
+                                }
+                                IconButton(onClick={
+                                    store.toggleWordFavorite(word.id)
+                                    updated++
+                                }) {
+                                    Icon(Icons.Default.Star,tint=Color(0xFFC69C51),
+                                        contentDescription="Kelimeyi favorilerden çıkar")
+                                }
+                            }
+                        }
+                    }
+                    items(previewAyahs,key={"saved-fatiha-"+it}) { ayah ->
+                        Card(onClick={openBookPage(context,1,ayah)}) {
+                            Row(Modifier.fillMaxWidth().padding(12.dp),
+                                verticalAlignment=Alignment.CenterVertically) {
+                                Text("Fâtiha · "+ayah+". Ayet",color=HomeGreen,
+                                    modifier=Modifier.weight(1f))
+                                IconButton(onClick={
+                                    store.toggleWordFavorite(-10000-ayah)
+                                    updated++
+                                }) {
+                                    Icon(Icons.Default.Star,tint=Color(0xFFC69C51),
+                                        contentDescription="Ayeti favorilerden çıkar")
+                                }
+                            }
+                        }
+                    }
+                    items(pages,key={"saved-page-"+it}) { page ->
                         Card(onClick={openBookPage(context,page)}) {
-                            Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment=Alignment.CenterVertically) {
-                                Icon(Icons.Default.Star,tint=Color(0xFFC69C51), contentDescription=null)
+                            Row(Modifier.fillMaxWidth().padding(16.dp),verticalAlignment=Alignment.CenterVertically) {
+                                Icon(Icons.Default.Star,tint=Color(0xFFC69C51),contentDescription=null)
                                 Spacer(Modifier.width(12.dp))
-                                Text("PDF Sayfa " + page,color=HomeGreen)
+                                Text("Sayfa " + page,color=HomeGreen)
                             }
                         }
                     }
