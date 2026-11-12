@@ -93,6 +93,50 @@ class BundledWordIndex(private val context: Context) {
         return output
     }
 
+    /** A selected printed word. OCR is a reading aid, not an authenticated Quran text. */
+    data class Selection(
+        val word: PageWord,
+        val text: String,
+        val sourceLanguage: String,
+        val confidence: Float
+    )
+
+    /**
+     * Select the OCR candidate whose visible letter box actually contains the touch.
+     * Search both Arabic source words and Turkish glosses, not only Turkish.
+     * Coordinates are in the preserved 595x842 source PDF sheet.
+     */
+    fun selectNearest(page: Int, x: Float, y: Float): Selection? {
+        val database=ready() ?: return null
+        data class Candidate(val row: PageWord,val lang:String,val conf:Float,val score:Float)
+        val candidates=ArrayList<Candidate>()
+        database.rawQuery(
+            "SELECT id,page,x,y,w,h,token,lang,confidence FROM ocr_tokens " +
+            "WHERE page=? AND lang IN ('ara','tur') " +
+            "AND ((lang='ara' AND confidence>=28) OR (lang='tur' AND confidence>=45)) " +
+            "AND x<=? AND (x+w)>=? AND y<=? AND (y+h)>=? LIMIT 100",
+            arrayOf(page.toString(),(x+7f).toString(),(x-7f).toString(),
+                (y+7f).toString(),(y-7f).toString())
+        ).use { c ->
+            while(c.moveToNext()) {
+                val w=fromCursor(c)
+                val l=c.getString(7)
+                val conf=c.getFloat(8)
+                val dx=when { x<w.x -> w.x-x; x>w.x+w.width -> x-(w.x+w.width); else -> 0f }
+                val dy=when { y<w.y -> w.y-y; y>w.y+w.height -> y-(w.y+w.height); else -> 0f }
+                val score=dx*dx+dy*dy+
+                    // Resolve overlapping OCR rectangles by normalized center distance.
+                    0.025f*((x-w.x-w.width/2f)*(x-w.x-w.width/2f) +
+                        (y-w.y-w.height/2f)*(y-w.y-w.height/2f))
+                candidates.add(Candidate(w,l,conf,score))
+            }
+        }
+        val best=candidates.minByOrNull { it.score } ?: return null
+        // Reject a faraway OCR word instead of visibly selecting the wrong word.
+        if (best.score>70f) return null
+        return Selection(best.row,best.row.gloss,if(best.lang=="ara") "ar" else "tr",best.conf)
+    }
+
     fun byId(id: Int): PageWord? {
         val database = ready() ?: return null
         if (id < FIRST_ID) return null
