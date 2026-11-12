@@ -132,4 +132,71 @@ internal class SelectableTextLayer(private val context:Context) {
             4f*(dx*dx+dy*dy)+0.025f*(cx*cx+cy*cy)+0.25f*(100f-hit.confidence)
         }
     }
+
+    /**
+     * Read the Turkish text physically printed underneath an Arabic OCR word
+     * on the SAME source page. This is a geometric OCR aid, NOT a certified
+     * religious translation or an Arabic/Turkish dictionary.
+     *
+     * Existing 605-page assets, user bookmarks and word selection stay untouched.
+     */
+    data class PrintedTurkishGloss(val text: String, val confidence: Float)
+
+    fun printedTurkishBelow(page: Int, ocrId: Int, selectedArabic: String): PrintedTurkishGloss? {
+        if (page !in 1..605 || ocrId <= 0 || selectedArabic.isBlank()) return null
+        val database = db() ?: return null
+        data class ArabicBox(val x: Float, val y: Float, val w: Float,
+                             val h: Float, val word: String)
+        data class TurkishWord(val word: String, val x: Float, val y: Float,
+                               val confidence: Float)
+        val source = try {
+            database.rawQuery(
+                "SELECT x,y,w,h,word FROM words WHERE page=? AND ocr_id=? AND lang='ara' LIMIT 1",
+                arrayOf(page.toString(), ocrId.toString())
+            ).use { c ->
+                if (c.moveToFirst()) ArabicBox(
+                    c.getFloat(0), c.getFloat(1), c.getFloat(2), c.getFloat(3), c.getString(4)
+                ) else null
+            }
+        } catch (_: Exception) { null } ?: return null
+        // Do not attach a gloss to another OCR token or a drag-selected phrase.
+        if (source.word.trim() != selectedArabic.trim()) return null
+        if (source.w <= 0f || source.h <= 0f) return null
+
+        val bottom = source.y + source.h
+        val candidates = ArrayList<TurkishWord>()
+        try {
+            database.rawQuery(
+                "SELECT word,x,y,confidence FROM words WHERE page=? AND lang='tur' " +
+                "AND confidence>=62 AND y>=CAST(? AS REAL) AND y<=CAST(? AS REAL) " +
+                "AND (x+w*0.5)>=CAST(? AS REAL) " +
+                "AND (x+w*0.5)<=CAST(? AS REAL) ORDER BY y,x LIMIT 24",
+                arrayOf(
+                    page.toString(), (bottom - .005f).toString(),
+                    (bottom + .054f).toString(), (source.x - .001f).toString(),
+                    (source.x + source.w + .001f).toString()
+                )
+            ).use { c ->
+                while (c.moveToNext()) {
+                    val word = c.getString(0)?.trim().orEmpty()
+                    if (word.any { it.isLetter() }) candidates.add(
+                        TurkishWord(word, c.getFloat(1), c.getFloat(2), c.getFloat(3))
+                    )
+                }
+            }
+        } catch (_: Exception) { return null }
+        if (candidates.isEmpty()) return null
+
+        // Keep the one- or two-line Turkish block immediately under this word,
+        // rather than silently concatenating the next Arabic word's explanation.
+        val firstY = candidates.first().y
+        val lines = candidates.filter { it.y <= firstY + .019f }
+        if (lines.isEmpty() || lines.size > 12) return null
+        val ordered = lines.sortedWith(compareBy<TurkishWord> {
+            ((it.y - firstY) / .012f).toInt()
+        }.thenBy { it.x })
+        val result = ordered.joinToString(" ") { it.word }.trim()
+        if (result.isBlank() || result.length > 180) return null
+        return PrintedTurkishGloss(result, ordered.map { it.confidence }.average().toFloat())
+    }
 }
