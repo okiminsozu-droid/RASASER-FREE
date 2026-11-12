@@ -40,7 +40,7 @@ private val HomeGreen = Color(0xFF17422F)
 private val HomeBrown = Color(0xFF6D5036)
 private val languages = listOf(
     "tr" to "🇹🇷 Türkçe", "en" to "🇬🇧 English", "de" to "🇩🇪 Deutsch",
-    "ar" to "🇸🇦 العربية", "es" to "🇪🇸 Español"
+    "ar" to "🇸🇦 العربية", "es" to "🇪🇸 Español", "zh" to "🇨🇳 中文"
 )
 private data class UiLabels(
     val title: String, val subtitle: String, val slogan: String,
