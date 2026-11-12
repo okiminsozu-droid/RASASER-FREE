@@ -43,7 +43,7 @@ internal class OnDeviceWordTranslator(private val activity: Activity) {
             AlertDialog.Builder(activity)
                 .setTitle("Çevrimdışı çeviri modeli")
                 .setMessage(
-                    "\${names[target]} çevirisi için ilk kullanımda ücretsiz dil modeli "+
+                    "${names[target]} çevirisi için ilk kullanımda ücretsiz dil modeli "+
                     "Wi-Fi üzerinden indirilebilir (yaklaşık 30 MB/dil). "+
                     "İndirildikten sonra çeviri cihazda yapılır. Devam edilsin mi?"
                 )
@@ -61,7 +61,7 @@ internal class OnDeviceWordTranslator(private val activity: Activity) {
         val prefs=activity.getSharedPreferences("quran_translation_models",Context.MODE_PRIVATE)
         var translated:String?=null
         val dialog=AlertDialog.Builder(activity)
-            .setTitle("Çevir · \${names[target] ?: target}")
+            .setTitle("Çevir · ${names[target] ?: target}")
             .setMessage("Seçilen kelime: $text\n\nÇevrimdışı çeviri modeli kontrol ediliyor…")
             .setNegativeButton("Kapat",null)
             .setPositiveButton("Kopyala"){_,_->
@@ -81,7 +81,7 @@ internal class OnDeviceWordTranslator(private val activity: Activity) {
                         translated=result
                         if(!activity.isFinishing&&!activity.isDestroyed&&dialog.isShowing) {
                             dialog.setMessage(
-                                "$text\n\n\${names[target] ?: target}: $result\n\n"+
+                                "$text\n\n${names[target] ?: target}: $result\n\n"+
                                 "Otomatik çeviri; doğrulanmış Kur’an kelime meali değildir."
                             )
                             dialog.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled=true
@@ -105,7 +105,7 @@ internal class OnDeviceWordTranslator(private val activity: Activity) {
 
     private fun showTranslation(original:String,target:String) {
         AlertDialog.Builder(activity)
-            .setTitle("Seçili kelime · \${names[target] ?: target}")
+            .setTitle("Seçili kelime · ${names[target] ?: target}")
             .setMessage("$original\n\nAynı dil seçili; çeviri gerekmiyor.")
             .setPositiveButton("Kopyala"){_,_->
                 (activity.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager)
