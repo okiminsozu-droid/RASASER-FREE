@@ -82,7 +82,8 @@ internal class SelectableTextLayer(private val context:Context) {
             val dy=max(0f,max(b.top-py,py-b.bottom))*dimensions.second
             val cx=(px-(b.left+b.right)*0.5f)*dimensions.first
             val cy=(py-(b.top+b.bottom)*0.5f)*dimensions.second
-            4f*(dx*dx+dy*dy)+0.025f*(cx*cx+cy*cy)
+            // Prefer clearer OCR regions when two word boxes overlap.
+            4f*(dx*dx+dy*dy)+0.025f*(cx*cx+cy*cy)+0.25f*(100f-hit.confidence)
         }
     }
 }
