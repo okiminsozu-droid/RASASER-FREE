@@ -42,6 +42,7 @@ class StableReaderActivity : Activity() {
     private val worker = Executors.newSingleThreadExecutor()
     private val request = AtomicInteger()
     private lateinit var store: PageStore
+    private lateinit var single: SinglePageSource
     private lateinit var pageView: PageView
     private lateinit var counter: TextView
     private lateinit var bookmark: TextView
@@ -61,16 +62,18 @@ class StableReaderActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        store = PageStore(this)
-        val sourcePage = intent.getIntExtra("page", 0)
-        page = when {
-            sourcePage in 1..304 && intent.hasExtra("hit_x") && intent.hasExtra("hit_y") ->
-                ReadingPanels.screenAt(sourcePage, intent.getFloatExtra("hit_x", 0f),
-                    intent.getFloatExtra("hit_y", 0f))
-            sourcePage in 1..304 -> ReadingPanels.firstScreen(sourcePage)
-            else -> store.lastScreen()
-        }
         try {
+            store = PageStore(this)
+            single = SinglePageSource(this)
+            val sourcePage = intent.getIntExtra("page",0)
+            page = when {
+                sourcePage in 1..304 && intent.hasExtra("hit_x") && intent.hasExtra("hit_y") ->
+                    single.atPdf(sourcePage,intent.getFloatExtra("hit_x",0f),
+                        intent.getFloatExtra("hit_y",0f))
+                sourcePage in 1..304 -> single.firstForPdf(sourcePage)
+                store.lastSinglePage() in 1..single.count -> store.lastSinglePage()
+                else -> store.oldScreenAsSinglePage()
+            }
             buildUi()
             showPage(page, intent.getIntExtra("highlight_word_id",0))
         } catch (e: Exception) {
@@ -82,7 +85,7 @@ class StableReaderActivity : Activity() {
         val main = FrameLayout(this).apply { setBackgroundColor(Color.WHITE) }
         pageView = PageView(this)
         main.addView(pageView, FrameLayout.LayoutParams(-1,-1))
-        pageView.onSwipe = { direction -> showPage((page+direction).coerceIn(1,304)) }
+        pageView.onSwipe = { direction -> showPage((page+direction).coerceIn(1,single.count)) }
         pageView.onTapWord = { x,y -> findWord(x,y) }
         pageView.onToggle = {
             val visibility = if (toolbar.visibility == View.VISIBLE) View.GONE else View.VISIBLE
@@ -99,10 +102,10 @@ class StableReaderActivity : Activity() {
             return t
         }
         top("‹"){showPage((page-1).coerceAtLeast(1))}
-        counter=top("1 / 1208",2f){askPage()}
-        bookmark=top("☆"){store.toggleFavorite(ReadingPanels.slot(page).pdfPage);updateToolbar()}
+        counter=top("1 / 605",2f){askPage()}
+        bookmark=top("☆"){store.toggleFavorite(single.page(page).sourcePdfPage);updateToolbar()}
         top("⌂"){finish()}
-        top("›"){showPage((page+1).coerceAtMost(ReadingPanels.COUNT))}
+        top("›"){showPage((page+1).coerceAtMost(single.count))}
         main.addView(toolbar,FrameLayout.LayoutParams(-1,dp(54),Gravity.TOP))
         footer=LinearLayout(this).apply {
             orientation=LinearLayout.HORIZONTAL;gravity=Gravity.CENTER
@@ -169,15 +172,15 @@ class StableReaderActivity : Activity() {
         pageView.post { pageView.restoreFullscreen() }
     }
     private fun updateToolbar() {
-        counter.text=page.toString()+" / "+ReadingPanels.COUNT
-        bookmark.text=if(store.isFavorite(ReadingPanels.slot(page).pdfPage)) "★" else "☆"
+        counter.text=page.toString()+" / "+single.count
+        bookmark.text=if(store.isFavorite(single.page(page).sourcePdfPage)) "★" else "☆"
     }
     private fun showPage(next:Int, selectId:Int=0) {
-        if(next !in 1..ReadingPanels.COUNT) return
-        val slot = ReadingPanels.slot(next)
+        if(next !in 1..single.count) return
+        val entry = single.page(next)
         page=next
-        store.setLastPage(slot.pdfPage)
-        store.setLastScreen(page)
+        store.setLastPage(entry.sourcePdfPage)
+        store.setLastSinglePage(page)
         updateToolbar()
         selectedInfo.visibility=View.GONE
         pageView.clearPage()
@@ -186,17 +189,12 @@ class StableReaderActivity : Activity() {
             var decoded:Bitmap?=null
             var problem:String?=null
             try {
-                assets.open("quran/rendered/page_"+slot.pdfPage.toString().padStart(4,'0')+".webp").use {
+                assets.open(entry.assetName).use {
                     decoded=BitmapFactory.decodeStream(it,null,BitmapFactory.Options().apply {
                         inPreferredConfig=Bitmap.Config.RGB_565
                     })
                 }
-                if(decoded!=null && slot.quadrant>=0) {
-                    val full = decoded!!
-                    decoded = ReadingPanels.crop(full, slot)
-                    if (decoded !== full) full.recycle()
-                }
-                if(decoded==null) problem="Görsel açılamadı."
+                if(decoded==null) problem="Tekli sayfa görüntüsü açılamadı."
             } catch(e:Exception) { problem=e.javaClass.simpleName+": "+e.message }
             val result=decoded
             val detail=problem
@@ -207,8 +205,8 @@ class StableReaderActivity : Activity() {
                 val old=bitmap
                 bitmap=result
                 if(result!=null) {
-                    pageView.setPage(result, slot)
-                    if(selectId>=1000000) findById(selectId, slot.pdfPage, next)
+                    pageView.setPage(result, entry)
+                    if(selectId>=1000000) findById(selectId, entry.sourcePdfPage, next)
                 } else pageView.showError("Sayfa "+next+" açılamadı: "+detail)
                 if(old!=null && old!==result && !old.isRecycled) old.recycle()
             }
@@ -224,7 +222,7 @@ class StableReaderActivity : Activity() {
     }
     private fun findWord(x:Float,y:Float) {
         val current=page
-        val sourcePage=ReadingPanels.slot(current).pdfPage
+        val sourcePage=single.page(current).sourcePdfPage
         worker.execute {
             val word=try {
                 PageWordIndex(applicationContext).nearestWord(sourcePage,x,y)
@@ -251,37 +249,26 @@ class StableReaderActivity : Activity() {
             inputType=android.text.InputType.TYPE_CLASS_NUMBER
             setText(page.toString())
         }
-        AlertDialog.Builder(this).setTitle("Okuma ekranı (1–1208)").setView(edit)
+        AlertDialog.Builder(this).setTitle("Okuma sayfası (1–605)").setView(edit)
             .setNegativeButton("Vazgeç",null)
             .setPositiveButton("Git") { _, _ ->
                 val target=edit.text.toString().toIntOrNull()
-                if(target!=null&&target in 1..ReadingPanels.COUNT)showPage(target)
+                if(target!=null&&target in 1..single.count)showPage(target)
             }.show()
     }
     private fun share() {
         val current=page
-        val slot=ReadingPanels.slot(current)
+        val entry=single.page(current)
         worker.execute {
             try {
-                val target=File(File(cacheDir,"shares").apply{mkdirs()},"sayfa_"+current+".png")
-                assets.open("quran/rendered/page_"+slot.pdfPage.toString().padStart(4,'0')+".webp").use { stream ->
-                    val full=BitmapFactory.decodeStream(stream)
-                        ?: throw IllegalStateException("Sayfa resmi açılamadı")
-                    val crop=ReadingPanels.crop(full, slot)
-                    try {
-                        target.outputStream().use { output ->
-                            if(!crop.compress(Bitmap.CompressFormat.PNG, 100, output))
-                                throw IllegalStateException("Görüntü kaydedilemedi")
-                        }
-                    } finally {
-                        if(crop!==full)crop.recycle()
-                        full.recycle()
-                    }
+                val target=File(File(cacheDir,"shares").apply{mkdirs()},"sayfa_"+current+".webp")
+                assets.open(entry.assetName).use { stream ->
+                    target.outputStream().use { output -> stream.copyTo(output) }
                 }
                 val uri=FileProvider.getUriForFile(this,packageName+".provider",target)
                 runOnUiThread {
-                    startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply {
-                        type="image/png"
+                    if(!isFinishing) startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply {
+                        type="image/webp"
                         putExtra(Intent.EXTRA_STREAM,uri)
                         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                     },"Sayfayı paylaş"))
@@ -308,7 +295,7 @@ class StableReaderActivity : Activity() {
 
     private inner class PageView(ctx:Context):View(ctx) {
         private var source:Bitmap?=null
-        private var currentSlot=ReadingPanels.slot(1)
+        private var currentEntry=single.page(1)
         private var message:String?=null
         private var word:PageWord?=null
         private val imageRect=RectF()
@@ -338,15 +325,17 @@ class StableReaderActivity : Activity() {
                 updateRect(img)
                 val x=(e.x-imageRect.left)/imageRect.width()
                 val y=(e.y-imageRect.top)/imageRect.height()
-                if(x in 0f..1f&&y in 0f..1f)
-                    onTapWord(ReadingPanels.toSheetX(currentSlot,x),
-                              ReadingPanels.toSheetY(currentSlot,y))
+                if(x in 0f..1f&&y in 0f..1f) {
+                    single.tapPosition(currentEntry,x,y)?.let { (sheetX,sheetY) ->
+                        onTapWord(sheetX,sheetY)
+                    }
+                }
                 return true
             }
             override fun onScroll(e1:MotionEvent?,e2:MotionEvent,dx:Float,dy:Float):Boolean {
                 // In fullscreen mode the page extends outside the viewport, so pan
                 // even at zoom=1. Swipe-release still advances pages as before.
-                if(zoom>1.01f || !fitWholePage) {panX-=dx;panY-=dy;invalidate();return true}
+                if(zoom>1.01f || (!fitWholePage && width>height)) {panX-=dx;panY-=dy;invalidate();return true}
                 return false
             }
         })
@@ -357,7 +346,7 @@ class StableReaderActivity : Activity() {
                 invalidate();return true
             }
         })
-        fun setPage(img:Bitmap,slot:ReadingPanels.Slot){source=img;currentSlot=slot;message=null;word=null;invalidate()}
+        fun setPage(img:Bitmap,entry:SinglePageSource.Entry){source=img;currentEntry=entry;message=null;word=null;invalidate()}
         fun clearPage(){source=null;message=null;word=null;zoom=1f;fitWholePage=false;panX=0f;panY=0f;invalidate()}
         fun showError(msg:String){source=null;message=msg;invalidate()}
         fun highlight(w:PageWord){word=w;invalidate()}
@@ -381,9 +370,10 @@ class StableReaderActivity : Activity() {
             invalidate()
         }
         private fun updateRect(b:Bitmap) {
-            // Fullscreen uses CENTER_CROP without stretching Arabic glyphs.
-            // Reader can pan clipped portions; Sığdır toggles the entire page overview.
-            val baseScale=if(fitWholePage) min(width.toFloat()/b.width,height.toFloat()/b.height)
+            // The complete original page is visible in portrait, without cropping.
+            // In landscape, fill the width and allow vertical panning.
+            val baseScale=if(fitWholePage || width <= height)
+                min(width.toFloat()/b.width,height.toFloat()/b.height)
                 else max(width.toFloat()/b.width,height.toFloat()/b.height)
             val scale=baseScale*zoom
             val w=b.width*scale;val h=b.height*scale
@@ -399,13 +389,15 @@ class StableReaderActivity : Activity() {
                 updateRect(b)
                 c.drawBitmap(b,null,imageRect,paint)
                 word?.let { w ->
-                    val r=RectF(
-                        imageRect.left+ReadingPanels.panelX(currentSlot,w.x)*imageRect.width(),
-                        imageRect.top+ReadingPanels.panelY(currentSlot,w.y-7f)*imageRect.height(),
-                        imageRect.left+ReadingPanels.panelX(currentSlot,w.x+w.width)*imageRect.width(),
-                        imageRect.top+ReadingPanels.panelY(currentSlot,w.y+w.height+2f)*imageRect.height())
-                    c.drawRoundRect(r,5f,5f,fill)
-                    c.drawRoundRect(r,5f,5f,line)
+                    single.highlight(currentEntry,w)?.let { position ->
+                        val r=RectF(
+                            imageRect.left+position.left*imageRect.width(),
+                            imageRect.top+position.top*imageRect.height(),
+                            imageRect.left+position.right*imageRect.width(),
+                            imageRect.top+position.bottom*imageRect.height())
+                        c.drawRoundRect(r,5f,5f,fill)
+                        c.drawRoundRect(r,5f,5f,line)
+                    }
                 }
             } else c.drawText((message?:"Sayfa açılıyor…").take(100),width/2f,height/2f,textPaint)
         }
