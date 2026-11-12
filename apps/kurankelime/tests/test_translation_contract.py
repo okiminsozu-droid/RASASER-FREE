@@ -24,7 +24,8 @@ class TestReaderTranslationContract(unittest.TestCase):
         self.assertIn("Doğrulanmış Kur’an kelime anlamı", translator)
         self.assertNotIn("cloudtranslate.googleapis.com", translator)
         self.assertNotIn("translate.googleapis.com", translator)
-        self.assertIn("if (result == null) requestGoogle()", translator)
+        self.assertIn("printed = fromPdf", translator)
+        self.assertNotIn("if (result == null) requestGoogle()", translator)
 
     def test_preview_never_claims_ocr_is_verified(self):
         glossary = (CODE / "ReviewedQuranGlossary.kt").read_text(encoding="utf-8")
