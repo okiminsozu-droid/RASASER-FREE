@@ -20,7 +20,10 @@ import java.util.concurrent.Executors
  * Reviewed scripture meanings may be shown ONLY when the optional, independently
  * reviewed exact-token glossary contains a matching source, page, language and ID.
  */
-internal class OnDeviceWordTranslator(private val activity: Activity) {
+internal class OnDeviceWordTranslator(
+    private val activity: Activity,
+    private val selectableLayer: SelectableTextLayer
+) {
     private val glossary = ReviewedQuranGlossary(activity.applicationContext)
     private val lookupWorker = Executors.newSingleThreadExecutor()
     private val codes = setOf("tr", "en", "de", "es", "zh", "ar")
@@ -44,8 +47,9 @@ internal class OnDeviceWordTranslator(private val activity: Activity) {
 
         activeDialog?.dismiss()
         var reviewed: ReviewedQuranGlossary.Entry? = null
+        var printed: SelectableTextLayer.PrintedTurkishGloss? = null
         var machineResult: String? = null
-        var status = "Doğrulanmış kelime anlamı kontrol ediliyor…"
+        var status = "PDF’deki basılı Türkçe karşılık kontrol ediliyor…"
 
         val dialog = AlertDialog.Builder(activity)
             .setTitle("Kelime çevirisi · ${names[target] ?: target}")
@@ -70,21 +74,27 @@ internal class OnDeviceWordTranslator(private val activity: Activity) {
             dialog.setMessage(buildString {
                 append("Seçilen: ").append(selectedText).append("\n\n")
                 if (reviewed != null) {
-                    append("Doğrulanmış Kur’an kelime anlamı\n")
+                    append("Kaynakça onaylı kelime anlamı\n")
                     append(reviewed!!.meaning)
-                    append("\nKaynak: ").append(reviewed!!.reference).append("\n\n")
+                    append("\nKaynak: ").append(reviewed!!.reference)
+                } else if (printed != null) {
+                    append("PDF’de kelimenin altında basılı Türkçe\n")
+                    append(printed!!.text)
+                    append("\n\nÇevrimdışı, konumdan eşleştirilmiş OCR metnidir; ")
+                    append("dinî açıdan doğrulanmış kelime meali değildir.")
                 } else {
-                    append("Bu seçim için doğrulanmış kelime anlamı kaydı bulunmuyor.\n\n")
+                    append("PDF’de bu kelimenin altında güvenilir bir Türkçe OCR ")
+                    append("eşleştirmesi bulunamadı.")
                 }
                 if (machineResult != null) {
-                    append("Google ML Kit — otomatik çeviri\n")
-                    append(machineResult).append("\n\n")
-                    append("Otomatik çeviri bir Kur’an meali veya tefsir değildir.")
-                } else {
-                    append(status)
+                    append("\n\nGoogle ML Kit — ayrı otomatik çeviri\n")
+                    append(machineResult)
+                    append("\nOtomatik çeviri Kur’an meali veya tefsir değildir.")
+                } else if (status.isNotBlank()) {
+                    append("\n\n").append(status)
                 }
-                append("\n\nNot: Seçili metin OCR ile algılanmış olabilir; ")
-                append("harfleri asıl sayfa üzerinden kontrol edin.")
+                append("\n\nSeçili Arapça metin OCR kaynaklı olabilir; ")
+                append("asıl sayfadaki yazıyı kontrol edin.")
             })
         }
 
@@ -158,7 +168,7 @@ internal class OnDeviceWordTranslator(private val activity: Activity) {
         }
 
         dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener {
-            val copied = reviewed?.meaning ?: machineResult ?: selectedText
+            val copied = reviewed?.meaning ?: printed?.text ?: machineResult ?: selectedText
             (activity.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager)
                 .setPrimaryClip(ClipData.newPlainText("Kur’an kelimesi", copied))
             Toast.makeText(activity, "Metin kopyalandı", Toast.LENGTH_SHORT).show()
@@ -171,19 +181,25 @@ internal class OnDeviceWordTranslator(private val activity: Activity) {
         lookupWorker.execute {
             // Multiple OCR words cannot be inferred to have a verified single-word
             // gloss. Public builds have no approved glossary and safely fall back.
-            val result = if (firstOcrId > 0 && firstOcrId == lastOcrId) {
+            val isSingleWord = firstOcrId > 0 && firstOcrId == lastOcrId
+            val result = if (isSingleWord) {
                 glossary.find(readerPage, firstOcrId, source, target, selectedText)
+            } else null
+            val fromPdf = if (result == null && isSingleWord &&
+                source == "ar" && target == "tr"
+            ) {
+                selectableLayer.printedTurkishBelow(readerPage, firstOcrId, selectedText)
             } else null
             activity.runOnUiThread {
                 if (!visible(dialog)) return@runOnUiThread
                 reviewed = result
-                status = if (result != null)
-                    "İsterseniz Google’ın otomatik çevirisini ayrıca görüntüleyin."
-                else "Google’ın cihaz içi otomatik çevirisi hazırlanıyor…"
+                printed = fromPdf
+                status = if (result != null || fromPdf != null)
+                    "Google’ın otomatik çevirisi istenirse ayrıca açılabilir."
+                else "Google çeviri yalnız düğmeye basıldığında kullanılır."
                 render()
-                // First show a manually reviewed meaning; use ML Kit only if
-                // no reviewed meaning exists or the user requests comparison.
-                if (result == null) requestGoogle()
+                // Never silently start machine translation if a local PDF
+                // gloss is missing: the offline source stays primary.
             }
         }
     }
