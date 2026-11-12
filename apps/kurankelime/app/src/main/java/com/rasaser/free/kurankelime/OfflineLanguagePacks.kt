@@ -37,7 +37,7 @@ internal object OfflineLanguagePacks {
         Pack("tr", "Türkçe"),
         Pack("de", "Almanca"),
         Pack("es", "İspanyolca"),
-        Pack("zh", "Çince")
+        Pack("ja", "Japonca")
     )
 
     fun downloaded(onResult: (Set<String>?, String?) -> Unit) {
@@ -80,11 +80,9 @@ internal fun OfflineLanguagePacksDialog(onDismiss: () -> Unit) {
         }
     }
 
-    LaunchedEffect(Unit) { refresh() }
-
-    fun downloadAll() {
+    fun downloadAll(ready: Set<String> = installed) {
         if (running || reading) return
-        val missing = OfflineLanguagePacks.downloadable.filter { it.code !in installed }
+        val missing = OfflineLanguagePacks.downloadable.filter { it.code !in ready }
         if (missing.isEmpty()) {
             status = "Tüm dil modelleri zaten cihazda."
             return
@@ -116,6 +114,20 @@ internal fun OfflineLanguagePacksDialog(onDismiss: () -> Unit) {
         }
 
         downloadNext(0)
+    }
+
+    LaunchedEffect(Unit) {
+        // One tap on the home screen starts all missing downloads automatically.
+        reading = true
+        OfflineLanguagePacks.downloaded { current, error ->
+            reading = false
+            if (current != null) {
+                installed = current
+                downloadAll(current)
+            } else {
+                problem = error ?: "Mevcut dil paketleri denetlenemedi"
+            }
+        }
     }
 
     AlertDialog(
@@ -159,7 +171,7 @@ internal fun OfflineLanguagePacksDialog(onDismiss: () -> Unit) {
         },
         confirmButton = {
             TextButton(onClick = { downloadAll() }, enabled = !running && !reading) {
-                Text("Wi-Fi ile eksik paketleri indir")
+                Text("Eksikleri indir / yeniden dene")
             }
         },
         dismissButton = {
