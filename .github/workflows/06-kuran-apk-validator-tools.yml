@@ -24,6 +24,7 @@ jobs:
           cp "$ANDROID_HOME/build-tools/35.0.0/lib/apksigner.jar" verifier/
           cp "$ANDROID_HOME/build-tools/35.0.0/zipalign" verifier/
           cp "$ANDROID_HOME/build-tools/35.0.0/aapt" verifier/
+          find "$ANDROID_HOME/build-tools/35.0.0" -name 'libc++.so' -exec cp {} verifier/ \;
           chmod 755 verifier/zipalign verifier/aapt
           ls -l verifier/
       - name: Export tools for offline local inspection (no user content)
