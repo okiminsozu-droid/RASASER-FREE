@@ -10,106 +10,193 @@ import com.google.mlkit.common.model.DownloadConditions
 import com.google.mlkit.nl.translate.TranslateLanguage
 import com.google.mlkit.nl.translate.Translation
 import com.google.mlkit.nl.translate.TranslatorOptions
+import java.util.concurrent.Executors
 
-/** Optional on-device word translation. Only language model downloads need connectivity.
- * Machine translation is not an authenticated Quran word-by-word commentary.
+/**
+ * In-reader, privacy-preserving translation.
+ * Selected Quran text is NEVER uploaded to a paid Cloud Translation endpoint.
+ * The ML Kit language-model download is the only network-dependent phase.
+ *
+ * Reviewed scripture meanings may be shown ONLY when the optional, independently
+ * reviewed exact-token glossary contains a matching source, page, language and ID.
  */
 internal class OnDeviceWordTranslator(private val activity: Activity) {
-    private val codes=setOf("tr","en","de","es","zh","ar")
-    private val names=mapOf(
-        "tr" to "Türkçe","en" to "English","de" to "Deutsch",
-        "es" to "Español","zh" to "中文","ar" to "العربية"
+    private val glossary = ReviewedQuranGlossary(activity.applicationContext)
+    private val lookupWorker = Executors.newSingleThreadExecutor()
+    private val codes = setOf("tr", "en", "de", "es", "zh", "ar")
+    private val names = mapOf(
+        "tr" to "Türkçe", "en" to "English", "de" to "Deutsch",
+        "es" to "Español", "zh" to "中文", "ar" to "العربية"
     )
+    private var activeDialog: AlertDialog? = null
 
-    fun translate(selection: BundledWordIndex.Selection) {
-        val source=selection.sourceLanguage
-        val target=activity.getSharedPreferences("discovery_home",Context.MODE_PRIVATE)
-            .getString("lang","tr")?.takeIf { it in codes } ?: "tr"
-        val selected=selection.text.trim()
-        if(selected.isEmpty())return
-        if(source==target) {
-            showTranslation(selected,target)
-            return
-        }
-        val sourceTag=TranslateLanguage.fromLanguageTag(source)
-        val targetTag=TranslateLanguage.fromLanguageTag(target)
-        if(sourceTag==null || targetTag==null) {
-            Toast.makeText(activity,"Bu dil için çeviri motoru mevcut değil.",Toast.LENGTH_LONG).show()
-            return
-        }
-        val pairKey="$source-$target"
-        val flags=activity.getSharedPreferences("quran_translation_models",Context.MODE_PRIVATE)
-        if(!flags.getBoolean(pairKey,false)) {
-            AlertDialog.Builder(activity)
-                .setTitle("Çevrimdışı çeviri modeli")
-                .setMessage(
-                    "${names[target]} çevirisi için ilk kullanımda ücretsiz dil modeli "+
-                    "Wi-Fi üzerinden indirilebilir (yaklaşık 30 MB/dil). "+
-                    "İndirildikten sonra çeviri cihazda yapılır. Devam edilsin mi?"
-                )
-                .setNegativeButton("Vazgeç",null)
-                .setPositiveButton("Devam"){_,_-> runTranslation(sourceTag,targetTag,target,selected,pairKey)}
-                .show()
-        } else runTranslation(sourceTag,targetTag,target,selected,pairKey)
-    }
+    fun translate(
+        selection: BundledWordIndex.Selection,
+        readerPage: Int,
+        firstOcrId: Int,
+        lastOcrId: Int
+    ) {
+        val source = selection.sourceLanguage
+        val target = activity.getSharedPreferences("discovery_home", Context.MODE_PRIVATE)
+            .getString("lang", "tr")?.takeIf { it in codes } ?: "tr"
+        val selectedText = selection.text.trim()
+        if (selectedText.isBlank()) return
 
-    private fun runTranslation(source:String,targetTag:String,target:String,text:String,pairKey:String) {
-        val translator=Translation.getClient(TranslatorOptions.Builder()
-            .setSourceLanguage(source)
-            .setTargetLanguage(targetTag)
-            .build())
-        val prefs=activity.getSharedPreferences("quran_translation_models",Context.MODE_PRIVATE)
-        var translated:String?=null
-        val dialog=AlertDialog.Builder(activity)
-            .setTitle("Çevir · ${names[target] ?: target}")
-            .setMessage("Seçilen kelime: $text\n\nÇevrimdışı çeviri modeli kontrol ediliyor…")
-            .setNegativeButton("Kapat",null)
-            .setPositiveButton("Kopyala"){_,_->
-                translated?.let {
-                    (activity.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager)
-                        .setPrimaryClip(ClipData.newPlainText("Çevrilen kelime",it))
-                }
-            }.create()
+        activeDialog?.dismiss()
+        var reviewed: ReviewedQuranGlossary.Entry? = null
+        var machineResult: String? = null
+        var status = "Doğrulanmış kelime anlamı kontrol ediliyor…"
+
+        val dialog = AlertDialog.Builder(activity)
+            .setTitle("Kelime çevirisi · ${names[target] ?: target}")
+            .setMessage("")
+            .setPositiveButton("Google çeviri", null)
+            .setNeutralButton("Kopyala", null)
+            .setNegativeButton("Kapat", null)
+            .create()
+        activeDialog = dialog
+        dialog.setOnDismissListener {
+            if (activeDialog === dialog) activeDialog = null
+        }
         dialog.show()
-        dialog.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled=false
-        // Called only after a user selects Translate, never at application startup.
-        translator.downloadModelIfNeeded(DownloadConditions.Builder().requireWifi().build())
-            .addOnSuccessListener {
-                prefs.edit().putBoolean(pairKey,true).apply()
-                translator.translate(text)
+        // Keep the result compact and inside the SAME reading activity.
+        dialog.window?.setLayout(
+            minOf(activity.resources.displayMetrics.widthPixels - px(32), px(355)),
+            -2
+        )
+
+        fun render() {
+            if (!visible(dialog)) return
+            dialog.setMessage(buildString {
+                append("Seçilen: ").append(selectedText).append("\n\n")
+                if (reviewed != null) {
+                    append("Doğrulanmış Kur’an kelime anlamı\n")
+                    append(reviewed!!.meaning)
+                    append("\nKaynak: ").append(reviewed!!.reference).append("\n\n")
+                } else {
+                    append("Bu seçim için doğrulanmış kelime anlamı kaydı bulunmuyor.\n\n")
+                }
+                if (machineResult != null) {
+                    append("Google ML Kit — otomatik çeviri\n")
+                    append(machineResult).append("\n\n")
+                    append("Otomatik çeviri bir Kur’an meali veya tefsir değildir.")
+                } else {
+                    append(status)
+                }
+                append("\n\nNot: Seçili metin OCR ile algılanmış olabilir; ")
+                append("harfleri asıl sayfa üzerinden kontrol edin.")
+            })
+        }
+
+        fun performGoogle(sourceTag: String, targetTag: String) {
+            if (!visible(dialog)) return
+            status = "Google dil modeli kontrol ediliyor…"
+            render()
+            val client = Translation.getClient(
+                TranslatorOptions.Builder()
+                    .setSourceLanguage(sourceTag)
+                    .setTargetLanguage(targetTag)
+                    .build()
+            )
+            val pairKey = "\$source-\$target"
+            val prefs = activity.getSharedPreferences(
+                "quran_translation_models", Context.MODE_PRIVATE
+            )
+            client.downloadModelIfNeeded(
+                DownloadConditions.Builder().requireWifi().build()
+            ).addOnSuccessListener {
+                prefs.edit().putBoolean(pairKey, true).apply()
+                client.translate(selectedText)
                     .addOnSuccessListener { result ->
-                        translated=result
-                        if(!activity.isFinishing&&!activity.isDestroyed&&dialog.isShowing) {
-                            dialog.setMessage(
-                                "$text\n\n${names[target] ?: target}: $result\n\n"+
-                                "Otomatik çeviri; doğrulanmış Kur’an kelime meali değildir."
-                            )
-                            dialog.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled=true
-                        }
-                    }
-                    .addOnFailureListener {
-                        if(!activity.isFinishing&&!activity.isDestroyed&&dialog.isShowing)
-                            dialog.setMessage("Kelime çevrilemedi. Metni yeniden seçebilirsiniz.")
-                    }
-                    .addOnCompleteListener { translator.close() }
+                        machineResult = result
+                        status = ""
+                        render()
+                    }.addOnFailureListener {
+                        status = "Otomatik çeviri alınamadı. Yeniden deneyebilirsiniz."
+                        render()
+                    }.addOnCompleteListener { client.close() }
+            }.addOnFailureListener {
+                client.close()
+                status = "Dil modeli cihazda yok veya indirilemedi. " +
+                    "İlk indirme için Wi-Fi açın; sonra çeviri çevrimdışı yapılabilir."
+                render()
             }
-            .addOnFailureListener {
-                translator.close()
-                if(!activity.isFinishing&&!activity.isDestroyed&&dialog.isShowing)
-                    dialog.setMessage(
-                        "Bu dilin modeli henüz cihazda bulunmuyor veya indirilemedi. "+
-                        "İlk kurulumda Wi-Fi gerekir; sonraki çeviriler internetsiz yapılır."
+        }
+
+        fun requestGoogle() {
+            if (!visible(dialog)) return
+            if (source == target) {
+                status = "Metin zaten seçilen dilde; otomatik çeviri gerekli değil."
+                render()
+                return
+            }
+            val sourceTag = TranslateLanguage.fromLanguageTag(source)
+            val targetTag = TranslateLanguage.fromLanguageTag(target)
+            if (sourceTag == null || targetTag == null) {
+                status = "Bu dil için cihaz içi çeviri desteklenmiyor."
+                render()
+                return
+            }
+            val key = "\$source-\$target"
+            val downloadedBefore = activity.getSharedPreferences(
+                "quran_translation_models", Context.MODE_PRIVATE
+            ).getBoolean(key, false)
+            if (!downloadedBefore) {
+                AlertDialog.Builder(activity)
+                    .setTitle("İlk kullanım: ücretsiz dil modeli")
+                    .setMessage(
+                        "${names[target] ?: target} için Google ML Kit dil modeli " +
+                            "ilk kullanımda Wi-Fi ile indirilecek. Sonraki çeviriler " +
+                            "model cihazda durduğu sürece internet gerektirmez. " +
+                            "Seçilen Kur’an metni Google Cloud Translation'a gönderilmez."
                     )
+                    .setNegativeButton("Vazgeç", null)
+                    .setPositiveButton("İndir ve çevir") { _, _ ->
+                        performGoogle(sourceTag, targetTag)
+                    }.show()
+            } else performGoogle(sourceTag, targetTag)
+        }
+
+        dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener {
+            val copied = reviewed?.meaning ?: machineResult ?: selectedText
+            (activity.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager)
+                .setPrimaryClip(ClipData.newPlainText("Kur’an kelimesi", copied))
+            Toast.makeText(activity, "Metin kopyalandı", Toast.LENGTH_SHORT).show()
+        }
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+            requestGoogle()
+        }
+        render()
+
+        lookupWorker.execute {
+            // Multiple OCR words cannot be inferred to have a verified single-word
+            // gloss. Public builds have no approved glossary and safely fall back.
+            val result = if (firstOcrId > 0 && firstOcrId == lastOcrId) {
+                glossary.find(readerPage, firstOcrId, source, target, selectedText)
+            } else null
+            activity.runOnUiThread {
+                if (!visible(dialog)) return@runOnUiThread
+                reviewed = result
+                status = if (result != null)
+                    "İsterseniz Google’ın otomatik çevirisini ayrıca görüntüleyin."
+                else "Google’ın cihaz içi otomatik çevirisi hazırlanıyor…"
+                render()
+                // First show a manually reviewed meaning; use ML Kit only if
+                // no reviewed meaning exists or the user requests comparison.
+                if (result == null) requestGoogle()
             }
+        }
     }
 
-    private fun showTranslation(original:String,target:String) {
-        AlertDialog.Builder(activity)
-            .setTitle("Seçili kelime · ${names[target] ?: target}")
-            .setMessage("$original\n\nAynı dil seçili; çeviri gerekmiyor.")
-            .setPositiveButton("Kopyala"){_,_->
-                (activity.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager)
-                    .setPrimaryClip(ClipData.newPlainText("Seçili kelime",original))
-            }.setNegativeButton("Kapat",null).show()
+    private fun visible(dialog: AlertDialog): Boolean =
+        !activity.isFinishing && !activity.isDestroyed && dialog.isShowing
+
+    private fun px(dp: Int): Int = (dp * activity.resources.displayMetrics.density).toInt()
+
+    fun close() {
+        activeDialog?.dismiss()
+        activeDialog = null
+        lookupWorker.shutdownNow()
+        glossary.close()
     }
 }
