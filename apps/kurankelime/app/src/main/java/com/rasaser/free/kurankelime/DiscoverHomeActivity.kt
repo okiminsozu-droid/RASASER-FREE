@@ -248,7 +248,8 @@ private fun DiscoverHome() {
                     if (hasFullSearch) {
                         items(fullHits, key={ "hit" + it.id }) { hit ->
                             val isSaved = remember(hit.id, updated) { store.isWordFavorite(hit.id) }
-                            Card(onClick={openBookPage(context,hit.page,highlightWordId=hit.id)},
+                            Card(onClick={openBookPage(context,hit.page,highlightWordId=hit.id,
+                                hitX=hit.x+hit.width*.5f,hitY=hit.y+hit.height*.5f)},
                                 shape=RoundedCornerShape(14.dp)) {
                                 Row(Modifier.fillMaxWidth().padding(start=15.dp, top=10.dp, end=6.dp, bottom=10.dp),
                                     verticalAlignment=Alignment.CenterVertically) {
@@ -320,7 +321,8 @@ private fun DiscoverHome() {
                     Text("Henüz favori sayfa veya kelime yok.",modifier=Modifier.padding(20.dp))
                 } else LazyColumn(verticalArrangement=Arrangement.spacedBy(10.dp)) {
                     items(savedWordHits,key={"saved-word-"+it.id}) { word ->
-                        Card(onClick={openBookPage(context,word.page,highlightWordId=word.id)}) {
+                        Card(onClick={openBookPage(context,word.page,highlightWordId=word.id,
+                            hitX=word.x+word.width*.5f,hitY=word.y+word.height*.5f)}) {
                             Row(Modifier.fillMaxWidth().padding(12.dp),
                                 verticalAlignment=Alignment.CenterVertically) {
                                 Column(Modifier.weight(1f)) {
