@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - feature/kurankelime-five-language-offline-v1
+      - feature/kurani-v034-five-offline-mlkit-packs
     paths:
       - 'apps/kurankelime/**'
       - '.github/workflows/04-kuran-kelime.yml'
@@ -67,6 +68,16 @@ jobs:
         with:
           name: Kurani_Kesfet_TEST_APK_PDF_yerel_secilecek
           path: apps/kurankelime/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 0
+
+      - name: Publish independent v0.3.4-base six-language code-only APK
+        if: ${{ github.ref == 'refs/heads/feature/kurani-v034-five-offline-mlkit-packs' && github.event_name == 'push' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: Kurani_Kesfet_v034_Six_Languages_CODE_ONLY
+          path: apps/kurankelime/app/build/outputs/apk/offlineTest/app-offlineTest.apk
           if-no-files-found: error
           retention-days: 7
           compression-level: 0
