@@ -29,7 +29,7 @@ class PrivateAssemblyTests(unittest.TestCase):
                     }]
                 })
                 z.writestr(f"quran/single_pages/page_{n:04}.webp",
-                           b"RIFF\\x04\\x00\\x00\\x00WEBPTEST")
+                           b"RIFF\x04\x00\x00\x00WEBPTEST")
             z.writestr("quran/single_pages/pages.json",
                        json.dumps({"page_count":605, "pages":pages}))
             if attack:
