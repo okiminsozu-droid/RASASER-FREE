@@ -59,3 +59,13 @@ Okuma: sol ok sonraki PDF sayfası, sağ ok önceki PDF sayfası, üstte ana say
 - Android 8–14 için, lisansı doğrulanmış tam kelime dizini ayrıca uygulama içinde varsa eski yerel dizin kullanılır; bulunmuyorsa yalnız Fâtiha önizleme araması kalır. Android 15+ üzerinde PDF sadece taranmış görüntüden oluşuyorsa **OCR yapılmaz** ve tam metin araması vaat edilmez.
 - Bu açık kaynak depo 90 MB PDF'yi veya çevirisinin hakları belirsiz metinlerini içermez. Yerel metin motoru PDF'yi cihaz içinde işler ve internete göndermez. İlk tarama tamamlanmadan tüm sayfaları kapsayan arama sonuçları gösterilmez.
 - Sürüm `0.2.1` (versionCode 3). Bu bir test önizlemesidir; Android 15 cihazda gerçek PDF ile uçtan uca doğrulama ve içerik/lisans kontrolü tamamlanmadan yayımlanmaz.
+
+
+## 12 Kasım 2026 — v0.3.3: Seç / Kopyala / Çevir (korumalı)
+
+- `StableReaderActivity` üzerindeki **bir dokunuşla seçim** ve sürüklenebilir OCR işaretçileri korunur. Seçim çubuğunda artık erişilebilir Kopyala/Çevir **simgeleri** bulunur; sayfadan ayrılınmaz.
+- Çeviri, `OnDeviceWordTranslator` ile aynı okuma ekranında küçük Android penceresinde gösterilir. Hedef dil ana sayfadaki `discovery_home/lang` tercihidir (tr/en/de/es/zh/ar). Mevcut arama, sayfa sayacı, favoriler, paylaşma ve orijinal 605 ekran görüntüsü değiştirilmez.
+- İlk kez gerekli ML Kit modeli gerekiyorsa kullanıcıdan **Wi-Fi ile model indirme izni** alınır. Model cihazda tutulduğu sürece sonraki çeviri çevrimdışı çalışır; yalnız model indirmek internet gerektirir. Ücretli Google Cloud Translation API **kullanılmaz**. Çeviri sonucu daima **otomatik** olarak etiketlenir ve tefsir/meal yerine geçmez.
+- **Doğrulanmış anlam varsa önce o** görünür; otomatik çeviri isteğe bağlı ayrıca görülebilir. Bu kalite kapısı sadece uygulama içine özel olarak yerleştirilebilecek ve bağımsız incelemesi yapılmış `assets/quran/verified_word_glosses.sqlite` veritabanı için aktiftir. **Kamuya açık depo bu veritabanını içermez; mevcut OCR kelimeleri doğrulanmış anlam sayılmaz.**
+- İsteğe bağlı veritabanı şeması: `reviewed_word_glosses(page INTEGER, ocr_id INTEGER, source_language TEXT, target_language TEXT, source_text TEXT, meaning TEXT, source_reference TEXT, reviewer TEXT, review_status TEXT, source_pdf_sha256 TEXT)`. Sadece `review_status='approved'`, boş olmayan kaynak/hakem, özgün PDF SHA-256 eşleşmesi, tek OCR kimliği ve kaynak kelimenin birebir eşleşmesi olan kayıt kullanılır. Çok kelimeli seçimlerde doğrulanmış tek kelime anlamı uydurulmaz.
+- Önceki test paketleri/projeler değişmez; bu kod yalnız ayrı geliştirme dalındadır. Eski kurulu APK, farklı imzalı bir APK ile üstüne yüklenemez. İçerik paketi açık kaynakta paylaşılmaz.
