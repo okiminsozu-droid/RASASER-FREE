@@ -5,6 +5,16 @@ import android.content.Context
 class PageStore(context: Context) {
     private val prefs = context.getSharedPreferences("quran_pdf_pages", Context.MODE_PRIVATE)
     fun lastPage(): Int = prefs.getInt("last", 1).coerceIn(1, 304)
+    // New individual-panel progress without replacing existing PDF page progress.
+    fun lastScreen(): Int {
+        val value = prefs.getInt("last_panel_screen", 0)
+        return if (value in 1..ReadingPanels.COUNT) value
+        else ReadingPanels.firstScreen(lastPage())
+    }
+    fun setLastScreen(ordinal: Int) {
+        if (ordinal in 1..ReadingPanels.COUNT)
+            prefs.edit().putInt("last_panel_screen", ordinal).apply()
+    }
     fun setLastPage(page: Int) {
         if (page in 1..304) prefs.edit().putInt("last", page).apply()
     }
