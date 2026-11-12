@@ -114,7 +114,7 @@ class BundledWordIndex(private val context: Context) {
             "SELECT id,page,x,y,w,h,token,lang,confidence FROM ocr_tokens " +
             "WHERE page=? AND lang IN ('ara','tur') " +
             "AND ((lang='ara' AND confidence>=28) OR (lang='tur' AND confidence>=45)) " +
-            "AND x<=? AND (x+w)>=? AND y<=? AND (y+h)>=? LIMIT 100",
+            "AND x<=? AND (x+w)>=CAST(? AS REAL) AND y<=? AND (y+h)>=CAST(? AS REAL) LIMIT 100",
             arrayOf(page.toString(),(x+7f).toString(),(x-7f).toString(),
                 (y+7f).toString(),(y-7f).toString())
         ).use { c ->
@@ -155,7 +155,7 @@ class BundledWordIndex(private val context: Context) {
         database.rawQuery(
             "SELECT id,page,x,y,w,h,token FROM ocr_tokens " +
                 "WHERE page=? AND lang='tur' AND confidence>=40 " +
-                "AND x<=? AND (x+w)>=? AND y<=? AND (y+h)>=? LIMIT 30",
+                "AND x<=? AND (x+w)>=CAST(? AS REAL) AND y<=? AND (y+h)>=CAST(? AS REAL) LIMIT 30",
             arrayOf(page.toString(),(x + 13f).toString(),(x - 13f).toString(),
                 (y + 27f).toString(),(y - 14f).toString())
         ).use { c -> while (c.moveToNext()) candidates += fromCursor(c) }
