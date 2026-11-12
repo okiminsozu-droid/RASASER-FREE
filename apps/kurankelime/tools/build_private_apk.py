@@ -107,8 +107,8 @@ def build(project: Path, page_zip: Path, selection: Path, output: Path, gradle: 
             (assets / "brand").mkdir(exist_ok=True)
             shutil.copyfile(logo, assets / "brand/logo.webp")
         subprocess.run([gradle, "--no-daemon", "--project-dir", str(app),
-                        ":app:assembleOfflineTest"], cwd=app, check=True)
-        apk = app / "app/build/outputs/apk/offlineTest/app-offlineTest.apk"
+                        ":app:assembleContentPreview"], cwd=app, check=True)
+        apk = app / "app/build/outputs/apk/contentPreview/app-contentPreview.apk"
         if not apk.is_file():
             raise FileNotFoundError("Optimize test APK üretilmedi")
         with zipfile.ZipFile(apk) as z:
