@@ -104,7 +104,7 @@ class MainActivity : Activity() {
         super.onCreate(savedInstanceState)
         PDFBoxResourceLoader.init(applicationContext)
         window.statusBarColor=dark;window.navigationBarColor=dark
-        val scroll=ScrollView(this).apply {setBackgroundColor(dark);fillViewport=true}
+        val scroll=ScrollView(this).apply {setBackgroundColor(dark);isFillViewport=true}
         val host=LinearLayout(this).apply{
             orientation=LinearLayout.VERTICAL
             setPadding(dp(16),dp(16),dp(16),dp(18))
