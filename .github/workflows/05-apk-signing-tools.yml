@@ -1,0 +1,35 @@
+name: Standalone Android APK Signing Tools
+on:
+  push:
+    branches:
+      - feature/kurankelime-five-language-offline-v1
+    paths:
+      - '.github/workflows/05-apk-signing-tools.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  tool-export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+      - name: Install Android SDK build-tools
+        run: sdkmanager --install "build-tools;35.0.0"
+      - name: Export APK signer and zipalign without private signing material
+        run: |
+          mkdir -p exported/android-tools
+          cp -r "${ANDROID_HOME}/build-tools/35.0.0/lib" exported/android-tools/lib
+          cp "${ANDROID_HOME}/build-tools/35.0.0/zipalign" exported/android-tools/zipalign
+          ls -lh exported/android-tools/lib/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-signing-tools-sdk35
+          path: exported/android-tools/
+          retention-days: 1

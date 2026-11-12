@@ -1,0 +1,20 @@
+{
+  "slug": "kurankelime",
+  "display_name": "Kur’an Kelime Atölyesi",
+  "package_id": "com.rasaser.free.kurankelime",
+  "version_code": 14,
+  "version_name": "0.3.2",
+  "private_engine_required": false,
+  "allow_public_debug_artifacts": false,
+  "license_review_completed": false,
+  "release_signing_location": "PRIVATE_ONLY",
+  "offline_first": true,
+  "content_status": "Fatiha_preview_unverified_no_audio",
+  "languages": [
+    "tr",
+    "en",
+    "de",
+    "es",
+    "zh"
+  ]
+}

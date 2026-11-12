@@ -1,0 +1,35 @@
+name: Kurani Kesfet - Android SDK APK Verifier Tools
+on:
+  push:
+    branches:
+      - feature/kurankelime-five-language-offline-v1
+    paths:
+      - .github/workflows/06-kuran-apk-validator-tools.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  tooling:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Check preinstalled Android SDK
+        run: |
+          echo "SDK: $ANDROID_HOME"
+          test -x "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" || command -v sdkmanager
+      - name: Install official Android APK tools
+        run: |
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "build-tools;35.0.0"
+          mkdir -p verifier
+          cp "$ANDROID_HOME/build-tools/35.0.0/lib/apksigner.jar" verifier/
+          cp "$ANDROID_HOME/build-tools/35.0.0/zipalign" verifier/
+          cp "$ANDROID_HOME/build-tools/35.0.0/aapt" verifier/
+          find "$ANDROID_HOME/build-tools/35.0.0" -name 'libc++.so' -exec cp {} verifier/ \;
+          chmod 755 verifier/zipalign verifier/aapt
+          ls -l verifier/
+      - name: Export tools for offline local inspection (no user content)
+        uses: actions/upload-artifact@v4
+        with:
+          name: kurankelime-android-official-validator-tools
+          path: verifier/
+          retention-days: 2
