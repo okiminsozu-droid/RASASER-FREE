@@ -45,6 +45,9 @@ class StableReaderActivity : Activity() {
     private lateinit var single: SinglePageSource
     private lateinit var pageView: PageView
     private lateinit var counter: TextView
+    private lateinit var chapterTitle: TextView
+    private lateinit var pageFooter: TextView
+    private lateinit var viewportLayout: FrameLayout.LayoutParams
     private lateinit var bookmark: TextView
     private lateinit var toolbar: LinearLayout
     private lateinit var footer: LinearLayout
@@ -84,13 +87,25 @@ class StableReaderActivity : Activity() {
     private fun buildUi() {
         val main = FrameLayout(this).apply { setBackgroundColor(Color.WHITE) }
         pageView = PageView(this)
-        main.addView(pageView, FrameLayout.LayoutParams(-1,-1))
+        // Reserve real space for both toolbars and the source page metadata.
+        // This prevents the first/last Quran lines from hiding behind overlays.
+        viewportLayout = FrameLayout.LayoutParams(-1,-1).apply {
+            topMargin=dp(98)
+            bottomMargin=dp(80)
+        }
+        main.addView(pageView, viewportLayout)
         pageView.onSwipe = { direction -> showPage((page+direction).coerceIn(1,single.count)) }
         pageView.onTapWord = { x,y -> findWord(x,y) }
         pageView.onToggle = {
             val visibility = if (toolbar.visibility == View.VISIBLE) View.GONE else View.VISIBLE
             toolbar.visibility = visibility
+            chapterTitle.visibility = visibility
+            pageFooter.visibility = visibility
             footer.visibility = visibility
+            selectedInfo.visibility = View.GONE
+            viewportLayout.topMargin = if(visibility==View.VISIBLE) dp(98) else 0
+            viewportLayout.bottomMargin = if(visibility==View.VISIBLE) dp(80) else 0
+            pageView.requestLayout()
         }
         toolbar = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER
@@ -107,6 +122,15 @@ class StableReaderActivity : Activity() {
         top("⌂"){finish()}
         top("›"){showPage((page+1).coerceAtMost(single.count))}
         main.addView(toolbar,FrameLayout.LayoutParams(-1,dp(54),Gravity.TOP))
+        chapterTitle=label("",14f).apply {
+            setBackgroundColor(0xFFFDF9ED.toInt())
+            maxLines=1
+            contentDescription="Sûre adı"
+        }
+        val titleLp=FrameLayout.LayoutParams(-1,dp(42),Gravity.TOP).apply {
+            topMargin=dp(54)
+        }
+        main.addView(chapterTitle,titleLp)
         footer=LinearLayout(this).apply {
             orientation=LinearLayout.HORIZONTAL;gravity=Gravity.CENTER
             setBackgroundColor(0xF8FFFFFF.toInt())
@@ -121,6 +145,14 @@ class StableReaderActivity : Activity() {
         bottom("Paylaş"){share()}
         bottom("Gizle"){pageView.onToggle()}
         main.addView(footer,FrameLayout.LayoutParams(-1,dp(52),Gravity.BOTTOM))
+        pageFooter=label("",12f).apply {
+            setBackgroundColor(0xFFFDF9ED.toInt())
+            contentDescription="Okuma sayfasının numarası"
+        }
+        val pageFootLp=FrameLayout.LayoutParams(-1,dp(27),Gravity.BOTTOM).apply {
+            bottomMargin=dp(52)
+        }
+        main.addView(pageFooter,pageFootLp)
         selectedInfo=label("",13f).apply {
             setBackgroundColor(0xF0F8EDDA.toInt())
             visibility=View.GONE
@@ -130,11 +162,12 @@ class StableReaderActivity : Activity() {
                     (getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager)
                         .setPrimaryClip(ClipData.newPlainText("Kur'an kelimesi",value))
                     Toast.makeText(this@StableReaderActivity,"Kelime kopyalandı",Toast.LENGTH_SHORT).show()
+                    hideWordInfo()
                 }
             }
         }
-        val lp=FrameLayout.LayoutParams(-1,dp(70),Gravity.BOTTOM)
-        lp.bottomMargin=dp(52)
+        val lp=FrameLayout.LayoutParams(-1,dp(42),Gravity.BOTTOM)
+        lp.bottomMargin=dp(82)
         main.addView(selectedInfo,lp)
         setContentView(main)
         updateToolbar()
@@ -174,6 +207,17 @@ class StableReaderActivity : Activity() {
     private fun updateToolbar() {
         counter.text=page.toString()+" / "+single.count
         bookmark.text=if(store.isFavorite(single.page(page).sourcePdfPage)) "★" else "☆"
+        chapterTitle.text=single.chapterHeading(page)
+        pageFooter.text="Sayfa "+page+" / "+single.count
+    }
+
+    private fun hideWordInfo() {
+        if(!::selectedInfo.isInitialized) return
+        selectedInfo.visibility=View.GONE
+        if(::viewportLayout.isInitialized && toolbar.visibility==View.VISIBLE) {
+            viewportLayout.bottomMargin=dp(80)
+            pageView.requestLayout()
+        }
     }
     private fun showPage(next:Int, selectId:Int=0) {
         if(next !in 1..single.count) return
@@ -182,7 +226,7 @@ class StableReaderActivity : Activity() {
         store.setLastPage(entry.sourcePdfPage)
         store.setLastSinglePage(page)
         updateToolbar()
-        selectedInfo.visibility=View.GONE
+        hideWordInfo()
         pageView.clearPage()
         val sequence=request.incrementAndGet()
         worker.execute {
@@ -216,7 +260,8 @@ class StableReaderActivity : Activity() {
         worker.execute {
             val result=try { BundledWordIndex(applicationContext).byId(id) } catch(_:Exception){null}
             runOnUiThread {
-                if(!isFinishing && page==expectedScreen && result?.page==expectedPdfPage) mark(result)
+                if(!isFinishing && page==expectedScreen && result?.page==expectedPdfPage)
+                    mark(result,showMeaning=false)
             }
         }
     }
@@ -230,19 +275,26 @@ class StableReaderActivity : Activity() {
             } catch(_:Exception){null}
             runOnUiThread {
                 if(isFinishing||current!=page) return@runOnUiThread
-                if(word!=null) mark(word) else {
-                    selectedInfo.tag=null
-                    selectedInfo.text="Bu noktada bir kelime bulunamadı."
-                    selectedInfo.visibility=View.VISIBLE
-                }
+                if(word!=null) mark(word,showMeaning=true)
+                else hideWordInfo()
             }
         }
     }
-    private fun mark(word:PageWord) {
+    private fun mark(word:PageWord,showMeaning:Boolean) {
         pageView.highlight(word)
+        if(!showMeaning) {
+            // Search-result navigation should mark the actual word silently.
+            hideWordInfo()
+            return
+        }
+        // Only the selected Turkish word is shown. No technical OCR notes.
         selectedInfo.tag=word.gloss
-        selectedInfo.text=word.gloss+"\nOCR kelime adayı · kopyalamak için dokun"
+        selectedInfo.text=word.gloss
         selectedInfo.visibility=View.VISIBLE
+        if(toolbar.visibility==View.VISIBLE) {
+            viewportLayout.bottomMargin=dp(130)
+            pageView.requestLayout()
+        }
     }
     private fun askPage() {
         val edit=android.widget.EditText(this).apply {
@@ -300,7 +352,7 @@ class StableReaderActivity : Activity() {
         private var word:PageWord?=null
         private val imageRect=RectF()
         private var zoom=1f
-        private var fitWholePage=false
+        private var fitWholePage=true
         private var panX=0f
         private var panY=0f
         private var downX=0f
@@ -347,18 +399,18 @@ class StableReaderActivity : Activity() {
             }
         })
         fun setPage(img:Bitmap,entry:SinglePageSource.Entry){source=img;currentEntry=entry;message=null;word=null;invalidate()}
-        fun clearPage(){source=null;message=null;word=null;zoom=1f;fitWholePage=false;panX=0f;panY=0f;invalidate()}
+        fun clearPage(){source=null;message=null;word=null;zoom=1f;fitWholePage=true;panX=0f;panY=0f;invalidate()}
         fun showError(msg:String){source=null;message=msg;invalidate()}
         fun highlight(w:PageWord){word=w;invalidate()}
         fun restoreFullscreen(){
-            fitWholePage=false
+            fitWholePage=true
             zoom=1f
             panX=0f
             panY=0f
             invalidate()
         }
         fun toggleFit(){
-            fitWholePage=!fitWholePage
+            fitWholePage=true
             zoom=1f
             panX=0f
             panY=0f
@@ -370,11 +422,10 @@ class StableReaderActivity : Activity() {
             invalidate()
         }
         private fun updateRect(b:Bitmap) {
-            // The complete original page is visible in portrait, without cropping.
-            // In landscape, fill the width and allow vertical panning.
-            val baseScale=if(fitWholePage || width <= height)
-                min(width.toFloat()/b.width,height.toFloat()/b.height)
-                else max(width.toFloat()/b.width,height.toFloat()/b.height)
+            // Always fit the ENTIRE original page within the safe content viewport.
+            // On any orientation, the first and final text rows remain visible.
+            // Pinch/zoom buttons allow detail magnification without losing pixels.
+            val baseScale=min(width.toFloat()/b.width,height.toFloat()/b.height)
             val scale=baseScale*zoom
             val w=b.width*scale;val h=b.height*scale
             panX=panX.coerceIn(-max(0f,(w-width)/2f),max(0f,(w-width)/2f))
