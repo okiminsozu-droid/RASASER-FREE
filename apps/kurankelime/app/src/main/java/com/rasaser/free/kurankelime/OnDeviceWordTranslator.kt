@@ -98,7 +98,7 @@ internal class OnDeviceWordTranslator(private val activity: Activity) {
                     .setTargetLanguage(targetTag)
                     .build()
             )
-            val pairKey = "\$source-\$target"
+            val pairKey = "$source-$target"
             val prefs = activity.getSharedPreferences(
                 "quran_translation_models", Context.MODE_PRIVATE
             )
@@ -137,7 +137,7 @@ internal class OnDeviceWordTranslator(private val activity: Activity) {
                 render()
                 return
             }
-            val key = "\$source-\$target"
+            val key = "$source-$target"
             val downloadedBefore = activity.getSharedPreferences(
                 "quran_translation_models", Context.MODE_PRIVATE
             ).getBoolean(key, false)
