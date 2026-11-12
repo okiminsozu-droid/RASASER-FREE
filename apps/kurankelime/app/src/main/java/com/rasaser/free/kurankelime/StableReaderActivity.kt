@@ -12,6 +12,10 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.RectF
+import android.graphics.Rect
+import android.view.ActionMode
+import android.view.Menu
+import android.view.MenuItem
 import android.os.Bundle
 import android.os.Build
 import android.view.WindowInsets
@@ -56,6 +60,9 @@ class StableReaderActivity : Activity() {
     private var readerControlsVisible = true
     private val green = Color.rgb(23,66,47)
     private var bitmap: Bitmap? = null
+    private var selectedWord: BundledWordIndex.Selection? = null
+    private var wordActionMode: ActionMode? = null
+    private val translation by lazy { OnDeviceWordTranslator(this) }
 
     private fun dp(v: Int): Int = (v * resources.displayMetrics.density).toInt()
     private fun label(value: String, size: Float = 17f): TextView = TextView(this).apply {
@@ -260,6 +267,8 @@ class StableReaderActivity : Activity() {
     private fun showPage(next:Int, selectId:Int=0) {
         if(next !in 1..single.count) return
         val entry = single.page(next)
+        wordActionMode?.finish()
+        selectedWord=null
         page=next
         store.setLastPage(entry.sourcePdfPage)
         store.setLastSinglePage(page)
@@ -307,38 +316,70 @@ class StableReaderActivity : Activity() {
         val current=page
         val sourcePage=single.page(current).sourcePdfPage
         worker.execute {
-            val word=try {
-                PageWordIndex(applicationContext).nearestWord(sourcePage,x,y)
-                    ?: BundledWordIndex(applicationContext).nearest(sourcePage,x,y)
+            // Arabic source words take precedence when the touch falls on their
+            // glyphs; Turkish glosses can also be selected and copied.
+            val selected=try {
+                BundledWordIndex(applicationContext).selectNearest(sourcePage,x,y)
+                    ?: PageWordIndex(applicationContext).nearestWord(sourcePage,x,y)?.let {
+                        BundledWordIndex.Selection(it,it.gloss,"tr",100f)
+                    }
             } catch(_:Exception){null}
             runOnUiThread {
-                if(isFinishing||current!=page) return@runOnUiThread
-                if(word!=null) mark(word,showMeaning=true)
-                else hideWordInfo()
+                if(isFinishing||current!=page)return@runOnUiThread
+                wordActionMode?.finish()
+                selectedWord=selected
+                if(selected!=null) {
+                    pageView.highlight(selected.word)
+                    hideWordInfo()
+                    showWordSelectionMenu()
+                } else {
+                    pageView.highlightClear()
+                    hideWordInfo()
+                }
             }
         }
     }
+
     private fun mark(word:PageWord,showMeaning:Boolean) {
+        // Search navigation silently highlights the hit without opening a toolbar.
         pageView.highlight(word)
-        if(!showMeaning) {
-            // Search-result navigation should mark the actual word silently.
-            hideWordInfo()
-            return
-        }
-        // Only the selected Turkish word is shown. No technical OCR notes.
-        selectedInfo.tag=word.gloss
-        selectedInfo.text=word.gloss
-        selectedInfo.visibility=View.VISIBLE
-        if(toolbar.visibility==View.VISIBLE && 
-            resources.configuration.orientation != Configuration.ORIENTATION_LANDSCAPE) {
-            viewportLayout.bottomMargin=dp(130)
-            pageView.requestLayout()
-        } else {
-            // Landscape: keep the entire page viewport unobstructed.
-            selectedInfo.visibility=View.GONE
-            Toast.makeText(this,word.gloss,Toast.LENGTH_SHORT).show()
-        }
+        hideWordInfo()
     }
+
+    private fun showWordSelectionMenu() {
+        val selection=selectedWord ?: return
+        if (selection.text.isBlank()) return
+        val callback=object:ActionMode.Callback2() {
+            override fun onCreateActionMode(mode:ActionMode,menu:Menu):Boolean {
+                menu.add(0,1,0,"Kopyala").setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS)
+                menu.add(0,2,1,"Çevir").setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS)
+                return true
+            }
+            override fun onPrepareActionMode(mode:ActionMode,menu:Menu):Boolean = false
+            override fun onActionItemClicked(mode:ActionMode,item:MenuItem):Boolean {
+                when(item.itemId) {
+                    1 -> {
+                        (getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager)
+                            .setPrimaryClip(ClipData.newPlainText("Seçilen Kur’an kelimesi",selection.text))
+                        Toast.makeText(this@StableReaderActivity,"Kelime kopyalandı",Toast.LENGTH_SHORT).show()
+                    }
+                    2 -> translation.translate(selection)
+                    else -> return false
+                }
+                mode.finish()
+                return true
+            }
+            override fun onDestroyActionMode(mode:ActionMode) {
+                wordActionMode=null
+            }
+            override fun onGetContentRect(mode:ActionMode,view:View,outRect:Rect) {
+                pageView.wordRectangle(outRect)
+            }
+        }
+        wordActionMode=pageView.startActionMode(callback,ActionMode.TYPE_FLOATING)
+        wordActionMode?.invalidateContentRect()
+    }
+
     private fun askPage() {
         val edit=android.widget.EditText(this).apply {
             inputType=android.text.InputType.TYPE_CLASS_NUMBER
@@ -382,6 +423,7 @@ class StableReaderActivity : Activity() {
         })
     }
     override fun onDestroy() {
+        wordActionMode?.finish()
         request.incrementAndGet()
         worker.shutdownNow()
         bitmap?.let { if(!it.isRecycled)it.recycle() }
@@ -416,16 +458,11 @@ class StableReaderActivity : Activity() {
             override fun onDown(e:MotionEvent)=true
             override fun onDoubleTap(e:MotionEvent):Boolean { onToggle();return true }
             override fun onSingleTapConfirmed(e:MotionEvent):Boolean {
-                val img=source?:return true
-                updateRect(img)
-                val x=(e.x-imageRect.left)/imageRect.width()
-                val y=(e.y-imageRect.top)/imageRect.height()
-                if(x in 0f..1f&&y in 0f..1f) {
-                    single.tapPosition(currentEntry,x,y)?.let { (sheetX,sheetY) ->
-                        onTapWord(sheetX,sheetY)
-                    }
-                }
+                selectAt(e)
                 return true
+            }
+            override fun onLongPress(e:MotionEvent) {
+                selectAt(e)
             }
             override fun onScroll(e1:MotionEvent?,e2:MotionEvent,dx:Float,dy:Float):Boolean {
                 // In fullscreen mode the page extends outside the viewport, so pan
@@ -441,6 +478,39 @@ class StableReaderActivity : Activity() {
                 invalidate();return true
             }
         })
+        private fun selectAt(event:MotionEvent) {
+            val img=source?:return
+            updateRect(img)
+            if(imageRect.width()<=0f || imageRect.height()<=0f)return
+            val x=(event.x-imageRect.left)/imageRect.width()
+            val y=(event.y-imageRect.top)/imageRect.height()
+            if(x in 0f..1f&&y in 0f..1f) {
+                single.tapPosition(currentEntry,x,y)?.let { (sheetX,sheetY) ->
+                    onTapWord(sheetX,sheetY)
+                }
+            }
+        }
+        fun wordRectangle(outRect:Rect) {
+            val selected=word
+            val bm=source
+            if(selected==null||bm==null) {
+                outRect.set(width/2-5,height/2-5,width/2+5,height/2+5)
+                return
+            }
+            updateRect(bm)
+            val r=single.highlight(currentEntry,selected)
+            if(r==null) {
+                outRect.set(width/2-5,height/2-5,width/2+5,height/2+5)
+                return
+            }
+            outRect.set(
+                (imageRect.left+r.left*imageRect.width()).toInt().coerceIn(0,width),
+                (imageRect.top+r.top*imageRect.height()).toInt().coerceIn(0,height),
+                (imageRect.left+r.right*imageRect.width()).toInt().coerceIn(0,width),
+                (imageRect.top+r.bottom*imageRect.height()).toInt().coerceIn(0,height)
+            )
+        }
+        fun highlightClear(){word=null;invalidate()}
         fun setPage(img:Bitmap,entry:SinglePageSource.Entry){source=img;currentEntry=entry;message=null;word=null;invalidate()}
         fun clearPage(){source=null;message=null;word=null;zoom=1f;fitWholePage=true;panX=0f;panY=0f;invalidate()}
         fun showError(msg:String){source=null;message=msg;invalidate()}
