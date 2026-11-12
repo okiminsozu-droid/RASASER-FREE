@@ -67,6 +67,9 @@ class StableReaderActivity : Activity() {
     private val green = Color.rgb(23,66,47)
     private var bitmap: Bitmap? = null
     private var selectedWord: BundledWordIndex.Selection? = null
+    private var selectedRangeStart=0
+    private var selectedRangeEnd=0
+    private var selectedRangeLang:String?=null
     private var wordActionMode: ActionMode? = null
     private val translation by lazy { OnDeviceWordTranslator(this) }
 
@@ -110,6 +113,7 @@ class StableReaderActivity : Activity() {
         main.addView(pageView, viewportLayout)
         pageView.onSwipe = { direction -> showPage((page+direction).coerceIn(1,single.count)) }
         pageView.onTapWord = { x,y -> findWord(x,y) }
+        pageView.onDragHandle = { handle,x,y -> extendWordSelection(handle,x,y) }
         pageView.onToggle = {
             readerControlsVisible = !readerControlsVisible
             selectedInfo.visibility=View.GONE
@@ -388,8 +392,12 @@ class StableReaderActivity : Activity() {
                 dismissWordSelection()
                 selectedWord=selected
                 if(selected!=null) {
-                    if(hit!=null) pageView.highlightRectangle(hit.rect)
-                    else pageView.highlight(selected.word)
+                    if(hit!=null) {
+                        selectedRangeStart=hit.id
+                        selectedRangeEnd=hit.id
+                        selectedRangeLang=hit.lang
+                        pageView.highlightSpan(listOf(hit.rect),hit.lang=="ara")
+                    } else pageView.highlight(selected.word)
                     hideWordInfo()
                     showWordSelectionMenu()
                 } else {
@@ -397,6 +405,36 @@ class StableReaderActivity : Activity() {
                     hideWordInfo()
                     // Do not put technical OCR error banners over Quran text.
                 }
+            }
+        }
+    }
+
+    /** A handle may be dragged across words and lines. The original OCR word
+     * order is preserved; only text within one script on the SAME page is copied.
+     */
+    private fun extendWordSelection(handle:Int,x:Float,y:Float) {
+        val language=selectedRangeLang ?: return
+        if(handle !in 1..2 || selectedRangeStart==0 || selectedRangeEnd==0)return
+        val current=page
+        val first=selectedRangeStart
+        val last=selectedRangeEnd
+        val seq=selectionRequest.incrementAndGet()
+        worker.execute {
+            val touched=try { selectableLayer.pick(current,x,y,language) }catch(_:Exception){null}
+            if(touched==null)return@execute
+            val newFirst=if(handle==1)touched.id else first
+            val newLast=if(handle==2)touched.id else last
+            val span=try { selectableLayer.range(current,newFirst,newLast,language) }
+                catch(_:Exception){null} ?: return@execute
+            val sourcePdf=single.page(current).sourcePdfPage
+            runOnUiThread {
+                if(isFinishing||isDestroyed||page!=current||selectionRequest.get()!=seq)return@runOnUiThread
+                selectedRangeStart=newFirst
+                selectedRangeEnd=newLast
+                selectedWord=span.words.first().toSelection(sourcePdf).copy(text=span.text)
+                pageView.highlightSpan(span.boxes,language=="ara")
+                selectionLabel.text=span.text
+                selectionBar.visibility=View.VISIBLE
             }
         }
     }
@@ -410,6 +448,9 @@ class StableReaderActivity : Activity() {
     private fun dismissWordSelection() {
         if(::selectionBar.isInitialized) selectionBar.visibility=View.GONE
         selectedWord=null
+        selectedRangeStart=0
+        selectedRangeEnd=0
+        selectedRangeLang=null
         if(::pageView.isInitialized) pageView.highlightClear()
         if(::viewportLayout.isInitialized && ::toolbar.isInitialized)
             applyReaderLayout()
@@ -487,6 +528,14 @@ class StableReaderActivity : Activity() {
         private var message:String?=null
         private var word:PageWord?=null
         private var selectedRect:RectF?=null
+        private var rangeBoxes:List<RectF> = emptyList()
+        private var rangeRtl=false
+        private var activeHandle=0
+        private var lastHandleMove=0L
+        private val handlePaint=Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color=0xFF2585E6.toInt()
+            style=Paint.Style.FILL
+        }
         private val imageRect=RectF()
         private var zoom=1f
         private var fitWholePage=true
@@ -505,6 +554,7 @@ class StableReaderActivity : Activity() {
         }
         var onSwipe:(Int)->Unit={}
         var onTapWord:(Float,Float)->Unit={ _,_-> }
+        var onDragHandle:(Int,Float,Float)->Unit={ _,_,_-> }
         var onToggle:()->Unit={}
         private val gestures=GestureDetector(ctx,object:GestureDetector.SimpleOnGestureListener(){
             override fun onDown(e:MotionEvent)=true
@@ -560,12 +610,26 @@ class StableReaderActivity : Activity() {
                 (imageRect.top+r.bottom*imageRect.height()).toInt().coerceIn(0,height)
             )
         }
-        fun highlightClear(){word=null;selectedRect=null;invalidate()}
-        fun highlightRectangle(rect:RectF){word=null;selectedRect=RectF(rect);invalidate()}
-        fun setPage(img:Bitmap,entry:SinglePageSource.Entry){source=img;currentEntry=entry;message=null;word=null;selectedRect=null;invalidate()}
-        fun clearPage(){source=null;message=null;word=null;selectedRect=null;zoom=1f;fitWholePage=true;panX=0f;panY=0f;invalidate()}
+        fun highlightClear(){
+            word=null;selectedRect=null;rangeBoxes=emptyList();activeHandle=0;invalidate()
+        }
+        fun highlightRectangle(rect:RectF){
+            word=null;selectedRect=RectF(rect);rangeBoxes=emptyList();invalidate()
+        }
+        fun highlightSpan(boxes:List<RectF>,rtl:Boolean){
+            word=null;selectedRect=null
+            rangeBoxes=boxes.map { RectF(it) }
+            rangeRtl=rtl
+            invalidate()
+        }
+        fun setPage(img:Bitmap,entry:SinglePageSource.Entry){
+            source=img;currentEntry=entry;message=null;highlightClear()
+        }
+        fun clearPage(){
+            source=null;message=null;zoom=1f;fitWholePage=true;panX=0f;panY=0f;highlightClear()
+        }
         fun showError(msg:String){source=null;message=msg;invalidate()}
-        fun highlight(w:PageWord){word=w;selectedRect=null;invalidate()}
+        fun highlight(w:PageWord){word=w;selectedRect=null;rangeBoxes=emptyList();invalidate()}
         fun restoreFullscreen(){
             fitWholePage=true
             zoom=1f
@@ -597,6 +661,46 @@ class StableReaderActivity : Activity() {
             val x=(width-w)/2f+panX;val y=(height-h)/2f+panY
             imageRect.set(x,y,x+w,y+h)
         }
+        private fun boxOnScreen(b:RectF):RectF = RectF(
+            imageRect.left+b.left*imageRect.width(),
+            imageRect.top+b.top*imageRect.height(),
+            imageRect.left+b.right*imageRect.width(),
+            imageRect.top+b.bottom*imageRect.height()
+        )
+
+        private fun handleLocation(which:Int):Pair<Float,Float>? {
+            if(rangeBoxes.isEmpty())return null
+            val src=if(which==1)rangeBoxes.first() else rangeBoxes.last()
+            val r=boxOnScreen(src)
+            val hx=if(rangeRtl) {
+                if(which==1)r.right else r.left
+            } else {
+                if(which==1)r.left else r.right
+            }
+            return hx to r.bottom
+        }
+
+        private fun hitHandle(x:Float,y:Float):Int {
+            val b=source ?: return 0
+            if(rangeBoxes.isEmpty())return 0
+            updateRect(b)
+            val radius=dp(31).toFloat()
+            for(which in 1..2) {
+                val (hx,hy)=handleLocation(which) ?: continue
+                if((x-hx)*(x-hx)+(y-hy)*(y-hy)<radius*radius)return which
+            }
+            return 0
+        }
+
+        private fun dispatchDrag(handle:Int,e:MotionEvent){
+            val b=source ?: return
+            updateRect(b)
+            if(imageRect.width()<=0f || imageRect.height()<=0f)return
+            val nx=((e.x-imageRect.left)/imageRect.width()).coerceIn(0f,1f)
+            val ny=((e.y-imageRect.top)/imageRect.height()).coerceIn(0f,1f)
+            onDragHandle(handle,nx,ny)
+        }
+
         override fun onDraw(c:Canvas) {
             c.drawColor(Color.WHITE)
             val b=source
@@ -624,6 +728,18 @@ class StableReaderActivity : Activity() {
                     c.drawRoundRect(r,5f,5f,fill)
                     c.drawRoundRect(r,5f,5f,line)
                 }
+                rangeBoxes.forEach { box ->
+                    val rect=boxOnScreen(box)
+                    c.drawRoundRect(rect,5f,5f,fill)
+                    c.drawRoundRect(rect,5f,5f,line)
+                }
+                if(rangeBoxes.isNotEmpty()) {
+                    for(which in 1..2) {
+                        val (hx,hy)=handleLocation(which) ?: continue
+                        c.drawCircle(hx,hy,dp(7).toFloat(),handlePaint)
+                        c.drawCircle(hx,hy+dp(12),dp(5).toFloat(),handlePaint)
+                    }
+                }
             } else c.drawText((message?:"Sayfa açılıyor…").take(100),width/2f,height/2f,textPaint)
         }
         override fun onSizeChanged(w:Int,h:Int,oldw:Int,oldh:Int){
@@ -632,6 +748,28 @@ class StableReaderActivity : Activity() {
             invalidate()
         }
         override fun onTouchEvent(e:MotionEvent):Boolean {
+            // Selection handles take priority over swipe-to-next-page and pan/zoom.
+            if(e.actionMasked==MotionEvent.ACTION_DOWN){
+                activeHandle=hitHandle(e.x,e.y)
+                lastHandleMove=0L
+                if(activeHandle!=0)return true
+            }
+            if(activeHandle!=0){
+                when(e.actionMasked){
+                    MotionEvent.ACTION_MOVE->{
+                        if(e.eventTime-lastHandleMove>=90L){
+                            lastHandleMove=e.eventTime
+                            dispatchDrag(activeHandle,e)
+                        }
+                    }
+                    MotionEvent.ACTION_UP->{
+                        dispatchDrag(activeHandle,e)
+                        activeHandle=0
+                    }
+                    MotionEvent.ACTION_CANCEL->activeHandle=0
+                }
+                return true
+            }
             pinch.onTouchEvent(e);gestures.onTouchEvent(e)
             when(e.actionMasked) {
                 MotionEvent.ACTION_DOWN->{downX=e.x;downY=e.y;fingers=1}
