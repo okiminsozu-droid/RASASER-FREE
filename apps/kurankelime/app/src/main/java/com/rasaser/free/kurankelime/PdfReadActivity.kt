@@ -100,11 +100,16 @@ class PdfReadActivity : ComponentActivity() {
     }
 }
 
-fun openBookPage(context: Context, page: Int = 0, highlightAyah: Int = 0, highlightWordId: Int = 0) {
+fun openBookPage(context: Context, page: Int = 0, highlightAyah: Int = 0, highlightWordId: Int = 0,
+                 hitX: Float? = null, hitY: Float? = null) {
     context.startActivity(Intent(context, StableReaderActivity::class.java).apply {
         putExtra("page", page)
         putExtra("highlight_ayah", highlightAyah)
         putExtra("highlight_word_id", highlightWordId)
+        if (hitX != null && hitY != null) {
+            putExtra("hit_x", hitX)
+            putExtra("hit_y", hitY)
+        }
     })
 }
 
