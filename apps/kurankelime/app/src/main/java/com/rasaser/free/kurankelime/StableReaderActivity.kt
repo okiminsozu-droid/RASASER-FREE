@@ -45,6 +45,9 @@ import kotlin.math.min
 class StableReaderActivity : Activity() {
     private val worker = Executors.newSingleThreadExecutor()
     private val request = AtomicInteger()
+    private val selectionRequest = AtomicInteger()
+    private val bundledIndex by lazy { BundledWordIndex(applicationContext) }
+    private val pageIndex by lazy { PageWordIndex(applicationContext) }
     private lateinit var store: PageStore
     private lateinit var single: SinglePageSource
     private lateinit var pageView: PageView
@@ -269,6 +272,7 @@ class StableReaderActivity : Activity() {
         val entry = single.page(next)
         wordActionMode?.finish()
         selectedWord=null
+        selectionRequest.incrementAndGet()
         page=next
         store.setLastPage(entry.sourcePdfPage)
         store.setLastSinglePage(page)
@@ -305,7 +309,7 @@ class StableReaderActivity : Activity() {
     }
     private fun findById(id:Int,expectedPdfPage:Int,expectedScreen:Int) {
         worker.execute {
-            val result=try { BundledWordIndex(applicationContext).byId(id) } catch(_:Exception){null}
+            val result=try { bundledIndex.byId(id) } catch(_:Exception){null}
             runOnUiThread {
                 if(!isFinishing && page==expectedScreen && result?.page==expectedPdfPage)
                     mark(result,showMeaning=false)
@@ -315,17 +319,18 @@ class StableReaderActivity : Activity() {
     private fun findWord(x:Float,y:Float) {
         val current=page
         val sourcePage=single.page(current).sourcePdfPage
+        val selectSeq=selectionRequest.incrementAndGet()
         worker.execute {
             // Arabic source words take precedence when the touch falls on their
             // glyphs; Turkish glosses can also be selected and copied.
             val selected=try {
-                BundledWordIndex(applicationContext).selectNearest(sourcePage,x,y)
-                    ?: PageWordIndex(applicationContext).nearestWord(sourcePage,x,y)?.let {
+                bundledIndex.selectNearest(sourcePage,x,y)
+                    ?: pageIndex.nearestWord(sourcePage,x,y)?.let {
                         BundledWordIndex.Selection(it,it.gloss,"tr",100f)
                     }
             } catch(_:Exception){null}
             runOnUiThread {
-                if(isFinishing||current!=page)return@runOnUiThread
+                if(isFinishing||current!=page||selectionRequest.get()!=selectSeq)return@runOnUiThread
                 wordActionMode?.finish()
                 selectedWord=selected
                 if(selected!=null) {
@@ -425,6 +430,7 @@ class StableReaderActivity : Activity() {
     override fun onDestroy() {
         wordActionMode?.finish()
         request.incrementAndGet()
+        selectionRequest.incrementAndGet()
         worker.shutdownNow()
         bitmap?.let { if(!it.isRecycled)it.recycle() }
         super.onDestroy()
