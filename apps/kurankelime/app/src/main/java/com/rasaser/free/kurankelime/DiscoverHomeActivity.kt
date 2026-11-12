@@ -60,6 +60,9 @@ private fun labels(code: String) = when(code) {
     "ar" -> UiLabels("اكتشف القرآن","معاني الكلمات","رسالة إليك من خالقك",
         "اقرأ","ابحث","المفضلة","ابحث عن كلمة","لا توجد نتائج في الفهرس التجريبي",
         "تطبيق مجاني، وليس لنا أي هدف تجاري.")
+    "ja" -> UiLabels("クルアーンを発見","単語ごとの意味","創造主からあなたへの手紙",
+        "読む","検索","お気に入り","単語を検索","検索結果がありません",
+        "無料です。商業目的ではありません。")
     else -> UiLabels("KURANI KEŞFET","KELİME MEALLİ UYGULAMA","Yaratıcından sana bir mektup",
         "Oku","Ara","Favoriler","Kelime ara","Mevcut önizleme dizininde sonuç yok",
         "Ücretsizdir, hiçbir maddi amacımız yoktur.")
