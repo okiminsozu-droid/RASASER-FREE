@@ -54,6 +54,7 @@ internal class SinglePageSource(context: Context) {
     val pages: List<Entry>
     val count: Int get() = pages.size
     private val bySource: Map<Int,List<Entry>>
+    private val chapterHeadings: Map<Int,String>
 
     init {
         val root = context.assets.open("quran/single_pages/pages.json").bufferedReader(Charsets.UTF_8)
@@ -89,7 +90,28 @@ internal class SinglePageSource(context: Context) {
         require(parsed.size == 605 && parsed.indices.all { parsed[it].number == it + 1 })
         pages = parsed
         bySource = pages.groupBy { it.sourcePdfPage }
+        // Names are derived from the existing offline Quran reference and source
+        // PDF sheet ranges. On a mixed-surah source sheet, display BOTH names.
+        chapterHeadings = try {
+            val text = context.assets.open("quran/single_pages/page_labels.json")
+                .bufferedReader(Charsets.UTF_8).use { it.readText() }
+            val namesRoot = JSONObject(text)
+            require(namesRoot.getInt("page_count") == pages.size)
+            val labels = namesRoot.getJSONArray("labels")
+            val mapped = HashMap<Int,String>(labels.length())
+            for(i in 0 until labels.length()) {
+                val row=labels.getJSONObject(i)
+                val n=row.getInt("n")
+                if(n in 1..605) mapped[n]=row.getString("name")
+            }
+            mapped
+        } catch (_: Exception) {
+            emptyMap()
+        }
     }
+
+    fun chapterHeading(number: Int): String =
+        chapterHeadings[number] ?: "Kur’ân-ı Kerîm"
 
     fun page(number: Int): Entry = pages[number.coerceIn(1,count) - 1]
 
