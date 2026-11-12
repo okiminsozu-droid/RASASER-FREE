@@ -48,6 +48,7 @@ class StableReaderActivity : Activity() {
     private val selectionRequest = AtomicInteger()
     private val bundledIndex by lazy { BundledWordIndex(applicationContext) }
     private val pageIndex by lazy { PageWordIndex(applicationContext) }
+    private val selectableLayer by lazy { SelectableTextLayer(applicationContext) }
     private lateinit var store: PageStore
     private lateinit var single: SinglePageSource
     private lateinit var pageView: PageView
@@ -371,27 +372,30 @@ class StableReaderActivity : Activity() {
         val sourcePage=single.page(current).sourcePdfPage
         val selectSeq=selectionRequest.incrementAndGet()
         worker.execute {
-            // Arabic source words take precedence when the touch falls on their
-            // glyphs; Turkish glosses can also be selected and copied.
-            val selected=try {
-                bundledIndex.selectNearest(sourcePage,x,y)
-                    ?: pageIndex.nearestWord(sourcePage,x,y)?.let {
-                        BundledWordIndex.Selection(it,it.gloss,"tr",100f)
-                    }
+            // Primary: direct pixel coordinates of the VISIBLE 605-page image.
+            val hit=try { selectableLayer.pick(current,x,y) } catch(_:Exception){null}
+            // Legacy fallback, only for public code-only previews without the new private asset.
+            val selected=if(hit!=null) hit.toSelection(sourcePage) else try {
+                single.tapPosition(single.page(current),x,y)?.let { (sx,sy) ->
+                    bundledIndex.selectNearest(sourcePage,sx,sy)
+                        ?: pageIndex.nearestWord(sourcePage,sx,sy)?.let {
+                            BundledWordIndex.Selection(it,it.gloss,"tr",100f)
+                        }
+                }
             } catch(_:Exception){null}
             runOnUiThread {
                 if(isFinishing||current!=page||selectionRequest.get()!=selectSeq)return@runOnUiThread
                 dismissWordSelection()
                 selectedWord=selected
                 if(selected!=null) {
-                    pageView.highlight(selected.word)
+                    if(hit!=null) pageView.highlightRectangle(hit.rect)
+                    else pageView.highlight(selected.word)
                     hideWordInfo()
                     showWordSelectionMenu()
                 } else {
                     pageView.highlightClear()
                     hideWordInfo()
-                    Toast.makeText(this,"Kelime okunamadı; büyütüp tekrar dokunun.",
-                        Toast.LENGTH_SHORT).show()
+                    // Do not put technical OCR error banners over Quran text.
                 }
             }
         }
@@ -482,6 +486,7 @@ class StableReaderActivity : Activity() {
         private var currentEntry=single.page(1)
         private var message:String?=null
         private var word:PageWord?=null
+        private var selectedRect:RectF?=null
         private val imageRect=RectF()
         private var zoom=1f
         private var fitWholePage=true
@@ -532,9 +537,7 @@ class StableReaderActivity : Activity() {
             val x=(event.x-imageRect.left)/imageRect.width()
             val y=(event.y-imageRect.top)/imageRect.height()
             if(x in 0f..1f&&y in 0f..1f) {
-                single.tapPosition(currentEntry,x,y)?.let { (sheetX,sheetY) ->
-                    onTapWord(sheetX,sheetY)
-                }
+                onTapWord(x,y)
             }
         }
         fun wordRectangle(outRect:Rect) {
@@ -557,11 +560,12 @@ class StableReaderActivity : Activity() {
                 (imageRect.top+r.bottom*imageRect.height()).toInt().coerceIn(0,height)
             )
         }
-        fun highlightClear(){word=null;invalidate()}
-        fun setPage(img:Bitmap,entry:SinglePageSource.Entry){source=img;currentEntry=entry;message=null;word=null;invalidate()}
-        fun clearPage(){source=null;message=null;word=null;zoom=1f;fitWholePage=true;panX=0f;panY=0f;invalidate()}
+        fun highlightClear(){word=null;selectedRect=null;invalidate()}
+        fun highlightRectangle(rect:RectF){word=null;selectedRect=RectF(rect);invalidate()}
+        fun setPage(img:Bitmap,entry:SinglePageSource.Entry){source=img;currentEntry=entry;message=null;word=null;selectedRect=null;invalidate()}
+        fun clearPage(){source=null;message=null;word=null;selectedRect=null;zoom=1f;fitWholePage=true;panX=0f;panY=0f;invalidate()}
         fun showError(msg:String){source=null;message=msg;invalidate()}
-        fun highlight(w:PageWord){word=w;invalidate()}
+        fun highlight(w:PageWord){word=w;selectedRect=null;invalidate()}
         fun restoreFullscreen(){
             fitWholePage=true
             zoom=1f
@@ -609,6 +613,16 @@ class StableReaderActivity : Activity() {
                         c.drawRoundRect(r,5f,5f,fill)
                         c.drawRoundRect(r,5f,5f,line)
                     }
+                }
+                selectedRect?.let { region ->
+                    val r=RectF(
+                        imageRect.left+region.left*imageRect.width(),
+                        imageRect.top+region.top*imageRect.height(),
+                        imageRect.left+region.right*imageRect.width(),
+                        imageRect.top+region.bottom*imageRect.height()
+                    )
+                    c.drawRoundRect(r,5f,5f,fill)
+                    c.drawRoundRect(r,5f,5f,line)
                 }
             } else c.drawText((message?:"Sayfa açılıyor…").take(100),width/2f,height/2f,textPaint)
         }
