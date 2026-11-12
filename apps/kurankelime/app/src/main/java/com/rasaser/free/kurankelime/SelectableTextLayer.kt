@@ -51,7 +51,49 @@ internal class SelectableTextLayer(private val context:Context) {
             db
         }catch(_:Exception){null}
     }
-    fun pick(page:Int,px:Float,py:Float):Hit? {
+    /**
+     * OCR-recognized range in the source engine's word sequence. A range is not
+     * presented as verified Quran text: damaged OCR/line-breaks remain possible.
+     * Arabic OCR IDs generally follow RTL visual reading order; the original
+     * order is preserved instead of sorting RTL characters into reverse text.
+     */
+    data class TextSpan(val words:List<Hit>,val lang:String) {
+        val text:String get()=words.joinToString(" ") { it.token.trim() }
+        val boxes:List<RectF> get()=words.map { it.rect }
+    }
+
+    fun range(page:Int,fromOcrId:Int,toOcrId:Int,lang:String):TextSpan? {
+        if(page !in 1..605 || lang !in setOf("ara","tur"))return null
+        if(fromOcrId<=0 || toOcrId<=0)return null
+        val database=db() ?: return null
+        val first=min(fromOcrId,toOcrId)
+        val last=max(fromOcrId,toOcrId)
+        val words=ArrayList<Hit>()
+        try {
+            database.rawQuery(
+                "SELECT x,y,w,h,word,confidence,ocr_id FROM words " +
+                "WHERE page=? AND lang=? AND ocr_id BETWEEN ? AND ? " +
+                "ORDER BY ocr_id LIMIT 121",
+                arrayOf(page.toString(),lang,first.toString(),last.toString())
+            ).use { c ->
+                while(c.moveToNext()) {
+                    val token=c.getString(4)?.trim().orEmpty()
+                    if(token.isBlank())continue
+                    val x=c.getFloat(0);val y=c.getFloat(1)
+                    val w=c.getFloat(2);val h=c.getFloat(3)
+                    if(w<=0f || h<=0f)continue
+                    words.add(Hit(token,lang,c.getFloat(5),c.getInt(6),
+                        RectF(x,y,x+w,y+h)))
+                }
+            }
+        } catch (_: Exception) {return null}
+        // Do not silently truncate Quran text or accept unrelated selection boundaries.
+        if(words.isEmpty() || words.size>120 ||
+           words.first().id!=first || words.last().id!=last)return null
+        return TextSpan(words,lang)
+    }
+
+    fun pick(page:Int,px:Float,py:Float,language:String?=null):Hit? {
         if(page !in 1..605||px !in 0f..1f||py !in 0f..1f)return null
         val d=db()?:return null
         val dimensions=d.rawQuery("SELECT width,height FROM page_info WHERE page=?",
@@ -61,11 +103,15 @@ internal class SelectableTextLayer(private val context:Context) {
         val mx=18f/dimensions.first
         val my=19f/dimensions.second
         val found=ArrayList<Hit>()
+        if(language!=null && language !in setOf("ara","tur"))return null
+        val languageClause=if(language==null) "" else " AND lang=?"
+        val args=mutableListOf(page.toString(),(px+mx).toString(),(px-mx).toString(),
+            (py+my).toString(),(py-my).toString())
+        if(language!=null) args.add(language)
         try{
             d.rawQuery("SELECT x,y,w,h,lang,word,confidence,ocr_id FROM words "+
-                "WHERE page=? AND x<=? AND (x+w)>=? AND y<=? AND (y+h)>=?",
-                arrayOf(page.toString(),(px+mx).toString(),(px-mx).toString(),
-                    (py+my).toString(),(py-my).toString())).use{c->
+                "WHERE page=? AND x<=? AND (x+w)>=? AND y<=? AND (y+h)>=?"+
+                languageClause,args.toTypedArray()).use{c->
                 while(c.moveToNext()){
                     val l=c.getFloat(0);val t=c.getFloat(1)
                     val w=c.getFloat(2);val h=c.getFloat(3)
