@@ -87,7 +87,7 @@ internal class OnDeviceWordTranslator(
                     append("eşleştirmesi bulunamadı.")
                 }
                 if (machineResult != null) {
-                    append("\n\nGoogle ML Kit — ayrı otomatik çeviri\n")
+                    append("\n\nGoogle ML Kit — otomatik çeviri\n")
                     append(machineResult)
                     append("\nOtomatik çeviri Kur’an meali veya tefsir değildir.")
                 } else if (status.isNotBlank()) {
