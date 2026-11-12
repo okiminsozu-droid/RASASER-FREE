@@ -25,6 +25,15 @@ android {
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
+        // Privately assembled Quran content uses a distinct package identity to
+        // avoid the old .trial build's different debug/test signing certificate.
+        create("contentPreview") {
+            initWith(getByName("release"))
+            applicationIdSuffix = ".contentpreview"
+            versionNameSuffix = "-content-preview"
+            signingConfig = signingConfigs.getByName("debug")
+            matchingFallbacks += listOf("release")
+        }
         // Optimized testing only. The debug key is NOT a production release key.
         create("offlineTest") {
             initWith(getByName("release"))
