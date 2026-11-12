@@ -74,7 +74,7 @@ internal class OnDeviceWordTranslator(
             dialog.setMessage(buildString {
                 append("Seçilen: ").append(selectedText).append("\n\n")
                 if (reviewed != null) {
-                    append("Kaynakça onaylı kelime anlamı\n")
+                    append("Doğrulanmış Kur’an kelime anlamı\n")
                     append(reviewed!!.meaning)
                     append("\nKaynak: ").append(reviewed!!.reference)
                 } else if (printed != null) {
