@@ -110,7 +110,7 @@ internal class SelectableTextLayer(private val context:Context) {
         if(language!=null) args.add(language)
         try{
             d.rawQuery("SELECT x,y,w,h,lang,word,confidence,ocr_id FROM words "+
-                "WHERE page=? AND x<=? AND (x+w)>=? AND y<=? AND (y+h)>=?"+
+                "WHERE page=? AND x<=? AND (x+w)>=CAST(? AS REAL) AND y<=? AND (y+h)>=CAST(? AS REAL)"+
                 languageClause,args.toTypedArray()).use{c->
                 while(c.moveToNext()){
                     val l=c.getFloat(0);val t=c.getFloat(1)
