@@ -52,7 +52,8 @@ class StableReaderActivity : Activity() {
     private lateinit var toolbar: LinearLayout
     private lateinit var footer: LinearLayout
     private lateinit var selectedInfo: TextView
-    private var page = 1 // Logical 1..1208 single-panel reading screen
+    private var page = 1 // The complete 1..605 Quran reading page
+    private var readerControlsVisible = true
     private val green = Color.rgb(23,66,47)
     private var bitmap: Bitmap? = null
 
@@ -97,15 +98,9 @@ class StableReaderActivity : Activity() {
         pageView.onSwipe = { direction -> showPage((page+direction).coerceIn(1,single.count)) }
         pageView.onTapWord = { x,y -> findWord(x,y) }
         pageView.onToggle = {
-            val visibility = if (toolbar.visibility == View.VISIBLE) View.GONE else View.VISIBLE
-            toolbar.visibility = visibility
-            chapterTitle.visibility = visibility
-            pageFooter.visibility = visibility
-            footer.visibility = visibility
-            selectedInfo.visibility = View.GONE
-            viewportLayout.topMargin = if(visibility==View.VISIBLE) dp(98) else 0
-            viewportLayout.bottomMargin = if(visibility==View.VISIBLE) dp(80) else 0
-            pageView.requestLayout()
+            readerControlsVisible = !readerControlsVisible
+            selectedInfo.visibility=View.GONE
+            applyReaderLayout()
         }
         toolbar = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER
@@ -171,6 +166,8 @@ class StableReaderActivity : Activity() {
         main.addView(selectedInfo,lp)
         setContentView(main)
         updateToolbar()
+        readerControlsVisible = resources.configuration.orientation != Configuration.ORIENTATION_LANDSCAPE
+        applyReaderLayout()
         applyImmersive()
     }
 
@@ -201,8 +198,49 @@ class StableReaderActivity : Activity() {
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
         applyImmersive()
-        // Existing reader and current page survive device rotation.
+        // Landscape uses compact metadata and maximal image space.
+        // Portrait reserves independent toolbar, chapter, image and footer areas.
+        readerControlsVisible = newConfig.orientation != Configuration.ORIENTATION_LANDSCAPE
+        selectedInfo.visibility=View.GONE
+        applyReaderLayout()
         pageView.post { pageView.restoreFullscreen() }
+    }
+
+    private fun applyReaderLayout() {
+        if(!::viewportLayout.isInitialized || !::chapterTitle.isInitialized) return
+        val landscape = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+        val titleLp = chapterTitle.layoutParams as FrameLayout.LayoutParams
+        val footerLp = pageFooter.layoutParams as FrameLayout.LayoutParams
+        if (landscape && !readerControlsVisible) {
+            toolbar.visibility=View.GONE
+            footer.visibility=View.GONE
+            chapterTitle.visibility=View.VISIBLE
+            pageFooter.visibility=View.VISIBLE
+            titleLp.topMargin=0
+            titleLp.height=dp(26)
+            footerLp.bottomMargin=0
+            footerLp.height=dp(22)
+            viewportLayout.topMargin=dp(28)
+            viewportLayout.bottomMargin=dp(24)
+        } else {
+            toolbar.visibility=if(readerControlsVisible) View.VISIBLE else View.GONE
+            footer.visibility=if(readerControlsVisible) View.VISIBLE else View.GONE
+            chapterTitle.visibility=if(readerControlsVisible && !landscape) View.VISIBLE else View.GONE
+            pageFooter.visibility=if(readerControlsVisible && !landscape) View.VISIBLE else View.GONE
+            titleLp.topMargin=dp(54)
+            titleLp.height=dp(42)
+            footerLp.bottomMargin=dp(52)
+            footerLp.height=dp(27)
+            viewportLayout.topMargin=if(readerControlsVisible) {
+                if(landscape) dp(54) else dp(98)
+            } else 0
+            viewportLayout.bottomMargin=if(readerControlsVisible) {
+                if(landscape) dp(52) else dp(80)
+            } else 0
+        }
+        chapterTitle.layoutParams=titleLp
+        pageFooter.layoutParams=footerLp
+        pageView.requestLayout()
     }
     private fun updateToolbar() {
         counter.text=page.toString()+" / "+single.count
@@ -291,9 +329,14 @@ class StableReaderActivity : Activity() {
         selectedInfo.tag=word.gloss
         selectedInfo.text=word.gloss
         selectedInfo.visibility=View.VISIBLE
-        if(toolbar.visibility==View.VISIBLE) {
+        if(toolbar.visibility==View.VISIBLE && 
+            resources.configuration.orientation != Configuration.ORIENTATION_LANDSCAPE) {
             viewportLayout.bottomMargin=dp(130)
             pageView.requestLayout()
+        } else {
+            // Landscape: keep the entire page viewport unobstructed.
+            selectedInfo.visibility=View.GONE
+            Toast.makeText(this,word.gloss,Toast.LENGTH_SHORT).show()
         }
     }
     private fun askPage() {
