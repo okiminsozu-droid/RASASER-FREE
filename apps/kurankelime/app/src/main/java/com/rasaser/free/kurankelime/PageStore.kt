@@ -15,6 +15,20 @@ class PageStore(context: Context) {
         if (ordinal in 1..ReadingPanels.COUNT)
             prefs.edit().putInt("last_panel_screen", ordinal).apply()
     }
+    // Save new 605-page reading position separately. Old 1,208-panel and PDF
+    // progress/favorites remain untouched and can still be restored.
+    fun lastSinglePage(): Int = prefs.getInt("last_single_page", 0)
+    fun setLastSinglePage(ordinal: Int) {
+        if (ordinal in 1..605) prefs.edit().putInt("last_single_page",ordinal).apply()
+    }
+    fun oldScreenAsSinglePage(): Int {
+        val old = lastScreen()
+        return when {
+            old <= 2 -> old
+            old >= 1207 -> 605
+            else -> 3 + (old - 3) / 2
+        }
+    }
     fun setLastPage(page: Int) {
         if (page in 1..304) prefs.edit().putInt("last", page).apply()
     }
