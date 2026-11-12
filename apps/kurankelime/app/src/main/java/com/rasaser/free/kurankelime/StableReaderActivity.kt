@@ -71,7 +71,8 @@ class StableReaderActivity : Activity() {
     private var selectedRangeEnd=0
     private var selectedRangeLang:String?=null
     private var wordActionMode: ActionMode? = null
-    private val translation by lazy { OnDeviceWordTranslator(this) }
+    private val translationDelegate = lazy { OnDeviceWordTranslator(this) }
+    private val translation by translationDelegate
 
     private fun dp(v: Int): Int = (v * resources.displayMetrics.density).toInt()
     private fun label(value: String, size: Float = 17f): TextView = TextView(this).apply {
@@ -203,16 +204,26 @@ class StableReaderActivity : Activity() {
             contentDescription="Seçilen kelime"
         }
         selectionBar.addView(selectionLabel,LinearLayout.LayoutParams(0,dp(50),1f))
-        fun selectionAction(title:String,action:()->Unit) {
-            val btn=label(title,15f).apply {
+        fun selectionAction(icon:Int, title:String, action:()->Unit) {
+            val btn=android.widget.ImageButton(this).apply {
+                setImageResource(icon)
+                imageTintList=android.content.res.ColorStateList.valueOf(green)
+                scaleType=android.widget.ImageView.ScaleType.CENTER_INSIDE
+                setPadding(dp(13),dp(13),dp(13),dp(13))
+                background=android.graphics.drawable.GradientDrawable().apply {
+                    setColor(0xFFF0E1C2.toInt())
+                    cornerRadius=dp(13).toFloat()
+                }
                 isClickable=true
                 isFocusable=true
                 contentDescription=title
                 setOnClickListener { action() }
             }
-            selectionBar.addView(btn,LinearLayout.LayoutParams(dp(76),dp(50)))
+            selectionBar.addView(btn,LinearLayout.LayoutParams(dp(52),dp(48)).apply {
+                leftMargin=dp(5)
+            })
         }
-        selectionAction("Kopyala") {
+        selectionAction(R.drawable.ic_word_copy,"Kopyala") {
             selectedWord?.let { selected ->
                 (getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager)
                     .setPrimaryClip(ClipData.newPlainText("Kur’an kelimesi",selected.text))
@@ -220,10 +231,16 @@ class StableReaderActivity : Activity() {
             }
             dismissWordSelection()
         }
-        selectionAction("Çevir") {
-            selectedWord?.let { selected -> translation.translate(selected) }
+        selectionAction(R.drawable.ic_word_translate,"Çevir") {
+            selectedWord?.let { selected ->
+                translation.translate(selected,page,selectedRangeStart,selectedRangeEnd)
+            }
         }
-        selectionAction("×") { dismissWordSelection() }
+        val closeSelection=label("×",21f).apply {
+            contentDescription="Seçimi kapat"
+            setOnClickListener { dismissWordSelection() }
+        }
+        selectionBar.addView(closeSelection,LinearLayout.LayoutParams(dp(40),dp(48)))
         val actionParams=FrameLayout.LayoutParams(-1,dp(58),Gravity.BOTTOM).apply {
             bottomMargin=dp(80)
         }
@@ -518,6 +535,7 @@ class StableReaderActivity : Activity() {
         request.incrementAndGet()
         selectionRequest.incrementAndGet()
         worker.shutdownNow()
+        if (translationDelegate.isInitialized()) translation.close()
         bitmap?.let { if(!it.isRecycled)it.recycle() }
         super.onDestroy()
     }
