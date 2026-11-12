@@ -1,0 +1,65 @@
+name: RaSaSeR Universal OCR Demo - Public Free Build
+on:
+  push:
+    branches: [feature/rasaser-universal-ocr-test-v1]
+    paths:
+      - 'apps/universal-ocr-test/**'
+      - '.github/workflows/rasaser-universal-ocr-demo.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test-apk:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: apps/universal-ocr-test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
+      - name: Android SDK
+        run: |
+          export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$PATH"
+          printf 'y\n' | sdkmanager --licenses >/dev/null || true
+          sdkmanager --install "platforms;android-35" "build-tools;35.0.0"
+      - name: Bundle offline OCR models (Apache licensed upstream)
+        run: |
+          set -euo pipefail
+          mkdir -p app/src/main/assets/tessdata
+          for lang in eng tur ara; do
+            curl --fail --location --retry 3 --silent --show-error \
+              "https://raw.githubusercontent.com/tesseract-ocr/tessdata_fast/main/${lang}.traineddata" \
+              --output "app/src/main/assets/tessdata/${lang}.traineddata"
+            test "$(stat -c%s "app/src/main/assets/tessdata/${lang}.traineddata")" -gt 250000
+            sha256sum "app/src/main/assets/tessdata/${lang}.traineddata"
+          done
+      - name: Build independent OCR demo APKs
+        run: gradle --no-daemon --stacktrace :app:assembleDebug :app:assembleRelease
+      - name: Verify APKs and contents
+        run: |
+          set -euo pipefail
+          AAPT="$ANDROID_HOME/build-tools/35.0.0/aapt"
+          ZIPALIGN="$ANDROID_HOME/build-tools/35.0.0/zipalign"
+          APK=app/build/outputs/apk/debug/app-debug.apk
+          test -s "$APK"
+          "$AAPT" dump badging "$APK" | grep "package: name='com.rasaser.factory.universaldocument.test'"
+          "$ZIPALIGN" -c -P 16 -v 4 "$APK" | tail -n 4
+          unzip -l "$APK" | grep 'assets/tessdata/eng.traineddata'
+          unzip -l "$APK" | grep 'assets/tessdata/tur.traineddata'
+          unzip -l "$APK" | grep 'assets/tessdata/ara.traineddata'
+          test -s app/build/outputs/apk/release/app-release-unsigned.apk
+      - name: Export test APK and unsigned optimized release for LOCAL signing
+        uses: actions/upload-artifact@v4
+        with:
+          name: RaSaSeR-UniversalDocument-OCR-Android15-Demo
+          path: |
+            apps/universal-ocr-test/app/build/outputs/apk/debug/app-debug.apk
+            apps/universal-ocr-test/app/build/outputs/apk/release/app-release-unsigned.apk
+          retention-days: 7
