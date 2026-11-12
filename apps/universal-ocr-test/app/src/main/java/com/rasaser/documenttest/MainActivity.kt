@@ -148,13 +148,13 @@ class MainActivity : Activity() {
     @Deprecated("Intent is limited to the system SAF picker")
     override fun onActivityResult(requestCode:Int,resultCode:Int,data:Intent?){
         super.onActivityResult(requestCode,resultCode,data)
-        if(requestCode==7002 && resultCode==RESULT_OK)data?.data?.let{import(it)}
+        if(requestCode==7002 && resultCode==RESULT_OK)data?.data?.let{importDocument(it)}
     }
     private fun state(message:String,loading:Boolean) = ui.post {
         busy.visibility=if(loading)View.VISIBLE else View.GONE
         status.text=message
     }
-    private fun import(uri:Uri) {
+    private fun importDocument(uri:Uri) {
         state("Dosya cihaz içinde hazırlanıyor…",true)
         worker.execute{
             try {
