@@ -19,7 +19,7 @@ jobs:
           test -x "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" || command -v sdkmanager
       - name: Install official Android APK tools
         run: |
-          sdkmanager --install "build-tools;35.0.0"
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "build-tools;35.0.0"
           mkdir -p verifier
           cp "$ANDROID_HOME/build-tools/35.0.0/lib/apksigner.jar" verifier/
           cp "$ANDROID_HOME/build-tools/35.0.0/zipalign" verifier/
