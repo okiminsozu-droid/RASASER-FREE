@@ -20,7 +20,7 @@ python3 apps/kurankelime/tools/build_private_apk.py \
 
 İsteğe bağlı `--ocr quran_304_offline_ocr.sqlite` ve `--logo logo.webp` parametreleri desteklenir. **Dosyalar internete yüklenmez.** Derleme, geçici ayrı bir proje kopyasında yapılır. 605 sayfanın hepsi, `pages.json` eşleştirmeleri, WebP başlıkları, ZIP kayma saldırısı, veritabanı `quick_check`, sayfa sayısı, kelime sayısı ve özgün PDF kaynak kimliği denetlenir. Son APK açılarak içeriklerin gerçekten gömülü olduğu tekrar kontrol edilir.
 
-Oluşan `offlineTest` sürümünün paket son eki `.trial` ve Android debug TEST imzasıdır. **Eski ana kurulumun üzerine yazmaz; eski favorileri ve kayıtları değiştirmez.** Aynı paket adıyla uygulama güncellemesi ancak aynı imza anahtarıyla yapılabilir; üretim keystore'u bu araç tarafından kullanılmaz veya yüklenmez.
+Oluşan `contentPreview` sürümünün paket son eki `.contentpreview` ve Android debug TEST imzasıdır. **Eski ana ve `.trial` kurulumlarının üzerine yazmaz; eski favorileri ve kayıtları değiştirmez.** Aynı paket adıyla uygulama güncellemesi ancak aynı imza anahtarıyla yapılabilir; üretim keystore'u bu araç tarafından kullanılmaz veya yüklenmez.
 
 ### Yayın öncesi zorunlu kontroller
 
