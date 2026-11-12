@@ -59,6 +59,8 @@ class StableReaderActivity : Activity() {
     private lateinit var toolbar: LinearLayout
     private lateinit var footer: LinearLayout
     private lateinit var selectedInfo: TextView
+    private lateinit var selectionBar: LinearLayout
+    private lateinit var selectionLabel: TextView
     private var page = 1 // The complete 1..605 Quran reading page
     private var readerControlsVisible = true
     private val green = Color.rgb(23,66,47)
@@ -110,6 +112,8 @@ class StableReaderActivity : Activity() {
         pageView.onToggle = {
             readerControlsVisible = !readerControlsVisible
             selectedInfo.visibility=View.GONE
+            if(::selectionBar.isInitialized) selectionBar.visibility=View.GONE
+            selectedWord=null
             applyReaderLayout()
         }
         toolbar = LinearLayout(this).apply {
@@ -174,6 +178,51 @@ class StableReaderActivity : Activity() {
         val lp=FrameLayout.LayoutParams(-1,dp(42),Gravity.BOTTOM)
         lp.bottomMargin=dp(82)
         main.addView(selectedInfo,lp)
+        // An explicit selection bar, independent of Android's optional floating
+        // ActionMode. It remains visible in immersive mode and on vendor devices.
+        selectionBar=LinearLayout(this).apply {
+            orientation=LinearLayout.HORIZONTAL
+            gravity=Gravity.CENTER_VERTICAL
+            setPadding(dp(8),dp(2),dp(4),dp(2))
+            setBackgroundColor(0xFFF9F0DC.toInt())
+            elevation=dp(6).toFloat()
+            visibility=View.GONE
+            contentDescription="Seçilen kelime işlemleri"
+        }
+        selectionLabel=TextView(this).apply {
+            setTextColor(green)
+            textSize=14f
+            maxLines=1
+            ellipsize=android.text.TextUtils.TruncateAt.END
+            setPadding(dp(8),0,dp(6),0)
+            contentDescription="Seçilen kelime"
+        }
+        selectionBar.addView(selectionLabel,LinearLayout.LayoutParams(0,dp(50),1f))
+        fun selectionAction(title:String,action:()->Unit) {
+            val btn=label(title,15f).apply {
+                isClickable=true
+                isFocusable=true
+                contentDescription=title
+                setOnClickListener { action() }
+            }
+            selectionBar.addView(btn,LinearLayout.LayoutParams(dp(76),dp(50)))
+        }
+        selectionAction("Kopyala") {
+            selectedWord?.let { selected ->
+                (getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager)
+                    .setPrimaryClip(ClipData.newPlainText("Kur’an kelimesi",selected.text))
+                Toast.makeText(this,"Kelime kopyalandı",Toast.LENGTH_SHORT).show()
+            }
+            dismissWordSelection()
+        }
+        selectionAction("Çevir") {
+            selectedWord?.let { selected -> translation.translate(selected) }
+        }
+        selectionAction("×") { dismissWordSelection() }
+        val actionParams=FrameLayout.LayoutParams(-1,dp(58),Gravity.BOTTOM).apply {
+            bottomMargin=dp(80)
+        }
+        main.addView(selectionBar,actionParams)
         setContentView(main)
         updateToolbar()
         readerControlsVisible = resources.configuration.orientation != Configuration.ORIENTATION_LANDSCAPE
@@ -212,6 +261,8 @@ class StableReaderActivity : Activity() {
         // Portrait reserves independent toolbar, chapter, image and footer areas.
         readerControlsVisible = newConfig.orientation != Configuration.ORIENTATION_LANDSCAPE
         selectedInfo.visibility=View.GONE
+        if(::selectionBar.isInitialized)selectionBar.visibility=View.GONE
+        selectedWord=null
         applyReaderLayout()
         pageView.post { pageView.restoreFullscreen() }
     }
@@ -270,8 +321,7 @@ class StableReaderActivity : Activity() {
     private fun showPage(next:Int, selectId:Int=0) {
         if(next !in 1..single.count) return
         val entry = single.page(next)
-        wordActionMode?.finish()
-        selectedWord=null
+        dismissWordSelection()
         selectionRequest.incrementAndGet()
         page=next
         store.setLastPage(entry.sourcePdfPage)
@@ -331,7 +381,7 @@ class StableReaderActivity : Activity() {
             } catch(_:Exception){null}
             runOnUiThread {
                 if(isFinishing||current!=page||selectionRequest.get()!=selectSeq)return@runOnUiThread
-                wordActionMode?.finish()
+                dismissWordSelection()
                 selectedWord=selected
                 if(selected!=null) {
                     pageView.highlight(selected.word)
@@ -340,6 +390,8 @@ class StableReaderActivity : Activity() {
                 } else {
                     pageView.highlightClear()
                     hideWordInfo()
+                    Toast.makeText(this,"Kelime okunamadı; büyütüp tekrar dokunun.",
+                        Toast.LENGTH_SHORT).show()
                 }
             }
         }
@@ -351,38 +403,27 @@ class StableReaderActivity : Activity() {
         hideWordInfo()
     }
 
+    private fun dismissWordSelection() {
+        if(::selectionBar.isInitialized) selectionBar.visibility=View.GONE
+        selectedWord=null
+        if(::pageView.isInitialized) pageView.highlightClear()
+        if(::viewportLayout.isInitialized && ::toolbar.isInitialized)
+            applyReaderLayout()
+    }
+
     private fun showWordSelectionMenu() {
-        val selection=selectedWord ?: return
-        if (selection.text.isBlank()) return
-        val callback=object:ActionMode.Callback2() {
-            override fun onCreateActionMode(mode:ActionMode,menu:Menu):Boolean {
-                menu.add(0,1,0,"Kopyala").setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS)
-                menu.add(0,2,1,"Çevir").setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS)
-                return true
-            }
-            override fun onPrepareActionMode(mode:ActionMode,menu:Menu):Boolean = false
-            override fun onActionItemClicked(mode:ActionMode,item:MenuItem):Boolean {
-                when(item.itemId) {
-                    1 -> {
-                        (getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager)
-                            .setPrimaryClip(ClipData.newPlainText("Seçilen Kur’an kelimesi",selection.text))
-                        Toast.makeText(this@StableReaderActivity,"Kelime kopyalandı",Toast.LENGTH_SHORT).show()
-                    }
-                    2 -> translation.translate(selection)
-                    else -> return false
-                }
-                mode.finish()
-                return true
-            }
-            override fun onDestroyActionMode(mode:ActionMode) {
-                wordActionMode=null
-            }
-            override fun onGetContentRect(mode:ActionMode,view:View,outRect:Rect) {
-                pageView.wordRectangle(outRect)
-            }
-        }
-        wordActionMode=pageView.startActionMode(callback,ActionMode.TYPE_FLOATING)
-        wordActionMode?.invalidateContentRect()
+        val selected=selectedWord ?: return
+        if(selected.text.isBlank())return
+        selectionLabel.text=selected.text
+        selectionBar.visibility=View.VISIBLE
+        val params=selectionBar.layoutParams as FrameLayout.LayoutParams
+        params.bottomMargin=if(resources.configuration.orientation ==
+            Configuration.ORIENTATION_LANDSCAPE && !readerControlsVisible)dp(24)
+            else dp(80)
+        selectionBar.layoutParams=params
+        // Keep the actual Quran page readable; selection controls must not obscure it.
+        viewportLayout.bottomMargin += dp(58)
+        pageView.requestLayout()
     }
 
     private fun askPage() {
@@ -428,7 +469,7 @@ class StableReaderActivity : Activity() {
         })
     }
     override fun onDestroy() {
-        wordActionMode?.finish()
+        if(::selectionBar.isInitialized)selectionBar.visibility=View.GONE
         request.incrementAndGet()
         selectionRequest.incrementAndGet()
         worker.shutdownNow()
