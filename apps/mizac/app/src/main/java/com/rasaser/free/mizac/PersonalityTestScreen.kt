@@ -58,7 +58,6 @@ fun OriginalQuestionnaire(
     var index by rememberSaveable(questionCount) { mutableStateOf(0) }
     var finished by rememberSaveable(questionCount) { mutableStateOf(false) }
     Column(verticalArrangement=Arrangement.spacedBy(12.dp)) {
-        OutlinedButton(onClick=onBack) { Text(ui(dict,"backSetup")) }
         Text(ui(dict,"scienceHeader"),color=dark,
             style=MaterialTheme.typography.headlineSmall,fontWeight=FontWeight.Bold)
         Text(ui(dict,"unvalidated"),color=secondary,
