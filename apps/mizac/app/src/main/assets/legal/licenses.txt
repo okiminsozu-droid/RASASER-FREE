@@ -1,25 +1,20 @@
-RaSaSeR — Uygulama Lisansları
+RaSaSeR — MİZAÇ Legal and Scientific Notice / Yasal ve Bilimsel Bilgilendirme
 
-Uygulama: MİZAÇ
-Yayıncı: RaSaSeR APPS & TECHNOLOGY
-Sürüm: 0.1.0
+© 2026 RaSaSeR APPS & TECHNOLOGY.
 
-© 2026 RaSaSeR. Tüm hakları saklıdır.
-KULLANICI GİZLİLİĞİ — VERİLERİNİZ YALNIZCA SİZE AİTTİR
-Bu uygulama kişisel verileri RaSaSeR'a göndermez ve RaSaSeR sunucularında toplamaz, saklamaz veya kullanmaz.
-Kullanıcının seçtiği fotoğraf, 30 saniyeyi aşmayan video ve soru sayısı tercihleri yalnızca kullanıcının telefonundaki uygulamaya özel depolamada tutulur.
-İlk sürümde soruların cevapları geçici oturum hafızasındadır; bulut servisi, hesap, analitik izleme veya reklam amaçlı veri aktarımı yoktur.
-Gizlilik bölümündeki "Tüm Yerel MİZAÇ Verilerimi Sil" işlevi uygulamanın kendi kopyalarını ve soru tercihini temizler. Kullanıcının galerisindeki orijinal fotoğraf/video dosyalarına dokunulmaz.
-Video çekimi için kullanıcı tarafından seçilen sistem kamera uygulaması açılır; kamera uygulamasının kendi kayıt ve izin davranışı MİZAÇ'ın kontrolü dışındadır.
-www.okiminsozu.com bağlantısına dokunulursa bir dış tarayıcı açılır. MİZAÇ kişilik verilerini bu siteye göndermez.
-Cihazda saklanan dosyalar için yedeklemeye izin verilmez (allowBackup=false).
+This application's UI provides Turkish, English, German, Spanish and Arabic privacy and scientific notices. This file is a developer reference and is not a substitute for a final publication legal review.
 
+GİZLİLİK
+Fotoğraf, en fazla 30 saniyelik video ve soru sayısı tercihleri yalnız uygulamanın telefon içi depolamasına kaydedilir. Test cevapları geçici oturum hafızasında tutulur. Sunucu, hesap, reklam/analitik SDK'sı veya kişisel verilerin firmaya aktarımı bulunmaz. Kullanıcı yerel kayıtları silebilir; galerideki orijinaller korunur. Dış web sayfası ancak kullanıcının tıklamasıyla tarayıcıda açılır.
 
-BİLİMSEL AÇIKLAMA
-Bu sürümdeki 10 madde yalnız kişisel farkındalık örneğidir; doğrulanmış psikometrik ölçek, klinik test, teşhis veya kesin kişilik analizi değildir. Yüz ve beden özelliklerinden kişilik tespiti yapılmaz.
+ÖZGÜN ANKET VE TELİF
+120 özgün Türkçe soru (beş alanda 24'er soru) bu MİZAÇ projesi için yeniden yazıldı; İngilizce, Almanca, İspanyolca ve Arapça ifadeler bağımsız çeviri olarak hazırlandı. 10/50/120 seçenekleri aynı özgün havuzu kullanır. Test metinleri modern yayınlardan veya ücretli kişilik ölçeklerinden birebir alınmamıştır. Metinlerin özgün olması bütün ülkelerde hukuki ihtilaf olmayacağına ilişkin mutlak garanti sayılamaz.
 
-TARİHÎ KAYNAKLAR
-Erzurumlu İbrahim Hakkı'nın Mârifetnâme eserindeki ilm-i kıyâfet geleneği tanıtılır. Tarihî fizyonomi yorumları çağdaş bilimsel kişilik çıkarımları olarak gösterilmez.
+BİLİMSEL SINIR
+Bu 120 yeni soru psikometrik olarak valide edilmemiştir; klinik, işe alım, yalan tespiti, zekâ ya da kesin kişilik belirleme amacıyla kullanılamaz. Beş alanda gösterilen ortalamalar kullanıcının beyanlarıdır. Yüz geometrisi ayrı çalışır ve kişilik skorlarına bağlanmaz.
 
-ÜÇÜNCÜ TARAF BİLDİRİMLERİ
-Bu sürüm Kotlin, AndroidX ve Jetpack Compose kullanır. Play yayını öncesinde kullanılan bağımlılıklar ve marka materyalleri için lisans incelemesi tamamlanacaktır.
+TARİHÎ AÇIKLAMALAR
+Erzurumlu İbrahim Hakkı'nın Mârifetnâme eserindeki kıyâfet geleneği yalnız kültür tarihi içeriği olarak yeniden ve özgün ifadelerle anlatılır. Modern telifli sadeleştirme/çeviri metinleri kopyalanmaz. Tarihî yüz yorumları bilimsel karakter yargıları olarak gösterilmez. Ek 10 soru gelenekten esinlenen, bağımsız, özgün düşünme sorularıdır.
+
+THIRD-PARTY NOTICES
+AndroidX, Kotlin, Jetpack Compose, ML Kit Face Detection and Android ExifInterface are used by the app. Review and ship applicable dependency license notices before publication.
