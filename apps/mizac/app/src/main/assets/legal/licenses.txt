@@ -5,7 +5,15 @@ Yayıncı: RaSaSeR APPS & TECHNOLOGY
 Sürüm: 0.1.0
 
 © 2026 RaSaSeR. Tüm hakları saklıdır.
-Bu uygulama çevrimdışı çalışır. İlk sürümde hesap açma, uzak veri depolama veya analiz amaçlı kişisel veri gönderimi yoktur.
+KULLANICI GİZLİLİĞİ — VERİLERİNİZ YALNIZCA SİZE AİTTİR
+Bu uygulama kişisel verileri RaSaSeR'a göndermez ve RaSaSeR sunucularında toplamaz, saklamaz veya kullanmaz.
+Kullanıcının seçtiği fotoğraf, 30 saniyeyi aşmayan video ve soru sayısı tercihleri yalnızca kullanıcının telefonundaki uygulamaya özel depolamada tutulur.
+İlk sürümde soruların cevapları geçici oturum hafızasındadır; bulut servisi, hesap, analitik izleme veya reklam amaçlı veri aktarımı yoktur.
+Gizlilik bölümündeki "Tüm Yerel MİZAÇ Verilerimi Sil" işlevi uygulamanın kendi kopyalarını ve soru tercihini temizler. Kullanıcının galerisindeki orijinal fotoğraf/video dosyalarına dokunulmaz.
+Video çekimi için kullanıcı tarafından seçilen sistem kamera uygulaması açılır; kamera uygulamasının kendi kayıt ve izin davranışı MİZAÇ'ın kontrolü dışındadır.
+www.okiminsozu.com bağlantısına dokunulursa bir dış tarayıcı açılır. MİZAÇ kişilik verilerini bu siteye göndermez.
+Cihazda saklanan dosyalar için yedeklemeye izin verilmez (allowBackup=false).
+
 
 BİLİMSEL AÇIKLAMA
 Bu sürümdeki 10 madde yalnız kişisel farkındalık örneğidir; doğrulanmış psikometrik ölçek, klinik test, teşhis veya kesin kişilik analizi değildir. Yüz ve beden özelliklerinden kişilik tespiti yapılmaz.
