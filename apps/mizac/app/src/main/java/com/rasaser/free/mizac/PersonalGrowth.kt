@@ -59,15 +59,54 @@ private fun GrowthCard(title: String, items: List<String>) {
     }
 }
 
+private fun photoAdviceKeys(v: FaceMeasurements): List<String> {
+    val chosen=mutableListOf<String>()
+    // All advice is conditional on OBSERVABLE frame attributes only;
+    // no morality, intelligence or personality inferred from physiognomy.
+    if(v.facesDetected>1) {
+        chosen += "visualAdviceGroup"
+    }
+    when {
+        abs(v.yaw)>22f -> chosen+="visualAdviceFaceAngle"
+        abs(v.roll)>16f -> chosen+="visualAdviceLevel"
+        abs(v.yaw)<=10f && abs(v.roll)<=10f -> chosen+="visualAdviceGoodAngle"
+        else -> chosen+="visualAdviceSlightTurn"
+    }
+    val eyeProb=listOfNotNull(v.leftEyeOpenProbability,
+        v.rightEyeOpenProbability)
+    when {
+        eyeProb.isEmpty() -> chosen+="visualAdviceLight"
+        eyeProb.minOrNull()!!<0.55f -> chosen+="visualAdviceEyesVisible"
+        eyeProb.minOrNull()!!>=0.85f -> chosen+="visualAdviceEyeContact"
+        else -> chosen+="visualAdviceEyePosition"
+    }
+    when(val smile=v.smileProbability) {
+        null -> chosen+="visualAdviceExpressionClear"
+        else -> when {
+            smile>=0.75f -> chosen+="visualAdviceSmileVisible"
+            smile>=0.35f -> chosen+="visualAdviceSmileModerate"
+            else -> chosen+="visualAdviceSmileOptional"
+        }
+    }
+    when {
+        v.eyeDistanceRatio==null || v.noseMouthRatio==null ->
+            chosen+="visualAdviceCameraQuality"
+        v.width<165 || v.height<165 -> chosen+="visualAdviceCloserFrame"
+        v.fromVideo -> chosen+="visualAdviceVideoSingleFrame"
+        else -> chosen+="visualAdviceNaturalFrame"
+    }
+    return chosen.distinct().take(5)
+}
+
 @Composable
-fun GeneralGrowthSuggestions(strings: Map<String, String>) {
-    GrowthCard(
-        ui(strings,"personalGuidance"),
-        listOf(
-            "adviceKindness","adviceHonesty","adviceService",
-            "advicePatience","adviceLearning"
-        ).map { ui(strings,it) }
-    )
+fun PersonalizedPhotoSuggestions(
+    strings: Map<String,String>,
+    measurement: FaceMeasurements
+) {
+    GrowthCard(ui(strings,"visualAdviceTitle"),
+        photoAdviceKeys(measurement).map{ui(strings,it)})
+    Text(ui(strings,"visualAdviceScope"),color=GrowthMuted,
+        style=MaterialTheme.typography.bodySmall)
 }
 
 @Composable
@@ -102,36 +141,48 @@ fun QuestionnaireGrowthSummary(
     strings: Map<String,String>,
     scores: Map<String,Float>
 ) {
-    // Relative ranking within the respondent's own self-report,
-    // without population norms or judgments about inherent worth.
+    // Compare the person's answers with their own answers, not
+    // population norms or purported moral/clinical classifications.
     val sorted=MIZAC_FACTORS.sortedWith(
         compareByDescending<String> { scores[it] ?: 0f }.thenBy{it}
     )
-    val high=sorted.take(2)
-    val low=sorted.takeLast(2).reversed()
+    val top=sorted.first()
+    val bottom=sorted.last()
+    val spread=(scores[top]?:0f)-(scores[bottom]?:0f)
+    val distinctEnough=spread>=0.35f
+    val high=if(distinctEnough) sorted.take(2) else emptyList()
+    val low=if(distinctEnough) sorted.takeLast(2).reversed() else emptyList()
 
     Text(ui(strings,"personalAnswerProfile"),color=GrowthInk,
         style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
     Text(ui(strings,"personalFromAnswers"),color=GrowthMuted,
         style=MaterialTheme.typography.bodySmall)
-    GrowthCard(
-        ui(strings,"personalStrengths"),
-        high.map { factor ->
-            ui(strings,factorLabel(factor))+" • "+
-                formatLocalNumber(scores.getValue(factor),language)+" / 5"
-        }
-    )
-    GrowthCard(
-        ui(strings,"personalGrowthAreas"),
-        low.map { factor ->
-            ui(strings,factorLabel(factor))+" • "+
-                formatLocalNumber(scores.getValue(factor),language)+" / 5"
-        }
-    )
-    GrowthCard(
-        ui(strings,"personalGuidance"),
-        (low.map { ui(strings,adviceKey(it)) } +
-            listOf("adviceKindness","adviceHonesty","adviceService")
-                .map { ui(strings,it) }).distinct()
-    )
+    if(!distinctEnough) {
+        GrowthCard(ui(strings,"personalBalanceTitle"),
+            listOf(ui(strings,"personalBalanceMessage")))
+        GrowthCard(ui(strings,"personalGuidance"),
+            listOf(ui(strings,"personalBalanceAdvice")))
+    } else {
+        GrowthCard(
+            ui(strings,"personalStrengths"),
+            high.map { factor ->
+                ui(strings,factorLabel(factor))+" • "+
+                    formatLocalNumber(scores.getValue(factor),language)+" / 5"
+            }
+        )
+        GrowthCard(
+            ui(strings,"personalGrowthAreas"),
+            low.map { factor ->
+                ui(strings,factorLabel(factor))+" • "+
+                    formatLocalNumber(scores.getValue(factor),language)+" / 5"
+            }
+        )
+        GrowthCard(
+            ui(strings,"personalGuidance"),
+            (low.flatMap { factor ->
+                listOf(ui(strings,adviceKey(factor)),
+                    ui(strings,"adviceExtra"+factor))
+            }+listOf(ui(strings,"adviceStrength"+top))).distinct()
+        )
+    }
 }
