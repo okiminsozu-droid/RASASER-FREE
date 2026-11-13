@@ -10,6 +10,7 @@ on:
       - fix/kurani-v0311-clean-search-installable
       - fix/kurani-v0312-reader-labels-logo-site
       - fix/kurani-v0313-home-favorites-brand-fit
+      - release/kurani-v0313-play-aab-draft
     paths:
       - 'apps/kurankelime/**'
       - '.github/workflows/04-kuran-kelime.yml'
@@ -155,5 +156,37 @@ jobs:
           name: Kurani_Kesfet_v0313_Home_Fit_CODE_ONLY
           path: apps/kurankelime/app/build/outputs/apk/contentPreview/app-contentPreview.apk
           if-no-files-found: error
+          retention-days: 7
+          compression-level: 0
+
+      - name: Build Play Console release AAB (public code only; no private Quran assets)
+        if: ${{ (github.ref == 'refs/heads/release/kurani-v0313-play-aab-draft' && github.event_name == 'push') || (github.event_name == 'pull_request' && github.head_ref == 'release/kurani-v0313-play-aab-draft') }}
+        run: gradle --no-daemon --project-dir apps/kurankelime :app:bundleRelease
+      - name: Archive UNSIGNED code-only AAB for secure private asset insertion/signing
+        if: ${{ (github.ref == 'refs/heads/release/kurani-v0313-play-aab-draft' && github.event_name == 'push') || (github.event_name == 'pull_request' && github.head_ref == 'release/kurani-v0313-play-aab-draft') }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: Kurani_Kesfet_v0313_Play_Release_UNSIGNED_CODE_ONLY_AAB
+          path: apps/kurankelime/app/build/outputs/bundle/release/app-release.aab
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 0
+
+  bundletool-for-private-validation:
+    if: ${{ github.head_ref == 'release/kurani-v0313-play-aab-draft' || github.ref == 'refs/heads/release/kurani-v0313-play-aab-draft' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Fetch official bundletool validation utility
+        run: |
+          curl --fail --location --retry 3 --silent --show-error \
+            https://github.com/google/bundletool/releases/download/1.18.3/bundletool-all-1.18.3.jar \
+            -o bundletool-all-1.18.3.jar
+          test -s bundletool-all-1.18.3.jar
+      - name: Archive public bundletool CLI (not proprietary data or signing keys)
+        uses: actions/upload-artifact@v4
+        with:
+          name: Android_Bundletool_1_18_3_public_CLI
+          path: bundletool-all-1.18.3.jar
           retention-days: 7
           compression-level: 0
