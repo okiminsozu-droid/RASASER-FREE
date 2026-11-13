@@ -7,6 +7,7 @@ on:
       - fix/kurani-v037-mlkit-language-download-retry
       - fix/kurani-v038-context-aware-word-translation
       - fix/kurani-v039-compact-translation-dialog
+      - fix/kurani-v0311-clean-search-installable
     paths:
       - 'apps/kurankelime/**'
       - '.github/workflows/04-kuran-kelime.yml'
@@ -120,6 +121,16 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Kurani_Kesfet_v039_Compact_Translation_CODE_ONLY
+          path: apps/kurankelime/app/build/outputs/apk/contentPreview/app-contentPreview.apk
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 0
+
+      - name: Publish v0.3.11 side-by-side SearchFix APK (private Quran pages excluded)
+        if: ${{ (github.ref == 'refs/heads/fix/kurani-v0311-clean-search-installable' && github.event_name == 'push') || (github.event_name == 'pull_request' && github.head_ref == 'fix/kurani-v0311-clean-search-installable') }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: Kurani_Kesfet_v0311_SearchFix_CODE_ONLY
           path: apps/kurankelime/app/build/outputs/apk/contentPreview/app-contentPreview.apk
           if-no-files-found: error
           retention-days: 7
