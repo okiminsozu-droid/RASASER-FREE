@@ -39,3 +39,12 @@ Depo kök dizininden: `./gradlew` her uygulamada mevcut olmayabilir. Depo Action
 Tüm imzalı release/AAB, güvenli PRIVATE ortamda oluşturulur. PUBLIC depoya anahtar/şifre/token konmaz.
 
 Bu klasör dışında hiçbir uygulama kodu değiştirilmez.
+
+## Yüz geometrisi + Mârifetnâme + kişilik soruları (v0.2 çalışma dalı)
+
+- Cihazda ML Kit ile geometrik oranlar: `FaceGeometryScreen.kt`. Kamera görüntüsünden karakter çıkarımı **yoktur**.
+- Ayrı tarihî bilgi ekranı: `MarifetnameScreen.kt`.
+- Kullanıcı cevaplarına dayalı TIPI-10 ve IPIP-50 özgün anahtar/ön çeviri: `PersonalityTestScreen.kt`.
+- 120 soru seçimi arayüzde korunur; özgün soru anahtarı ve Türkçe doğrulaması tamamlanana kadar yanlış sonuç verilmez.
+- Kaynaklar, sınırlar ve test planı: `docs/UC-ANALIZ-MODULLERI-v0.2.md`.
+- MİZAÇ için bağımsız GitHub Actions derleme dosyası: `.github/workflows/mizac-android-build.yml`.
