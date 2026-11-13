@@ -30,6 +30,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -167,6 +168,9 @@ private fun DiscoverHome() {
         }
     }
     val l = labels(language)
+    // On phone-height screens, fit the existing menu above the brand footer.
+    // No actions, labels, data or destinations are changed.
+    val compactHome = LocalConfiguration.current.screenHeightDp < 900
     val logo = remember {
         try {
             context.assets.open("brand/logo.webp").use { BitmapFactory.decodeStream(it)?.asImageBitmap() }
@@ -220,13 +224,16 @@ private fun DiscoverHome() {
                 Spacer(Modifier.width(6.dp))
                 Text(offlinePacksButtonText(language), color=HomeGreen, fontSize=12.sp)
             }
-            Column(Modifier.fillMaxWidth().padding(top=10.dp, bottom=6.dp),
+            Column(Modifier.fillMaxWidth().padding(
+                top=if(compactHome) 4.dp else 10.dp,
+                bottom=if(compactHome) 2.dp else 6.dp),
                 horizontalAlignment=Alignment.CenterHorizontally) {
                 Text("❦  Yaratıcından Sana Bir Mektup  ❦",
-                    color=HomeBrown, fontSize=21.sp, fontFamily=FontFamily.Serif,
-                    fontWeight=FontWeight.Bold, textAlign=TextAlign.Center, lineHeight=26.sp)
+                    color=HomeBrown, fontSize=if(compactHome) 18.sp else 21.sp, fontFamily=FontFamily.Serif,
+                    fontWeight=FontWeight.Bold, textAlign=TextAlign.Center,
+                    lineHeight=if(compactHome) 22.sp else 26.sp)
                 Text("A Letter to You from Your Creator",
-                    color=HomeBrown.copy(alpha=.86f), fontSize=14.sp,
+                    color=HomeBrown.copy(alpha=.86f), fontSize=if(compactHome) 12.sp else 14.sp,
                     fontFamily=FontFamily.Serif, fontStyle=FontStyle.Italic,
                     textAlign=TextAlign.Center, modifier=Modifier.padding(top=4.dp))
             }
@@ -234,22 +241,24 @@ private fun DiscoverHome() {
         when(screen) {
             "home" -> {
                 Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(androidx.compose.foundation.rememberScrollState()),
-                    verticalArrangement=Arrangement.Center, horizontalAlignment=Alignment.CenterHorizontally) {
+                    verticalArrangement=Arrangement.Top, horizontalAlignment=Alignment.CenterHorizontally) {
                     if(logo!=null) {
                         Image(logo, contentDescription=l.title,
-                            modifier=Modifier.size(154.dp), contentScale=ContentScale.Fit)
+                            modifier=Modifier.size(if(compactHome) 104.dp else 154.dp), contentScale=ContentScale.Fit)
                     } else {
                         Icon(Icons.Default.AutoStories, contentDescription=null,
-                            modifier=Modifier.size(90.dp), tint=HomeGreen)
+                            modifier=Modifier.size(if(compactHome) 74.dp else 90.dp), tint=HomeGreen)
                     }
-                    Text(l.title, color=HomeGreen, fontSize=27.sp, fontWeight=FontWeight.Bold,
+                    Text(l.title, color=HomeGreen,
+                        fontSize=if(compactHome) 24.sp else 27.sp, fontWeight=FontWeight.Bold,
                         textAlign=TextAlign.Center)
-                    Text(l.subtitle, color=HomeBrown, fontSize=13.sp,
-                        modifier=Modifier.padding(top=5.dp,bottom=18.dp), textAlign=TextAlign.Center)
+                    Text(l.subtitle, color=HomeBrown, fontSize=if(compactHome) 12.sp else 13.sp,
+                        modifier=Modifier.padding(top=if(compactHome) 2.dp else 5.dp,
+                            bottom=if(compactHome) 8.dp else 18.dp), textAlign=TextAlign.Center)
                     HomeAction(Icons.Default.MenuBook, l.read) { openBookPage(context) }
-                    Spacer(Modifier.height(12.dp))
+                    Spacer(Modifier.height(if(compactHome) 7.dp else 12.dp))
                     HomeAction(Icons.Default.Search, l.search) { screen="search" }
-                    Spacer(Modifier.height(12.dp))
+                    Spacer(Modifier.height(if(compactHome) 7.dp else 12.dp))
                     HomeAction(Icons.Default.StarBorder, l.favorites) { updated++; screen="favorites" }
                 }
             }
@@ -410,34 +419,38 @@ private fun DiscoverHome() {
             }
         }
         if (screen == "home") {
-            Column(Modifier.fillMaxWidth().padding(top=8.dp,bottom=14.dp),
+            Column(Modifier.fillMaxWidth().padding(
+                top=if(compactHome) 3.dp else 8.dp,
+                bottom=if(compactHome) 5.dp else 14.dp),
                 horizontalAlignment=Alignment.CenterHorizontally) {
                 Row(verticalAlignment=Alignment.CenterVertically,
                     horizontalArrangement=Arrangement.Center) {
                     Icon(Icons.Default.AutoAwesome,contentDescription=null,
-                        tint=Color(0xFFB38C4D),modifier=Modifier.size(23.dp))
-                    Spacer(Modifier.width(7.dp))
+                        tint=Color(0xFFB38C4D),modifier=Modifier.size(if(compactHome) 18.dp else 23.dp))
+                    Spacer(Modifier.width(if(compactHome) 5.dp else 7.dp))
                     Text("RaSaSeR",fontFamily=FontFamily.Serif,
-                        fontWeight=FontWeight.ExtraBold,fontSize=24.sp,
+                        fontWeight=FontWeight.ExtraBold,
+                        fontSize=if(compactHome) 22.sp else 24.sp,
+                        maxLines=1, softWrap=false,
                         color=HomeGreen)
-                    Spacer(Modifier.width(7.dp))
+                    Spacer(Modifier.width(if(compactHome) 5.dp else 7.dp))
                     Icon(Icons.Default.AutoAwesome,contentDescription=null,
-                        tint=Color(0xFFB38C4D),modifier=Modifier.size(23.dp))
+                        tint=Color(0xFFB38C4D),modifier=Modifier.size(if(compactHome) 18.dp else 23.dp))
                 }
                 Text("APPS & TECHNOLOGY",letterSpacing=2.sp,
                     fontSize=13.sp,fontWeight=FontWeight.Bold,color=HomeBrown)
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(if(compactHome) 4.dp else 8.dp))
                 Text("ÜCRETSİZDİR · HİÇBİR MADDİ AMACIMIZ YOKTUR",
-                    fontFamily=FontFamily.Serif,fontSize=14.sp,
+                    fontFamily=FontFamily.Serif,fontSize=if(compactHome) 12.sp else 14.sp,
                     fontWeight=FontWeight.Bold,textAlign=TextAlign.Center,color=HomeGreen)
                 Text("COMPLETELY FREE · NO COMMERCIAL PURPOSE",
-                    fontFamily=FontFamily.Serif,fontSize=12.sp,
+                    fontFamily=FontFamily.Serif,fontSize=if(compactHome) 11.sp else 12.sp,
                     fontStyle=FontStyle.Italic,textAlign=TextAlign.Center,color=HomeBrown)
                 Text("www.okiminsozu.com",
                     modifier=Modifier.padding(top=5.dp).clickable {
                         context.startActivity(Intent(Intent.ACTION_VIEW,
                             Uri.parse("https://www.okiminsozu.com")))
-                    },fontSize=16.sp,fontWeight=FontWeight.SemiBold,
+                    },fontSize=if(compactHome) 13.sp else 16.sp,fontWeight=FontWeight.SemiBold,
                     color=Color(0xFF92652E),textAlign=TextAlign.Center)
             }
         }
@@ -445,12 +458,12 @@ private fun DiscoverHome() {
 }
 @Composable
 private fun HomeAction(icon: androidx.compose.ui.graphics.vector.ImageVector,label:String,onClick:()->Unit) {
-    Surface(onClick=onClick, modifier=Modifier.fillMaxWidth().height(66.dp),
+    Surface(onClick=onClick, modifier=Modifier.fillMaxWidth().height(56.dp),
         shape=RoundedCornerShape(22.dp), color=HomeSand) {
         Row(Modifier.fillMaxSize().padding(horizontal=22.dp),verticalAlignment=Alignment.CenterVertically) {
             Icon(icon,contentDescription=null,tint=HomeBrown,modifier=Modifier.size(30.dp))
             Spacer(Modifier.width(22.dp))
-            Text(label,color=HomeGreen,fontSize=25.sp,fontWeight=FontWeight.SemiBold,
+            Text(label,color=HomeGreen,fontSize=23.sp,fontWeight=FontWeight.SemiBold,
                 modifier=Modifier.weight(1f))
             Icon(Icons.Default.ChevronRight, contentDescription=null,tint=HomeBrown)
         }
