@@ -168,7 +168,8 @@ private fun MizacRoot() {
                         onQuestions = { number -> count = number; screen = "questions" }
                     )
                     "geometry" -> FaceGeometryScreen(
-                        onBack = { screen = "home" }, lang = lang, strings = dict
+                        onBack = { screen = "home" }, lang = lang, strings = dict,
+                        onHistory = { screen = "history" }
                     )
                     "questions" -> OriginalQuestionnaire(
                         lang = lang, dict = dict, questionCount = count,
@@ -343,6 +344,8 @@ private fun HomeQuickActions(
         runCatching { saveMediaLocally(context, uri, kind) }
             .onSuccess {
                 if (kind == "photo") photoSaved = true else videoSaved = true
+                context.getSharedPreferences("mizac_local_setup", Context.MODE_PRIVATE)
+                    .edit().putString("last_media_kind",kind).apply()
                 feedback = ui(dict,if(kind=="photo")"savePhoto" else "saveVideo")
                 if (pendingQuick) {
                     pendingQuick = false
