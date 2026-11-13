@@ -26,7 +26,8 @@ private val Dim = Color(0xFF605344)
 fun MarifetnameScreen(
     onBack: () -> Unit,
     lang: MizacLang,
-    strings: Map<String, String>
+    strings: Map<String, String>,
+    onReflection: () -> Unit
 ) {
     val context = LocalContext.current
     val sections = remember(lang.code) { loadHistory(context, lang) }
@@ -54,6 +55,9 @@ fun MarifetnameScreen(
                     Text(section.explanation,color=Dim)
                 }
             }
+        }
+        Button(onClick=onReflection,modifier=Modifier.fillMaxWidth()) {
+            Text(ui(strings,"historyReflectionTitle"))
         }
         Text(ui(strings,"historySources"),color=DarkText,
             style=MaterialTheme.typography.titleMedium)
