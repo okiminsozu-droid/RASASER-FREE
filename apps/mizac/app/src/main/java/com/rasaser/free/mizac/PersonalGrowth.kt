@@ -129,10 +129,6 @@ fun PhotoObservationSummary(
     GrowthCard(ui(strings,"photoQualityStrengths"),positives)
     if(limits.isNotEmpty())
         GrowthCard(ui(strings,"photoQualityLimits"),limits)
-    Text(
-        ui(strings,"personalFromPhoto"),
-        color=GrowthMuted,style=MaterialTheme.typography.bodySmall
-    )
 }
 
 @Composable
