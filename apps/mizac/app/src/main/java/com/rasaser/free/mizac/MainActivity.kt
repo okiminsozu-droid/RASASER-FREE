@@ -516,11 +516,16 @@ private fun AnalysisSelection(
 }
 
 @Composable
-private fun PrivacyPage(dict: Map<String, String>, onBack: () -> Unit) {
+private fun PrivacyPage(
+    dict: Map<String, String>,
+    onBack: () -> Unit,
+    onHistory: () -> Unit
+) {
     val context = LocalContext.current
     var confirm by remember { mutableStateOf(false) }
     var feedback by remember { mutableStateOf("") }
-    Heading(ui(dict,"privacyTitle"),ui(dict,"backHome"),onBack)
+    Text(ui(dict,"privacyTitle"),color=Ink,
+        style=MaterialTheme.typography.headlineSmall, fontWeight=FontWeight.Bold)
     Card(colors = CardDefaults.cardColors(containerColor=Ivory)) {
         Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
             Text(ui(dict,"localPrivacy"),color=Ink,fontWeight=FontWeight.Bold)
@@ -528,6 +533,9 @@ private fun PrivacyPage(dict: Map<String, String>, onBack: () -> Unit) {
             Text(ui(dict,"licenseTitle"),color=Ink,fontWeight=FontWeight.Bold)
             Text(ui(dict,"licenseNotice"),color=Muted)
         }
+    }
+    OutlinedButton(onClick=onHistory,modifier=Modifier.fillMaxWidth()) {
+        Text(ui(dict,"history"))
     }
     OutlinedButton(onClick = { confirm=true },modifier=Modifier.fillMaxWidth()) {
         Text(ui(dict,"deleteAll"))
