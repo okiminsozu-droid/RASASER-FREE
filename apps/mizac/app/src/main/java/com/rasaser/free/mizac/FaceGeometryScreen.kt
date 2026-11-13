@@ -206,15 +206,10 @@ fun FaceGeometryScreen(
             fontWeight = FontWeight.Bold
         )
         MarifetnameMatching(lang, strings)
-        Button(onClick=onHistory,modifier=Modifier.fillMaxWidth()) {
-            Text(ui(strings,"photoReportExpandHistory"))
-        }
 
         Text(ui(strings,"photoReportScience"),color=InkColor,
             style=MaterialTheme.typography.headlineSmall,
             fontWeight=FontWeight.Bold)
-        Text(ui(strings,"photoReportQuality"),color=MutedColor,
-            style=MaterialTheme.typography.bodySmall)
         when(val result = state) {
             FaceStatus.Loading -> {
                 CircularProgressIndicator()
@@ -268,18 +263,12 @@ fun FaceGeometryScreen(
                             Text(ui(strings,"geometryMultiple"),color=MutedColor)
                     }
                 }
-                Text(ui(strings,"photoReportAppearanceNote"),color=MutedColor,
-                    style=MaterialTheme.typography.bodySmall)
                 if(v.fromVideo)
                     Text(ui(strings,"photoReportVideoNote"),color=MutedColor,
                         style=MaterialTheme.typography.bodySmall)
-                Text(ui(strings,"geometryNote"),color=MutedColor,
-                    style=MaterialTheme.typography.bodySmall)
             }
         }
 
-        Text(ui(strings,"geometryPrivacy"),color=InkColor,
-            style=MaterialTheme.typography.bodySmall)
     }
 }
 
