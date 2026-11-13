@@ -1,0 +1,17 @@
+RaSaSeR — Uygulama Lisansları
+
+Uygulama: MİZAÇ
+Yayıncı: RaSaSeR APPS & TECHNOLOGY
+Sürüm: 0.1.0
+
+© 2026 RaSaSeR. Tüm hakları saklıdır.
+Bu uygulama çevrimdışı çalışır. İlk sürümde hesap açma, uzak veri depolama veya analiz amaçlı kişisel veri gönderimi yoktur.
+
+BİLİMSEL AÇIKLAMA
+Bu sürümdeki 10 madde yalnız kişisel farkındalık örneğidir; doğrulanmış psikometrik ölçek, klinik test, teşhis veya kesin kişilik analizi değildir. Yüz ve beden özelliklerinden kişilik tespiti yapılmaz.
+
+TARİHÎ KAYNAKLAR
+Erzurumlu İbrahim Hakkı'nın Mârifetnâme eserindeki ilm-i kıyâfet geleneği tanıtılır. Tarihî fizyonomi yorumları çağdaş bilimsel kişilik çıkarımları olarak gösterilmez.
+
+ÜÇÜNCÜ TARAF BİLDİRİMLERİ
+Bu sürüm Kotlin, AndroidX ve Jetpack Compose kullanır. Play yayını öncesinde kullanılan bağımlılıklar ve marka materyalleri için lisans incelemesi tamamlanacaktır.
