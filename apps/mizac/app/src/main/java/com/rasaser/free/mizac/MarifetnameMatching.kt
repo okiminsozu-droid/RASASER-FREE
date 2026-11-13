@@ -1,9 +1,10 @@
 package com.rasaser.free.mizac
 
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
-import androidx.compose.ui.platform.LocalContext
-
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -12,8 +13,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -25,168 +24,159 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
-/**
- * Public-domain 18th century source: Erzurumlu İbrahim Hakkı, Mârifetnâme,
- * fifth division, fourth and fifth sections.
- * https://tr.wikisource.org/wiki/Marifetname/42
- *
- * Concise, independently worded source attributions; not individual character classifications.
- */
-private data class HistoricalChoice(
-    val id: String,
-    val title: List<String>,
-    val reading: List<String>
-) {
-    fun name(lang: MizacLang): String = title[lang.index]
-    fun explanation(lang: MizacLang): String = reading[lang.index]
-}
-
-private data class HistoricalGroup(
-    val id: String,
-    val title: List<String>,
-    val choices: List<HistoricalChoice>
-) {
-    fun name(lang: MizacLang): String = title[lang.index]
-}
-
-private fun words(vararg translations: String): List<String> =
-    translations.toList().also { require(it.size == 5) }
-
-private val matchingGroups = listOf(
-    HistoricalGroup("face", words("Yüz görünümü","Face shape","Gesichtsform","Forma del rostro","شكل الوجه"), listOf(
-        HistoricalChoice("face_round", words("Yuvarlak yüz","Rounded face","Rundes Gesicht","Rostro redondeado","وجه مستدير"),
-            words(
-                "Güler yüzlü ve tebessümlü oluşla bağdaştırılır.",
-                "Associated with smiling and a cheerful appearance.",
-                "Mit Lächeln und freundlichem Ausdruck verbunden.",
-                "Se relaciona con la sonrisa y la expresión afable.",
-                "يرتبط بالابتسام والبشاشة."
-            )),
-        HistoricalChoice("face_long", words("Uzun yüz","Long face","Längliches Gesicht","Rostro alargado","وجه طويل"),
-            words(
-                "Sözlerinde yalana ilişkin yorum yer alır.",
-                "The text associates this shape with untruthful speech.",
-                "Der Text verbindet diese Form mit unwahren Aussagen.",
-                "Se vincula con la falta de veracidad al hablar.",
-                "يربط النص هذا الشكل بالكذب في الكلام."
-            ))
-    )),
-    HistoricalGroup("eyes", words("Gözlerin görünümü","Eye appearance","Augenform","Aspecto de los ojos","مظهر العينين"), listOf(
-        HistoricalChoice("eyes_big", words("Büyük göz","Large-looking eyes","Groß wirkende Augen","Ojos grandes","عينان كبيرتان"),
-            words(
-                "Zariflikle bağdaştırılır.",
-                "Linked with refinement.",
-                "Mit Feinheit verbunden.",
-                "Se relaciona con la delicadeza.",
-                "يرتبط بالرقة."
-            )),
-        HistoricalChoice("eyes_small", words("Küçük göz","Small-looking eyes","Klein wirkende Augen","Ojos pequeños","عينان صغيرتان"),
-            words(
-                "Hafif huylulukla bağdaştırılır.",
-                "Linked with frivolity.",
-                "Mit Leichtfertigkeit verbunden.",
-                "Se relaciona con la ligereza de carácter.",
-                "يرتبط بخفة الطبع."
-            ))
-    )),
-    HistoricalGroup("nose", words("Burun görünümü","Nose appearance","Nasenform","Aspecto de la nariz","مظهر الأنف"), listOf(
-        HistoricalChoice("nose_long", words("Uzun burun","Long nose","Lange Nase","Nariz larga","أنف طويل"),
-            words(
-                "Anlayış kıtlığıyla bağdaştırılır.",
-                "Linked with limited understanding.",
-                "Mit geringem Verständnis verbunden.",
-                "Se relaciona con poca comprensión.",
-                "يرتبط بضعف الفهم."
-            )),
-        HistoricalChoice("nose_short", words("Kısa burun","Short nose","Kurze Nase","Nariz corta","أنف قصير"),
-            words(
-                "Korkaklıkla bağdaştırılır.",
-                "Linked with fearfulness.",
-                "Mit Ängstlichkeit verbunden.",
-                "Se relaciona con el temor.",
-                "يرتبط بالخوف."
-            ))
-    )),
-    HistoricalGroup("forehead", words("Alın görünümü","Forehead appearance","Stirnform","Aspecto de la frente","مظهر الجبهة"), listOf(
-        HistoricalChoice("forehead_medium", words("Dengeli alın","Proportionate forehead","Ausgewogene Stirn","Frente proporcionada","جبهة متناسقة"),
-            words(
-                "Güvenilirlikle bağdaştırılır.",
-                "Linked with trustworthiness.",
-                "Mit Vertrauenswürdigkeit verbunden.",
-                "Se relaciona con la confianza.",
-                "يرتبط بالأمانة."
-            )),
-        HistoricalChoice("forehead_narrow", words("Dar alın","Narrow forehead","Schmale Stirn","Frente estrecha","جبهة ضيقة"),
-            words(
-                "Dar huylulukla bağdaştırılır.",
-                "Linked with a narrow disposition.",
-                "Mit engem Gemüt verbunden.",
-                "Se relaciona con un carácter estrecho.",
-                "يرتبط بضيق الطبع."
-            ))
-    )),
-    HistoricalGroup("mouth", words("Ağız görünümü","Mouth appearance","Mundform","Aspecto de la boca","مظهر الفم"), listOf(
-        HistoricalChoice("mouth_big", words("Büyük ağız","Large mouth","Großer Mund","Boca grande","فم كبير"),
-            words(
-                "Cesaretle bağdaştırılır.",
-                "Linked with courage.",
-                "Mit Mut verbunden.",
-                "Se relaciona con la valentía.",
-                "يرتبط بالشجاعة."
-            )),
-        HistoricalChoice("mouth_small", words("Küçük ağız","Small mouth","Kleiner Mund","Boca pequeña","فم صغير"),
-            words(
-                "Güzellik ve korkaklıkla bağdaştırılır.",
-                "Linked with beauty and timidity.",
-                "Mit Schönheit und Ängstlichkeit verbunden.",
-                "Se relaciona con la belleza y el temor.",
-                "يرتبط بالجمال والخوف."
-            ))
-    ))
+private data class BookEntry(
+    val chapter: String,
+    val group: String,
+    val feature: String,
+    val description: String,
+    val otherSide: String?
 )
 
+private fun readBookFile(context: Context, file: String): List<BookEntry> =
+    context.assets.open("history/$file").bufferedReader(Charsets.UTF_8).useLines { lines ->
+        lines.filter { it.isNotBlank() && !it.startsWith("#") }.map { line ->
+            val parts = line.split('\t')
+            require(parts.size == if (file == "catalog_8.tsv") 5 else 4) {
+                "Invalid Marifetname book data in $file"
+            }
+            BookEntry(parts[0], parts[1], parts[2], parts[3], parts.getOrNull(4))
+        }.toList()
+    }
+
+private fun allBookEntries(context: Context): List<BookEntry> =
+    listOf("catalog_4.tsv", "catalog_5.tsv", "catalog_6.tsv",
+        "catalog_8.tsv", "catalog_mizac.tsv")
+        .flatMap { readBookFile(context, it) }
+        .also { require(it.size == 239) { "Missing book records: ${it.size}" } }
+
+private fun visibleGroupKey(entry: BookEntry): String =
+    entry.chapter + ":" + entry.group
+
 @Composable
-fun MarifetnameMatching(lang: MizacLang, strings: Map<String,String>) {
+fun MarifetnameMatching(lang: MizacLang, strings: Map<String, String>) {
     val context = LocalContext.current
+    val all = remember(context) { allBookEntries(context) }
+    var mode by rememberSaveable { mutableStateOf("appearance") }
+    var expanded by rememberSaveable { mutableStateOf("4:Yüz şekli") }
+
+    val modeDefinitions = listOf(
+        "appearance" to "catalogAppearance",
+        "twitch" to "catalogTwitch",
+        "mizac" to "catalogMizac"
+    )
+
+    val rows = when (mode) {
+        "twitch" -> all.filter { it.chapter == "8" }
+        "mizac" -> all.filter { it.chapter == "M" }
+        else -> all.filter { it.chapter in listOf("4", "5", "6") }
+    }
+
+    val grouped = rows.groupBy(::visibleGroupKey)
     Card(
-        modifier=Modifier.fillMaxWidth(),
-        colors=CardDefaults.cardColors(containerColor=Color(0xFFFFFBF6)),
-        shape=RoundedCornerShape(20.dp)
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFFFFBF6)),
+        shape = RoundedCornerShape(20.dp)
     ) {
         Column(
-            modifier=Modifier.padding(14.dp),
-            verticalArrangement=Arrangement.spacedBy(10.dp)
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            matchingGroups.forEach { group ->
-                Text(group.name(lang),fontWeight=FontWeight.Bold,
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                modeDefinitions.forEach { (id, labelKey) ->
+                    Text(
+                        ui(strings,labelKey),
+                        modifier = Modifier.weight(1f)
+                            .background(
+                                if(mode == id)Color(0xFFDCC294) else Color(0xFFF5EDE3),
+                                RoundedCornerShape(12.dp)
+                            )
+                            .clickable {
+                                mode = id
+                                expanded = if(id=="appearance")"4:Yüz şekli" else ""
+                            }
+                            .padding(vertical=10.dp, horizontal=3.dp),
+                        color=Color(0xFF241B13),
+                        fontWeight=if(mode==id)FontWeight.Bold else FontWeight.Normal,
+                        style=MaterialTheme.typography.labelSmall
+                    )
+                }
+            }
+            Text(
+                rows.size.toString()+" "+ui(strings,"catalogItems"),
+                color=Color(0xFF6D5943),
+                style=MaterialTheme.typography.labelMedium
+            )
+            if(lang.code != "tr") {
+                Text(ui(strings,"catalogOriginalLanguage"),
+                    color=Color(0xFF6D5943),
+                    style=MaterialTheme.typography.labelSmall)
+            }
+            grouped.forEach { (groupKey, groupRows) ->
+                val current=expanded==groupKey
+                Text(
+                    (if(current)"▾ " else "▸ ") +
+                        groupRows.first().group+"  (${groupRows.size})",
+                    modifier=Modifier.fillMaxWidth().clickable {
+                        expanded=if(current)"" else groupKey
+                    }.padding(horizontal=8.dp,vertical=9.dp),
                     color=Color(0xFF1E1711),
-                    style=MaterialTheme.typography.titleMedium)
-                group.choices.forEach { item ->
-                    Row(
-                        modifier=Modifier.fillMaxWidth(),
-                        horizontalArrangement=Arrangement.spacedBy(10.dp)
-                    ) {
-                        Text(item.name(lang),modifier=Modifier.weight(1f),
-                            color=Color(0xFF1E1711),
-                            style=MaterialTheme.typography.bodySmall)
-                        Text(item.explanation(lang),modifier=Modifier.weight(2f),
-                            color=Color(0xFF605344),
-                            style=MaterialTheme.typography.bodySmall)
+                    fontWeight=FontWeight.SemiBold,
+                    style=MaterialTheme.typography.titleSmall
+                )
+                if(current) {
+                    groupRows.forEach { item ->
+                        Row(
+                            modifier=Modifier.fillMaxWidth().padding(
+                                horizontal=6.dp,vertical=5.dp),
+                            horizontalArrangement=Arrangement.spacedBy(10.dp)
+                        ) {
+                            Text(
+                                item.feature,
+                                modifier=Modifier.weight(1f),
+                                color=Color(0xFF1E1711),
+                                fontWeight=FontWeight.Medium,
+                                style=MaterialTheme.typography.bodySmall
+                            )
+                            Column(
+                                modifier=Modifier.weight(1.4f),
+                                verticalArrangement=Arrangement.spacedBy(3.dp)
+                            ) {
+                                if(item.otherSide == null) {
+                                    Text(item.description,
+                                        color=Color(0xFF594C3C),
+                                        style=MaterialTheme.typography.bodySmall)
+                                } else {
+                                    Text(
+                                        ui(strings,"catalogRight")+": "+item.description,
+                                        color=Color(0xFF594C3C),
+                                        style=MaterialTheme.typography.bodySmall)
+                                    Text(
+                                        ui(strings,"catalogLeft")+": "+item.otherSide,
+                                        color=Color(0xFF594C3C),
+                                        style=MaterialTheme.typography.bodySmall)
+                                }
+                            }
+                        }
                     }
                 }
             }
             TextButton(onClick={
+                val source=if(mode=="mizac")
+                    "https://tr.wikisource.org/wiki/Marifetname/45"
+                else "https://tr.wikisource.org/wiki/Marifetname/42"
                 runCatching {
-                    context.startActivity(
-                        Intent(Intent.ACTION_VIEW,
-                            Uri.parse("https://tr.wikisource.org/wiki/Marifetname/42"))
-                    )
+                    context.startActivity(Intent(
+                        Intent.ACTION_VIEW, Uri.parse(source)))
                 }
             }) {
-                Text(ui(strings,"historyMatchSource"))
+                Text(ui(strings,"catalogSource"))
             }
         }
     }
