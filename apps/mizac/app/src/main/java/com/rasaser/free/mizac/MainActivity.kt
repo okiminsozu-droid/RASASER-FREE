@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
@@ -125,7 +126,7 @@ private fun MizacRoot() {
     CompositionLocalProvider(
         LocalLayoutDirection provides if (lang.code == "ar") LayoutDirection.Rtl else LayoutDirection.Ltr
     ) {
-        Column(Modifier.fillMaxSize().background(Sand)) {
+        Column(Modifier.fillMaxSize().background(Sand).safeDrawingPadding()) {
             // Keep the flag selector at the physical top-right in every language,
             // while the page content mirrors for Arabic.
             CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
