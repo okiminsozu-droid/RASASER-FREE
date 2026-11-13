@@ -1,5 +1,9 @@
 package com.rasaser.free.mizac
 
+import android.content.Intent
+import android.net.Uri
+import androidx.compose.ui.platform.LocalContext
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -148,6 +152,7 @@ private val matchingGroups = listOf(
 
 @Composable
 fun MarifetnameMatching(lang: MizacLang, strings: Map<String, String>) {
+    val context = LocalContext.current
     var showChoices by rememberSaveable { mutableStateOf(false) }
     val selected = remember { mutableStateOf<Map<String,String>>(emptyMap()) }
     Card(
@@ -193,8 +198,16 @@ fun MarifetnameMatching(lang: MizacLang, strings: Map<String, String>) {
                 }
                 Text(ui(strings,"historyMatchSelectedNotAuto"),
                     style=MaterialTheme.typography.bodySmall,color=Color(0xFF605344))
-                Text(ui(strings,"historyMatchSource"),
-                    style=MaterialTheme.typography.labelSmall,color=Color(0xFF605344))
+                TextButton(onClick={
+                    runCatching {
+                        context.startActivity(Intent(
+                            Intent.ACTION_VIEW,
+                            Uri.parse("https://tr.wikisource.org/wiki/Marifetname/42")
+                        ))
+                    }
+                }) {
+                    Text(ui(strings,"historyMatchSource"))
+                }
             }
         }
     }
