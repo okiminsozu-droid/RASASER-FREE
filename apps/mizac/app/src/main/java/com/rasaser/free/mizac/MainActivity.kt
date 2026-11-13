@@ -40,6 +40,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -136,7 +138,10 @@ private fun MizacApp() {
             "results" -> ResultsScreen(answers, onBack = { screen = "home" },
                 onRetry = { answers = List(items.size) { 0 }; screen = "reflection" })
             "history" -> HistoryScreen(onBack = { screen = "home" })
-            "privacy" -> PrivacyScreen(onBack = { screen = "home" })
+            "privacy" -> PrivacyScreen(
+                onBack = { screen = "home" },
+                onDeleteAnswers = { answers = List(items.size) { 0 } }
+            )
         }
     }
 }
@@ -322,6 +327,22 @@ private fun AnalysisSetupScreen(onBack: () -> Unit) {
         captureFile.delete()
     }
     PageHeader("Kişilik Analizi", onBack)
+    Card(
+        colors = CardDefaults.cardColors(containerColor = ivory),
+        shape = RoundedCornerShape(22.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+            Text("🔒 Verileriniz yalnızca size aittir.", color = black,
+                fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+            Text(
+                "Fotoğraf, video, soru seçimi ve test yanıtlarınız RaSaSeR'a gönderilmez. " +
+                    "MİZAÇ hesabı veya bulut depolaması yoktur; kaydedilen dosyalar yalnızca " +
+                    "telefonunuzun uygulama alanında tutulur. İsterseniz silebilirsiniz.",
+                color = muted, style = MaterialTheme.typography.bodySmall
+            )
+        }
+    }
     Text(
         "İstersen fotoğraf veya 30 saniyeye kadar video ekleyebilirsin. Hiçbiri zorunlu değil.",
         color = muted, style = MaterialTheme.typography.bodyMedium
@@ -437,7 +458,9 @@ private fun AnalysisSetupScreen(onBack: () -> Unit) {
         Text(feedback, color = black, style = MaterialTheme.typography.bodyMedium)
     }
     Text(
-        "Fotoğraf ve video yalnızca cihazda saklanır. Bu aşamada analiz, yüz tanıma, dosya yükleme veya sunucuya gönderme yapılmaz.",
+        "Verilerin sahibi sizsiniz. MİZAÇ bu aşamada fotoğraf ve videoları analiz etmez; " +
+            "analiz motoruna, RaSaSeR'a veya herhangi bir sunucuya göndermez. " +
+            "Seçtiğiniz dosyaların telefon galerinizdeki asılları uygulamadan bağımsızdır.",
         color = muted, style = MaterialTheme.typography.bodySmall
     )
 }
@@ -537,16 +560,92 @@ private fun HistoryScreen(onBack: () -> Unit) {
 }
 
 @Composable
-private fun PrivacyScreen(onBack: () -> Unit) {
+private fun PrivacyScreen(onBack: () -> Unit, onDeleteAnswers: () -> Unit) {
     PageHeader("Gizlilik ve Lisanslar", onBack)
-    Text(
-        "Hesap ve internet izni yoktur. İsteğe bağlı fotoğraf ve video cihazın özel uygulama alanında tutulur; aktarılmaz veya analiz edilmez. Galeri ve sistem kamerası izin istemeden açılır. Medya istediğiniz zaman kaldırılabilir. Soru sayısı cihazda hatırlanır. Önizleme test yanıtları kalıcı kaydedilmez.",
-        color = muted
-    )
     val context = LocalContext.current
-    val licenses = remember(context) {
-        runCatching { context.assets.open("legal/licenses.txt")
-            .bufferedReader().use { it.readText() } }.getOrDefault("Lisans bilgisi okunamadı.")
+    var confirmDelete by rememberSaveable { mutableStateOf(false) }
+    var deletionStatus by rememberSaveable { mutableStateOf("") }
+    Card(
+        colors = CardDefaults.cardColors(containerColor = ivory),
+        shape = RoundedCornerShape(22.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("Verileriniz yalnızca size aittir.",
+                color = black, style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold)
+            Text(
+                "Fotoğraflarınız, videolarınız, kişilik testi cevaplarınız ve analiz sonuçlarınız " +
+                    "yalnızca kendi cihazınızda saklanır. RaSaSeR bu verileri toplamaz, " +
+                    "sunucularına yüklemez, görüntülemez veya başka amaçlarla kullanmaz.",
+                color = black
+            )
+            Text(
+                "MİZAÇ'ta hesap, bulut senkronizasyonu, izleme veya reklam amaçlı " +
+                    "kişisel veri aktarımı yoktur. İlk sürümde test yanıtları yalnızca " +
+                    "açık oturumda tutulur; kalıcı analiz geçmişi henüz oluşturulmaz.",
+                color = muted, style = MaterialTheme.typography.bodySmall
+            )
+            Text(
+                "Galeriden seçtiğiniz orijinal dosyalar ve telefonun kendi kamera " +
+                    "uygulaması tarafından saklanmış kopyalar MİZAÇ'ın silme işleminin " +
+                    "dışındadır. Web sitesi bağlantısına dokunursanız tarayıcı ayrı açılır.",
+                color = muted, style = MaterialTheme.typography.bodySmall
+            )
+        }
     }
-    Text(licenses, style = MaterialTheme.typography.bodySmall)
+    OutlinedButton(
+        onClick = { confirmDelete = true },
+        modifier = Modifier.fillMaxWidth(),
+        colors = ButtonDefaults.outlinedButtonColors(containerColor = ivory, contentColor = black)
+    ) {
+        Text("Tüm Yerel MİZAÇ Verilerimi Sil")
+    }
+    if (deletionStatus.isNotEmpty()) Text(deletionStatus, color = black)
+    if (confirmDelete) {
+        AlertDialog(
+            onDismissRequest = { confirmDelete = false },
+            title = { Text("Yerel veriler silinsin mi?") },
+            text = { Text(
+                "MİZAÇ'ın kendi depolama alanındaki fotoğraf, video, geçici çekim " +
+                    "ve soru sayısı tercihleri silinecektir. Bu işlem geri alınamaz. " +
+                    "Telefon galerisindeki orijinal dosyalar silinmez."
+            ) },
+            confirmButton = {
+                TextButton(onClick = {
+                    val fileNames = listOf(
+                        "mizac_photo.dat", "mizac_video.dat",
+                        "mizac_photo.tmp", "mizac_video.tmp"
+                    )
+                    var success = true
+                    fileNames.forEach { name ->
+                        val file = File(context.filesDir, name)
+                        if (file.exists() && !file.delete()) success = false
+                    }
+                    val captureFile = File(context.cacheDir, "mizac_video_capture.mp4")
+                    if (captureFile.exists() && !captureFile.delete()) success = false
+                    val prefs = context.getSharedPreferences(
+                        "mizac_local_setup", Context.MODE_PRIVATE
+                    )
+                    if (!prefs.edit().clear().commit()) success = false
+                    onDeleteAnswers()
+                    deletionStatus = if (success) {
+                        "MİZAÇ'ın bu cihazda sakladığı veriler silindi."
+                    } else {
+                        "Bazı yerel dosyalar silinemedi. Lütfen yeniden deneyin."
+                    }
+                    confirmDelete = false
+                }) { Text("Verilerimi Sil") }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmDelete = false }) { Text("Vazgeç") }
+            }
+        )
+    }
+    val licenses = remember(context) {
+        runCatching {
+            context.assets.open("legal/licenses.txt").bufferedReader().use { it.readText() }
+        }.getOrDefault("Lisans bilgisi okunamadı.")
+    }
+    Text(licenses, style = MaterialTheme.typography.bodySmall, color = muted)
 }
