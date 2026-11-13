@@ -196,10 +196,6 @@ fun FaceGeometryScreen(
 ) {
     val context = LocalContext.current
     var state by remember { mutableStateOf<FaceStatus>(FaceStatus.Loading) }
-    val historic = remember(lang.code) {
-        loadHistory(context, lang)
-            .filterIndexed { idx, _ -> idx in listOf(1, 4, 5, 6) }
-    }
     LaunchedEffect(Unit) { state = inspectFaceLocally(context) }
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -208,27 +204,7 @@ fun FaceGeometryScreen(
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold
         )
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = WhiteCard),
-            shape = RoundedCornerShape(22.dp)
-        ) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
-                Text(ui(strings,"photoReportHistoryIntro"),color=InkColor)
-                Text(ui(strings,"photoReportHistoryContext"),color=InkColor,
-                    fontWeight=FontWeight.Bold)
-                historic.forEach { section ->
-                    Text(section.title,color=InkColor,
-                        style=MaterialTheme.typography.titleMedium)
-                    Text(section.explanation,color=MutedColor,
-                        style=MaterialTheme.typography.bodySmall)
-                }
-                Text(ui(strings,"photoReportHistoryLimit"),color=MutedColor,
-                    style=MaterialTheme.typography.bodySmall)
-                Text(ui(strings,"photoReportSource"),color=MutedColor,
-                    style=MaterialTheme.typography.labelSmall)
-            }
-        }
+        MarifetnameMatching(lang, strings)
         Button(onClick=onHistory,modifier=Modifier.fillMaxWidth()) {
             Text(ui(strings,"photoReportExpandHistory"))
         }
@@ -236,7 +212,7 @@ fun FaceGeometryScreen(
         Text(ui(strings,"photoReportScience"),color=InkColor,
             style=MaterialTheme.typography.headlineSmall,
             fontWeight=FontWeight.Bold)
-        Text(ui(strings,"geometryExplain"),color=MutedColor,
+        Text(ui(strings,"photoReportQuality"),color=MutedColor,
             style=MaterialTheme.typography.bodySmall)
         when(val result = state) {
             FaceStatus.Loading -> {
