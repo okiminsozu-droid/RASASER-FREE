@@ -186,7 +186,6 @@ fun FaceGeometryScreen(
     var state by remember { mutableStateOf<FaceStatus>(FaceStatus.Loading) }
     LaunchedEffect(Unit) { state = inspectFaceLocally(context) }
     Column(verticalArrangement=Arrangement.spacedBy(12.dp)) {
-        Button(onClick=onBack) { Text(ui(strings,"backSetup")) }
         Text(ui(strings,"geometryTitle"),color=InkColor,
             style=MaterialTheme.typography.headlineSmall,
             fontWeight=FontWeight.Bold)
