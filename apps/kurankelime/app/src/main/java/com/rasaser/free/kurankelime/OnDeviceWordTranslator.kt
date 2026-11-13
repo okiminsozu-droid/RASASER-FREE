@@ -43,12 +43,13 @@ internal class OnDeviceWordTranslator(private val activity: Activity) {
         if (selectedText.isBlank()) return
 
         activeDialog?.dismiss()
+        val localHint = OfflineWordMeaning.find(selectedText, source, target)
         var reviewed: ReviewedQuranGlossary.Entry? = null
         var machineResult: String? = null
         var status = "Doğrulanmış kelime anlamı kontrol ediliyor…"
 
         val dialog = AlertDialog.Builder(activity)
-            .setTitle("Kelime çevirisi · ${names[target] ?: target}")
+            .setTitle("Kelime çevirisi · ${names[source] ?: source} → ${names[target] ?: target}")
             .setMessage("")
             .setPositiveButton("Google çeviri", null)
             .setNeutralButton("Kopyala", null)
@@ -68,18 +69,26 @@ internal class OnDeviceWordTranslator(private val activity: Activity) {
         fun render() {
             if (!visible(dialog)) return
             dialog.setMessage(buildString {
-                append("Seçilen: ").append(selectedText).append("\n\n")
+                append("Seçilen (").append(names[source] ?: source).append("): ")
+                    .append(selectedText).append("\n\n")
                 if (reviewed != null) {
                     append("Doğrulanmış Kur’an kelime anlamı\n")
                     append(reviewed!!.meaning)
                     append("\nKaynak: ").append(reviewed!!.reference).append("\n\n")
+                } else if (localHint != null) {
+                    append("Çevrimdışı dilbilgisel karşılık (olası)\n")
+                    append(localHint.text).append("\n\n")
+                    append("Bu Türkçe kelimenin karşılığı cümleye göre değişebilir. ")
+                    append("Bu, doğrulanmış Kur’an kelime meali değildir.\n\n")
+                } else if (source == target) {
+                    append("Seçili metin zaten hedef dilde.\n\n")
                 } else {
-                    append("Bu seçim için doğrulanmış kelime anlamı kaydı bulunmuyor.\n\n")
+                    append("Bu seçim için doğrulanmış Kur’an kelime anlamı bulunmuyor.\n\n")
                 }
                 if (machineResult != null) {
-                    append("Google ML Kit — otomatik çeviri\n")
+                    append("Google ML Kit — bağlamdan bağımsız otomatik öneri\n")
                     append(machineResult).append("\n\n")
-                    append("Otomatik çeviri bir Kur’an meali veya tefsir değildir.")
+                    append("Tek kelime çevirisi yanılabilir; Kur’an meali veya tefsir değildir.")
                 } else {
                     append(status)
                 }
@@ -164,7 +173,7 @@ internal class OnDeviceWordTranslator(private val activity: Activity) {
         }
 
         dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener {
-            val copied = reviewed?.meaning ?: machineResult ?: selectedText
+            val copied = reviewed?.meaning ?: localHint?.text ?: machineResult ?: selectedText
             (activity.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager)
                 .setPrimaryClip(ClipData.newPlainText("Kur’an kelimesi", copied))
             Toast.makeText(activity, "Metin kopyalandı", Toast.LENGTH_SHORT).show()
@@ -183,13 +192,17 @@ internal class OnDeviceWordTranslator(private val activity: Activity) {
             activity.runOnUiThread {
                 if (!visible(dialog)) return@runOnUiThread
                 reviewed = result
-                status = if (result != null)
-                    "İsterseniz Google’ın otomatik çevirisini ayrıca görüntüleyin."
-                else "Google’ın cihaz içi otomatik çevirisi hazırlanıyor…"
+                status = when {
+                    result != null -> "Otomatik çeviriyle karşılaştırmak için Google çeviriye dokunun."
+                    localHint != null -> "Bu kelimenin birden çok olası anlamı var. " +
+                        "Google ML Kit sonucunu ayrıca karşılaştırabilirsiniz."
+                    source == target -> ""
+                    else -> "Cihaz içi ML Kit çevirisi kontrol ediliyor…"
+                }
                 render()
-                // First show a manually reviewed meaning; use ML Kit only if
-                // no reviewed meaning exists or the user requests comparison.
-                if (result == null) requestGoogle()
+                // Never replace an available verified gloss OR an unambiguous display
+                // of grammatical alternatives with a one-word ML Kit guess.
+                if (result == null && localHint == null && source != target) requestGoogle()
             }
         }
     }
