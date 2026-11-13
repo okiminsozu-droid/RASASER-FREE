@@ -132,3 +132,35 @@ selfAssessmentSection|2 · Soru Sonuçları (1–5)|2 · Question Results (1–5
 viewAnswers|Tüm Soruları ve Cevapları Gör|Show All Questions and Answers|Alle Fragen und Antworten anzeigen|Ver todas las preguntas y respuestas|عرض جميع الأسئلة والأجوبة
 hideAnswers|Soruları ve Cevapları Gizle|Hide Questions and Answers|Fragen und Antworten ausblenden|Ocultar preguntas y respuestas|إخفاء الأسئلة والأجوبة
 answerLabel|Cevap|Answer|Antwort|Respuesta|الإجابة
+catalogAppearance|Beden Özellikleri|Body Features|Körpermerkmale|Rasgos corporales|صفات الجسم
+catalogTwitch|Seğirmeler|Twitches|Zuckungen|Espasmos|اختلاجات
+catalogMizac|Mizaç|Temperament|Temperament|Temperamento|المزاج
+catalogItems|kayıt|records|Einträge|registros|سجل
+catalogRight|Sağ|Right|Rechts|Derecha|اليمين
+catalogLeft|Sol|Left|Links|Izquierda|اليسار
+catalogOriginalLanguage|Eserdeki ifadeler kaynak Türkçesiyle gösteriliyor.|Source entries shown in Turkish.|Die Originaleinträge werden auf Türkisch gezeigt.|Los textos de la fuente están en turco.|تظهر نصوص المصدر باللغة التركية.
+catalogSource|Mârifetnâme — Kaynağı Aç|Marifetname — Open Source|Mârifetnâme — Quelle öffnen|Marifetname — Abrir fuente|معرفتنامه — فتح المصدر
+personalStrengths|Artılar — Öne Çıkan Yönler|Strengths — Leading Areas|Stärken — Hervortretende Bereiche|Fortalezas — Áreas destacadas|نقاط القوة — الجوانب البارزة
+personalGrowthAreas|Eksiler — Geliştirilebilecek Yönler|Areas for Improvement|Bereiche zur Entwicklung|Áreas de mejora|جوانب قابلة للتطوير
+personalGuidance|Daha İyi Bir İnsan Olmak İçin|Becoming a Better Person|Ein besserer Mensch werden|Para ser mejor persona|لتصبح شخصًا أفضل
+personalFromAnswers|Verdiğiniz cevaplara göre|Based on your answers|Auf Basis deiner Antworten|Según tus respuestas|بناءً على إجاباتك
+personalFromPhoto|Yüz görüntüsü kişilik artısı/eksisi ölçmez. Kişisel sonuçlar için soru testini tamamlayın.|A face image cannot measure personality strengths or weaknesses. Complete the questionnaire for a personal profile.|Ein Gesichtsfoto misst keine persönlichen Stärken und Schwächen. Beantworte den Fragebogen für ein persönliches Profil.|Una foto facial no mide fortalezas o debilidades personales. Completa el cuestionario para obtener tu perfil.|صورة الوجه لا تقيس نقاط القوة والضعف الشخصية. أكمل الاستبيان للحصول على ملف شخصي.
+personalAnswerProfile|Kişisel Gelişim Özeti|Personal Growth Summary|Persönliche Entwicklungsübersicht|Resumen de desarrollo personal|ملخص التطور الشخصي
+adviceKindness|İnsanlara saygılı ve nazik konuş; anlamak için dinle.|Speak respectfully and kindly; listen to understand.|Sprich respektvoll und freundlich; höre zu, um zu verstehen.|Habla con respeto y amabilidad; escucha para comprender.|تحدث باحترام ولطف واستمع للفهم.
+adviceHonesty|Sözünde dur, doğruyu söyle, hatanı kabul et.|Keep your word, be truthful, and acknowledge mistakes.|Halte dein Wort, sei ehrlich und gestehe Fehler ein.|Cumple tu palabra, di la verdad y reconoce errores.|أوف بوعدك وكن صادقًا واعترف بالأخطاء.
+adviceService|Her gün karşılık beklemeden bir iyilik yap.|Do one kind act daily without expecting a reward.|Tue täglich etwas Gutes, ohne eine Gegenleistung zu erwarten.|Haz una buena acción cada día sin esperar recompensa.|افعل خيرًا كل يوم دون انتظار مقابل.
+advicePatience|Öfkelenince kısa süre bekle; sonra sakince cevap ver.|Pause before responding when angry; reply calmly.|Halte kurz inne, wenn du wütend bist; antworte dann ruhig.|Cuando te enfades, espera un momento y responde con calma.|تمهل عند الغضب ثم أجب بهدوء.
+adviceLearning|Her gün yeni bir şey öğren ve düşünceni gözden geçir.|Learn something new every day and reconsider your views.|Lerne täglich etwas Neues und überprüfe deine Ansichten.|Aprende algo nuevo cada día y revisa tus ideas.|تعلم شيئًا جديدًا كل يوم وراجع أفكارك.
+adviceO|Yeni fikirlere zaman ayır; haftada bir yeni konu öğren.|Explore new ideas; learn one new topic each week.|Widme dich neuen Ideen und lerne jede Woche ein neues Thema.|Explora ideas nuevas y aprende un tema distinto cada semana.|خصص وقتًا لأفكار جديدة وتعلم موضوعًا كل أسبوع.
+adviceC|Günlük küçük bir plan yap; başladığın işi tamamla.|Make a small daily plan and finish what you start.|Erstelle einen kleinen Tagesplan und beende begonnene Aufgaben.|Haz un pequeño plan diario y termina lo que empiezas.|ضع خطة يومية صغيرة وأكمل ما تبدأه.
+adviceE|İhtiyacını açıkça ifade et; konuşmalarda kendine uygun tempoyu seç.|Express your needs clearly and choose a comfortable social pace.|Drücke deine Bedürfnisse klar aus und wähle dein eigenes Gesprächstempo.|Expresa claramente tus necesidades y elige tu propio ritmo social.|عبر عن احتياجاتك بوضوح واختر وتيرتك الاجتماعية المناسبة.
+adviceA|Bir anlaşmazlıkta karşı tarafı dinle ve adil bir çözüm ara.|In disagreements, listen carefully and seek a fair solution.|Höre im Streit aufmerksam zu und suche eine faire Lösung.|En desacuerdos, escucha y busca una solución justa.|استمع للطرف الآخر في الخلاف وابحث عن حل عادل.
+adviceS|Zorlandığında dur, duygunu adlandır ve güvendiğin biriyle konuş.|When stressed, pause, name the feeling, and talk to someone you trust.|Halte bei Stress inne, benenne dein Gefühl und sprich mit einer Vertrauensperson.|Cuando te estreses, haz una pausa, nombra lo que sientes y habla con alguien de confianza.|عند الضغط توقف وسم مشاعرك وتحدث مع شخص تثق به.
+photoQualityStrengths|Görüntünün Artıları|Image Quality Strengths|Stärken der Bildqualität|Fortalezas de la imagen|مميزات الصورة
+photoQualityLimits|Görüntünün Eksileri|Image Quality Limitations|Grenzen der Bildqualität|Limitaciones de la imagen|قيود الصورة
+photoFaceClear|Görüntüde tek bir yüz algılandı.|One face was detected in the image.|Im Bild wurde ein Gesicht erkannt.|Se detectó un rostro en la imagen.|تم اكتشاف وجه واحد في الصورة.
+photoFaceMultiple|Birden fazla yüz var; en büyük yüz ölçüldü.|Multiple faces were detected; the largest was measured.|Es wurden mehrere Gesichter erkannt; das größte wurde gemessen.|Se detectaron varios rostros; se midió el mayor.|تم اكتشاف عدة وجوه وقياس الأكبر.
+photoNearFront|Baş görüntüde büyük ölçüde öne dönük.|The face is mostly frontal in the image.|Das Gesicht ist im Bild weitgehend frontal.|El rostro aparece casi frontal.|الوجه مواجه للكاميرا تقريبًا.
+photoTurned|Baş kameraya dönük değil; açı ölçümleri etkileyebilir.|The head is rotated; perspective can affect measurements.|Der Kopf ist gedreht; die Perspektive kann Messwerte verändern.|La cabeza está girada; la perspectiva puede afectar las mediciones.|الرأس مائل وقد يؤثر المنظور في القياسات.
+photoLandmarksMeasured|Göz ve ağız konumları algılandı.|Eye and mouth landmarks were detected.|Augen- und Mundpunkte wurden erkannt.|Se detectaron puntos de ojos y boca.|تم اكتشاف مواضع العينين والفم.
+photoLandmarksMissing|Bazı yüz işaretleri tespit edilemedi.|Some facial landmarks could not be measured.|Einige Gesichtspunkte konnten nicht gemessen werden.|No se pudieron medir algunos puntos faciales.|تعذر قياس بعض علامات الوجه.
