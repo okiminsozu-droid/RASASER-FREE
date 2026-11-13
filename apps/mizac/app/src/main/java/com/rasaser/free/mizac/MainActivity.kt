@@ -2,6 +2,24 @@ package com.rasaser.free.mizac
 
 import android.graphics.BitmapFactory
 import android.os.Bundle
+import android.content.Context
+import android.content.Intent
+import android.media.MediaMetadataRetriever
+import android.net.Uri
+import android.provider.MediaStore
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.lightColorScheme
+import androidx.compose.ui.Alignment
+import java.io.File
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
 import android.util.Base64
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
@@ -41,9 +59,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import java.util.Locale
 
-private val gold = Color(0xFFE1BE78)
-private val black = Color(0xFF090909)
-private val muted = Color(0xFFCECBC4)
+private val gold = Color(0xFFD4A34F)
+private val black = Color(0xFF1E1711)
+private val sand = Color(0xFFEBCFAC)
+private val muted = Color(0xFF574B3F)
+private val ivory = Color(0xFFFFFBF6)
 
 private data class ReflectionItem(val text: String, val dimension: Int)
 
@@ -74,10 +94,9 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             MaterialTheme(
-                colorScheme = darkColorScheme(
-                    primary = gold, onPrimary = black, background = black,
-                    surface = Color(0xFF1C1C1C), onSurface = Color.White,
-                    onBackground = Color.White
+                colorScheme = lightColorScheme(
+                    primary = ivory, onPrimary = black, background = sand,
+                    surface = ivory, onSurface = black, onBackground = black
                 )
             ) {
                 MizacApp()
@@ -93,16 +112,17 @@ private fun MizacApp() {
     BackHandler(enabled = screen != "home") { screen = "home" }
 
     Column(
-        modifier = Modifier.fillMaxSize().background(black)
+        modifier = Modifier.fillMaxSize().background(sand)
             .verticalScroll(rememberScrollState()).padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         when (screen) {
             "home" -> Home(
-                onReflect = { screen = "reflection" },
+                onReflect = { screen = "analysis-setup" },
                 onHistory = { screen = "history" },
                 onPrivacy = { screen = "privacy" }
             )
+            "analysis-setup" -> AnalysisSetupScreen(onBack = { screen = "home" })
             "reflection" -> ReflectionScreen(
                 answers = answers,
                 onAnswer = { index, answer ->
@@ -121,31 +141,48 @@ private fun MizacApp() {
 
 @Composable
 private fun Home(onReflect: () -> Unit, onHistory: () -> Unit, onPrivacy: () -> Unit) {
-    Text("RaSaSeR APPS & TECHNOLOGY", color = gold, style = MaterialTheme.typography.labelMedium)
+    Text(
+        "❦ Görünüşün, karakterinin anahtarıdır. ❦",
+        modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center,
+        color = black, fontWeight = FontWeight.SemiBold,
+        style = MaterialTheme.typography.titleMedium
+    )
+    Text(
+        "Your appearance is the key to your character.",
+        modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center,
+        color = black, style = MaterialTheme.typography.bodyMedium
+    )
     ApprovedLogo()
+    Button(
+        onClick = onReflect, modifier = Modifier.fillMaxWidth().height(68.dp),
+        shape = RoundedCornerShape(30.dp),
+        colors = ButtonDefaults.buttonColors(containerColor = ivory, contentColor = black)
+    ) { Text("Analiz Et", style = MaterialTheme.typography.headlineSmall) }
+    OutlinedButton(
+        onClick = onHistory, modifier = Modifier.fillMaxWidth(),
+        colors = ButtonDefaults.outlinedButtonColors(containerColor = ivory, contentColor = black)
+    ) { Text("Bilgi & Rehber") }
+    OutlinedButton(
+        onClick = onPrivacy, modifier = Modifier.fillMaxWidth(),
+        colors = ButtonDefaults.outlinedButtonColors(containerColor = ivory, contentColor = black)
+    ) { Text("Gizlilik ve Lisanslar") }
     Text(
-        "MİZAÇ", modifier = Modifier.fillMaxWidth(), color = gold,
-        textAlign = TextAlign.Center, fontWeight = FontWeight.Bold,
-        style = MaterialTheme.typography.displayMedium
+        "RaSaSeR APPS & TECHNOLOGY",
+        modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center,
+        color = black, style = MaterialTheme.typography.titleSmall
     )
-    Text(
-        "Kendini tanı • İnsanı anla",
-        modifier = Modifier.fillMaxWidth(), color = muted, textAlign = TextAlign.Center
-    )
-    Spacer(Modifier.height(8.dp))
-    Button(onClick = onReflect, modifier = Modifier.fillMaxWidth()) {
-        Text("Kendimi Tanıyorum")
+    val context = LocalContext.current
+    androidx.compose.material3.TextButton(
+        onClick = {
+            val browser = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.okiminsozu.com"))
+            runCatching { context.startActivity(browser) }
+        }, modifier = Modifier.fillMaxWidth()
+    ) {
+        Text(
+            "www.okiminsozu.com", textAlign = TextAlign.Center, color = black,
+            textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline
+        )
     }
-    OutlinedButton(onClick = onHistory, modifier = Modifier.fillMaxWidth()) {
-        Text("Mârifetnâme • Tarihî Bilgiler")
-    }
-    OutlinedButton(onClick = onPrivacy, modifier = Modifier.fillMaxWidth()) {
-        Text("Gizlilik ve Lisanslar")
-    }
-    Text(
-        "Bilimsel kişilik değerlendirmesi ile tarihî yorumlar birbirinden ayrı tutulur.",
-        color = muted, style = MaterialTheme.typography.bodySmall
-    )
 }
 
 @Composable
@@ -169,7 +206,7 @@ private fun ApprovedLogo() {
     } else {
         Text(
             "MİZAÇ · RaSaSeR",
-            color = gold, modifier = Modifier.fillMaxWidth().height(120.dp),
+            color = black, modifier = Modifier.fillMaxWidth().height(120.dp),
             textAlign = TextAlign.Center
         )
     }
@@ -179,6 +216,206 @@ private fun ApprovedLogo() {
 private fun PageHeader(title: String, onBack: () -> Unit) {
     OutlinedButton(onClick = onBack) { Text("‹ Ana sayfa") }
     Text(title, color = gold, style = MaterialTheme.typography.headlineMedium)
+}
+
+/**
+ * No analytics pipeline is connected here: local media is never uploaded
+ * or used to infer personality. Selected counts are stored only on-device.
+ */
+private fun storeMediaLocally(context: Context, uri: Uri, kind: String) {
+    require(kind == "photo" || kind == "video") { "Geçersiz medya türü." }
+    val mime = context.contentResolver.getType(uri)
+    if (mime != null) {
+        require(mime.startsWith(if (kind == "photo") "image/" else "video/")) {
+            "Seçilen dosya beklenen türde değil."
+        }
+    }
+    if (kind == "video") {
+        val metadata = MediaMetadataRetriever()
+        try {
+            metadata.setDataSource(context, uri)
+            val duration = metadata.extractMetadata(
+                MediaMetadataRetriever.METADATA_KEY_DURATION
+            )?.toLongOrNull() ?: error("Video süresi okunamadı.")
+            require(duration in 1L..30_000L) {
+                "Video en fazla 30 saniye olabilir."
+            }
+        } finally {
+            metadata.release()
+        }
+    }
+    val file = File(context.filesDir, "mizac_" + kind + ".dat")
+    val temp = File(context.filesDir, "mizac_" + kind + ".tmp")
+    val maxBytes = if (kind == "video") 80L * 1024L * 1024L else 15L * 1024L * 1024L
+    try {
+        val source = context.contentResolver.openInputStream(uri)
+            ?: error("Dosya açılamadı.")
+        source.use { input ->
+            temp.outputStream().use { output ->
+                val buffer = ByteArray(16 * 1024)
+                var size = 0L
+                while (true) {
+                    val read = input.read(buffer)
+                    if (read < 0) break
+                    size += read
+                    require(size <= maxBytes) { "Dosya çok büyük." }
+                    output.write(buffer, 0, read)
+                }
+                require(size > 0) { "Boş dosya kaydedilemez." }
+            }
+        }
+        Files.move(temp.toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING)
+    } finally {
+        temp.delete()
+    }
+}
+
+@Composable
+private fun AnalysisSetupScreen(onBack: () -> Unit) {
+    val context = LocalContext.current
+    val prefs = remember(context) {
+        context.getSharedPreferences("mizac_local_setup", Context.MODE_PRIVATE)
+    }
+    var questionCount by rememberSaveable {
+        mutableStateOf(prefs.getInt("question_count", 10).takeIf { it in listOf(10, 50, 120) } ?: 10)
+    }
+    var hasPhoto by remember { mutableStateOf(File(context.filesDir, "mizac_photo.dat").exists()) }
+    var hasVideo by remember { mutableStateOf(File(context.filesDir, "mizac_video.dat").exists()) }
+    var feedback by rememberSaveable { mutableStateOf("") }
+    fun save(uri: Uri?, kind: String) {
+        if (uri == null) return
+        runCatching { storeMediaLocally(context, uri, kind) }
+            .onSuccess {
+                if (kind == "photo") hasPhoto = true else hasVideo = true
+                feedback = if (kind == "photo") "Fotoğraf telefona kaydedildi." else "Video telefona kaydedildi."
+            }
+            .onFailure {
+                feedback = it.message ?: "Dosya kaydedilemedi."
+            }
+    }
+    val photoPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) {
+        save(it, "photo")
+    }
+    val videoPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) {
+        save(it, "video")
+    }
+    val videoRecorder = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+        if (it.resultCode == android.app.Activity.RESULT_OK) {
+            save(it.data?.data, "video")
+        }
+    }
+    PageHeader("Kişilik Analizi", onBack)
+    Text(
+        "İstersen fotoğraf veya 30 saniyeye kadar video ekleyebilirsin. Hiçbiri zorunlu değil.",
+        color = muted, style = MaterialTheme.typography.bodyMedium
+    )
+    Card(
+        colors = CardDefaults.cardColors(containerColor = ivory),
+        shape = RoundedCornerShape(24.dp), modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(
+            Modifier.padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Text("▧  Fotoğraf", color = black, style = MaterialTheme.typography.titleLarge)
+            Text(
+                if (hasPhoto) "Fotoğraf cihazda kayıtlı." else "İstersen galeriden bir fotoğraf seç.",
+                color = muted
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(onClick = { photoPicker.launch("image/*") }) {
+                    Text(if (hasPhoto) "Değiştir" else "Fotoğraf Seç")
+                }
+                if (hasPhoto) OutlinedButton(onClick = {
+                    File(context.filesDir, "mizac_photo.dat").delete()
+                    hasPhoto = false
+                    feedback = "Fotoğraf silindi."
+                }) { Text("Kaldır") }
+            }
+        }
+    }
+    Card(
+        colors = CardDefaults.cardColors(containerColor = ivory),
+        shape = RoundedCornerShape(24.dp), modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text("▷  Video (en fazla 30 sn)", color = black,
+                style = MaterialTheme.typography.titleLarge)
+            Text(
+                if (hasVideo) "Video cihazda kayıtlı." else "Galeriden seç veya kamerayla kaydet.",
+                color = muted
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Button(onClick = { videoPicker.launch("video/*") }) {
+                    Text("Video Seç")
+                }
+                OutlinedButton(onClick = {
+                    val intent = Intent(MediaStore.ACTION_VIDEO_CAPTURE).apply {
+                        putExtra(MediaStore.EXTRA_DURATION_LIMIT, 30)
+                        putExtra(MediaStore.EXTRA_VIDEO_QUALITY, 1)
+                    }
+                    runCatching { videoRecorder.launch(intent) }
+                        .onFailure { feedback = "Video kamerası açılamadı." }
+                }) {
+                    Text("Video Çek")
+                }
+            }
+            if (hasVideo) OutlinedButton(onClick = {
+                File(context.filesDir, "mizac_video.dat").delete()
+                hasVideo = false
+                feedback = "Video silindi."
+            }) { Text("Videoyu Kaldır") }
+        }
+    }
+    Text("Kaç soru ile ilerlemek istersin?", color = black,
+        style = MaterialTheme.typography.titleLarge)
+    listOf(
+        10 to "Hızlı Analiz",
+        50 to "Standart Analiz",
+        120 to "Ayrıntılı Analiz"
+    ).forEach { (count, title) ->
+        Card(
+            modifier = Modifier.fillMaxWidth().clickable {
+                questionCount = count
+                feedback = ""
+            },
+            colors = CardDefaults.cardColors(containerColor = ivory),
+            shape = RoundedCornerShape(26.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                RadioButton(
+                    selected = questionCount == count,
+                    onClick = { questionCount = count; feedback = "" }
+                )
+                Column(Modifier.padding(start = 8.dp)) {
+                    Text("$count Soru", style = MaterialTheme.typography.titleLarge,
+                        color = black)
+                    Text(title, color = muted)
+                }
+            }
+        }
+    }
+    Button(
+        onClick = {
+            prefs.edit().putInt("question_count", questionCount).apply()
+            feedback = "$questionCount soruluk seçenek kaydedildi. Analiz motoruna hiçbir bilgi gönderilmedi."
+        },
+        modifier = Modifier.fillMaxWidth().height(56.dp),
+        shape = RoundedCornerShape(26.dp),
+        colors = ButtonDefaults.buttonColors(containerColor = ivory, contentColor = black)
+    ) {
+        Text("Seçimi Kaydet", style = MaterialTheme.typography.titleMedium)
+    }
+    if (feedback.isNotEmpty()) {
+        Text(feedback, color = black, style = MaterialTheme.typography.bodyMedium)
+    }
+    Text(
+        "Fotoğraf ve video yalnızca cihazda saklanır. Bu aşamada analiz, yüz tanıma, dosya yükleme veya sunucuya gönderme yapılmaz.",
+        color = muted, style = MaterialTheme.typography.bodySmall
+    )
 }
 
 @Composable
@@ -279,7 +516,7 @@ private fun HistoryScreen(onBack: () -> Unit) {
 private fun PrivacyScreen(onBack: () -> Unit) {
     PageHeader("Gizlilik ve Lisanslar", onBack)
     Text(
-        "Bu ilk sürümde hesap, internet izni, kamera veya mikrofon erişimi bulunmaz. Yanıtlar cihaz dışına gönderilmez. Test yanıtları kalıcı olarak kaydedilmez.",
+        "Hesap ve internet izni yoktur. İsteğe bağlı fotoğraf ve video cihazın özel uygulama alanında tutulur; aktarılmaz veya analiz edilmez. Galeri ve sistem kamerası izin istemeden açılır. Medya istediğiniz zaman kaldırılabilir. Soru sayısı cihazda hatırlanır. Önizleme test yanıtları kalıcı kaydedilmez.",
         color = muted
     )
     val context = LocalContext.current
