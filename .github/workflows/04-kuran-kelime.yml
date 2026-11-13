@@ -9,6 +9,7 @@ on:
       - fix/kurani-v039-compact-translation-dialog
       - fix/kurani-v0311-clean-search-installable
       - fix/kurani-v0312-reader-labels-logo-site
+      - fix/kurani-v0313-home-favorites-brand-fit
     paths:
       - 'apps/kurankelime/**'
       - '.github/workflows/04-kuran-kelime.yml'
@@ -142,6 +143,16 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Kurani_Kesfet_v0312_Reader_Locale_Logo_CODE_ONLY
+          path: apps/kurankelime/app/build/outputs/apk/contentPreview/app-contentPreview.apk
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 0
+
+      - name: Publish v0.3.13 home layout only APK (private Quran assets excluded)
+        if: ${{ (github.ref == 'refs/heads/fix/kurani-v0313-home-favorites-brand-fit' && github.event_name == 'push') || (github.event_name == 'pull_request' && github.head_ref == 'fix/kurani-v0313-home-favorites-brand-fit') }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: Kurani_Kesfet_v0313_Home_Fit_CODE_ONLY
           path: apps/kurankelime/app/build/outputs/apk/contentPreview/app-contentPreview.apk
           if-no-files-found: error
           retention-days: 7
