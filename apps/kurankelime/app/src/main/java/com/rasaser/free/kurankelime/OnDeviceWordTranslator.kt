@@ -23,10 +23,10 @@ import java.util.concurrent.Executors
 internal class OnDeviceWordTranslator(private val activity: Activity) {
     private val glossary = ReviewedQuranGlossary(activity.applicationContext)
     private val lookupWorker = Executors.newSingleThreadExecutor()
-    private val codes = setOf("tr", "en", "de", "es", "zh", "ar")
+    private val codes = setOf("tr", "en", "de", "es", "zh", "ar", "ja")
     private val names = mapOf(
         "tr" to "Türkçe", "en" to "English", "de" to "Deutsch",
-        "es" to "Español", "zh" to "中文", "ar" to "العربية"
+        "es" to "Español", "zh" to "中文", "ar" to "العربية", "ja" to "日本語"
     )
     private var activeDialog: AlertDialog? = null
 
@@ -138,23 +138,25 @@ internal class OnDeviceWordTranslator(private val activity: Activity) {
                 return
             }
             val key = "$source-$target"
-            val downloadedBefore = activity.getSharedPreferences(
-                "quran_translation_models", Context.MODE_PRIVATE
-            ).getBoolean(key, false)
-            if (!downloadedBefore) {
-                AlertDialog.Builder(activity)
-                    .setTitle("İlk kullanım: ücretsiz dil modeli")
-                    .setMessage(
-                        "${names[target] ?: target} için Google ML Kit dil modeli " +
-                            "ilk kullanımda Wi-Fi ile indirilecek. Sonraki çeviriler " +
-                            "model cihazda durduğu sürece internet gerektirmez. " +
-                            "Seçilen Kur’an metni Google Cloud Translation'a gönderilmez."
-                    )
-                    .setNegativeButton("Vazgeç", null)
-                    .setPositiveButton("İndir ve çevir") { _, _ ->
-                        performGoogle(sourceTag, targetTag)
-                    }.show()
-            } else performGoogle(sourceTag, targetTag)
+            // Check actual ML Kit models: one-tap pack downloads must work offline
+            // even when the old per-language-pair SharedPreferences was not set.
+            OfflineLanguagePacks.pairReady(source, target) { alreadyInstalled ->
+                if (alreadyInstalled) {
+                    performGoogle(sourceTag, targetTag)
+                } else {
+                    AlertDialog.Builder(activity)
+                        .setTitle("Dil paketi gerekli")
+                        .setMessage(
+                            "${names[target] ?: target} için Google ML Kit modeli ilk kez " +
+                                "Wi-Fi üzerinden indirilecek. Bir kez indirildiğinde " +
+                                "metin cihazda çevrilir ve internet gerekmez."
+                        )
+                        .setNegativeButton("Vazgeç", null)
+                        .setPositiveButton("İndir ve çevir") { _, _ ->
+                            performGoogle(sourceTag, targetTag)
+                        }.show()
+                }
+            }
         }
 
         dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener {

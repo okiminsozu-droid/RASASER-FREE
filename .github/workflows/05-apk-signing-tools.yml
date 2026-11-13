@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - feature/kurankelime-five-language-offline-v1
+      - feature/kurani-v034-five-offline-mlkit-packs
     paths:
       - '.github/workflows/05-apk-signing-tools.yml'
   workflow_dispatch:
@@ -32,4 +33,4 @@ jobs:
         with:
           name: android-signing-tools-sdk35
           path: exported/android-tools/
-          retention-days: 1
+          retention-days: 7

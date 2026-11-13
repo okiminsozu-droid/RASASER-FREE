@@ -40,7 +40,7 @@ private val HomeGreen = Color(0xFF17422F)
 private val HomeBrown = Color(0xFF6D5036)
 private val languages = listOf(
     "tr" to "🇹🇷 Türkçe", "en" to "🇬🇧 English", "de" to "🇩🇪 Deutsch",
-    "ar" to "🇸🇦 العربية", "es" to "🇪🇸 Español", "zh" to "🇨🇳 中文"
+    "ar" to "🇸🇦 العربية", "es" to "🇪🇸 Español", "ja" to "🇯🇵 日本語", "zh" to "🇨🇳 中文"
 )
 private data class UiLabels(
     val title: String, val subtitle: String, val slogan: String,
@@ -60,6 +60,9 @@ private fun labels(code: String) = when(code) {
     "ar" -> UiLabels("اكتشف القرآن","معاني الكلمات","رسالة إليك من خالقك",
         "اقرأ","ابحث","المفضلة","ابحث عن كلمة","لا توجد نتائج في الفهرس التجريبي",
         "تطبيق مجاني، وليس لنا أي هدف تجاري.")
+    "ja" -> UiLabels("クルアーンを発見","単語ごとの意味","創造主からあなたへの手紙",
+        "読む","検索","お気に入り","単語を検索","検索結果がありません",
+        "無料です。商業目的ではありません。")
     else -> UiLabels("KURANI KEŞFET","KELİME MEALLİ UYGULAMA","Yaratıcından sana bir mektup",
         "Oku","Ara","Favoriler","Kelime ara","Mevcut önizleme dizininde sonuç yok",
         "Ücretsizdir, hiçbir maddi amacımız yoktur.")
@@ -88,6 +91,7 @@ private fun DiscoverHome() {
     val bundledReady = remember { bundledIndex.isBundled }
     var language by remember { mutableStateOf(settings.getString("lang", "tr") ?: "tr") }
     var menu by remember { mutableStateOf(false) }
+    var showOfflinePacks by remember { mutableStateOf(false) }
     var screen by remember { mutableStateOf(if ((context as? android.app.Activity)?.intent?.getBooleanExtra("open_search", false) == true) "search" else "home") }
     var query by remember { mutableStateOf("") }
     var updated by remember { mutableIntStateOf(0) }
@@ -155,6 +159,7 @@ private fun DiscoverHome() {
         } catch (_: Exception) { null }
     }
     BackHandler(screen != "home") { screen = "home" }
+    if (showOfflinePacks) OfflineLanguagePacksDialog(onDismiss = { showOfflinePacks = false })
     Column(Modifier.fillMaxSize().background(Color.White).padding(horizontal=18.dp)) {
         Row(Modifier.fillMaxWidth().padding(top=14.dp), verticalAlignment=Alignment.CenterVertically,
             horizontalArrangement=Arrangement.SpaceBetween) {
@@ -181,6 +186,15 @@ private fun DiscoverHome() {
             }
         }
         if (screen == "home") {
+            OutlinedButton(
+                onClick = { showOfflinePacks = true },
+                modifier = Modifier.padding(top=4.dp),
+                contentPadding = PaddingValues(horizontal=12.dp, vertical=3.dp)
+            ) {
+                Icon(Icons.Default.CloudDownload, contentDescription=null, tint=HomeGreen, modifier=Modifier.size(17.dp))
+                Spacer(Modifier.width(6.dp))
+                Text("Çevrimdışı dil paketlerini indir", color=HomeGreen, fontSize=12.sp)
+            }
             Column(Modifier.fillMaxWidth().padding(top=10.dp, bottom=6.dp),
                 horizontalAlignment=Alignment.CenterHorizontally) {
                 Text("❦  Yaratıcından Sana Bir Mektup  ❦",
