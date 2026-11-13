@@ -60,9 +60,9 @@ fun MarifetnameScreen(
             style=MaterialTheme.typography.titleMedium)
         Card(colors=CardDefaults.cardColors(containerColor=CardWhite)) {
             Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(6.dp)) {
-                Text("Erzurumlu İbrahim Hakkı, Mârifetnâme (1757), kıyâfetnâme bölümü.",
+                Text(ui(strings,"historyPrimaryReference"),
                     color=Dim, style=MaterialTheme.typography.bodySmall)
-                Text("TBMM Kütüphanesi — Açık Erişim, eski harfli Mârifetnâme nüshası:",
+                Text(ui(strings,"historyArchiveReference"),
                     color=Dim, style=MaterialTheme.typography.bodySmall)
                 Text("https://acikerisim.tbmm.gov.tr/items/37ceaca9-2499-4d5b-a0df-be6a757513c9",
                     color=DarkText, style=MaterialTheme.typography.bodySmall)
