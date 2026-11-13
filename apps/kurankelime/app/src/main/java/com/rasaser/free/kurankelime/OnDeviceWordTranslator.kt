@@ -80,10 +80,10 @@ internal class OnDeviceWordTranslator(
                     append(reviewed!!.meaning)
                     append("\nKaynak: ").append(reviewed!!.reference).append("\n\n")
                 } else if (printed != null) {
-                    append("PDF’de Arapça kelimenin altında yazan Türkçe (OCR)\\n")
-                    append(printed!!.text).append("\\n\\n")
+                    append("PDF’de Arapça kelimenin altında yazan Türkçe (OCR)\n")
+                    append(printed!!.text).append("\n\n")
                     append("Bu karşılık aynı sayfadan çevrimdışı algılandı; ")
-                    append("OCR eşleşmesinin doğruluğu denetlenmelidir.\\n\\n")
+                    append("OCR eşleşmesinin doğruluğu denetlenmelidir.\n\n")
                 } else if (localHint != null) {
                     append("Çevrimdışı dilbilgisel karşılık (olası)\n")
                     append(localHint.text).append("\n\n")
