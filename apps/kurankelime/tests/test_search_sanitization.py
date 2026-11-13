@@ -21,8 +21,8 @@ class SearchResultCleanliness(unittest.TestCase):
 
     def test_safe_side_by_side_variant(self):
         code = (ROOT / "app/build.gradle.kts").read_text(encoding="utf-8")
-        self.assertIn('versionName = "0.3.11"', code)
-        self.assertIn('applicationIdSuffix = ".searchfix"', code)
+        self.assertIn('versionName = "0.3.12"', code)
+        self.assertIn('applicationIdSuffix = ".ui312"', code)
 
 if __name__ == "__main__":
     unittest.main()
