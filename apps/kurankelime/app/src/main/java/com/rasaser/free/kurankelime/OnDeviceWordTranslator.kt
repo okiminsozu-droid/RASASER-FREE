@@ -27,6 +27,7 @@ internal class OnDeviceWordTranslator(
     private val selectableLayer: SelectableTextLayer
 ) {
     private val glossary = ReviewedQuranGlossary(activity.applicationContext)
+    private val readerUi by lazy { ReaderUiText.load(activity) }
     private val lookupWorker = Executors.newSingleThreadExecutor()
     private val codes = setOf("tr", "en", "de", "es", "zh", "ar", "ja")
     private val names = mapOf(
@@ -56,8 +57,8 @@ internal class OnDeviceWordTranslator(
 
         val dialog = AlertDialog.Builder(activity)
             .setMessage("Çevriliyor…")
-            .setPositiveButton("Kopyala", null)
-            .setNegativeButton("Kapat", null)
+            .setPositiveButton(readerUi.copy, null)
+            .setNegativeButton(readerUi.closeDialog, null)
             .create()
         activeDialog = dialog
         dialog.setOnDismissListener {
@@ -158,8 +159,8 @@ internal class OnDeviceWordTranslator(
                                 "Wi-Fi üzerinden indirilecek. Bir kez indirildiğinde " +
                                 "metin cihazda çevrilir ve internet gerekmez."
                         )
-                        .setNegativeButton("Vazgeç", null)
-                        .setPositiveButton("İndir ve çevir") { _, _ ->
+                        .setNegativeButton(readerUi.cancel, null)
+                        .setPositiveButton(readerUi.downloadTranslate) { _, _ ->
                             performGoogle(sourceTag, targetTag)
                         }.show()
                 }
@@ -170,7 +171,7 @@ internal class OnDeviceWordTranslator(
             val copied = translatedWord() ?: return@setOnClickListener
             (activity.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager)
                 .setPrimaryClip(ClipData.newPlainText("Kur’an kelimesi", copied))
-            Toast.makeText(activity, "Metin kopyalandı", Toast.LENGTH_SHORT).show()
+            Toast.makeText(activity, readerUi.copied, Toast.LENGTH_SHORT).show()
         }
         render()
 
