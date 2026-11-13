@@ -115,6 +115,11 @@ fun OriginalQuestionnaire(
                     }
                 }
             }
+            val currentScores = MIZAC_FACTORS.associateWith { factor ->
+                originalScore(questions,answers,factor)
+            }
+            QuestionnaireGrowthSummary(lang,dict,currentScores)
+
             var expandedAnswers by rememberSaveable { mutableStateOf(false) }
             TextButton(onClick={ expandedAnswers=!expandedAnswers },
                 modifier=Modifier.fillMaxWidth()) {
