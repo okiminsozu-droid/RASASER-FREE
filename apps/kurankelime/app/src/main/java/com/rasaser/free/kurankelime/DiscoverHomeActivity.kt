@@ -137,6 +137,7 @@ private fun DiscoverHome() {
                 }
             }
         } else emptyList()
+        fullHits = fullHits.filter { BundledWordIndex.isCleanSearchWord(it.gloss) }
     }
     LaunchedEffect(screen, updated, bundledReady, onDeviceReady) {
         if (screen == "favorites") {
