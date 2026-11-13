@@ -151,63 +151,47 @@ private val matchingGroups = listOf(
 )
 
 @Composable
-fun MarifetnameMatching(lang: MizacLang, strings: Map<String, String>) {
+fun MarifetnameMatching(lang: MizacLang, strings: Map<String,String>) {
     val context = LocalContext.current
-    var showChoices by rememberSaveable { mutableStateOf(false) }
-    val selected = remember { mutableStateOf<Map<String,String>>(emptyMap()) }
     Card(
-        colors = CardDefaults.cardColors(containerColor=Color(0xFFFFFBF6)),
+        modifier=Modifier.fillMaxWidth(),
+        colors=CardDefaults.cardColors(containerColor=Color(0xFFFFFBF6)),
         shape=RoundedCornerShape(20.dp)
     ) {
-        Column(Modifier.padding(14.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
-            Text(ui(strings,"historyMatchIntro"),
-                style=MaterialTheme.typography.bodyMedium,color=Color(0xFF493B2F))
-            TextButton(onClick={showChoices=!showChoices}) {
-                Text(ui(strings, if(showChoices)"historyMatchHide" else "historyMatchOpen"))
-            }
-            if(showChoices) {
-                matchingGroups.forEach { group ->
-                    var expanded by remember { mutableStateOf(false) }
-                    val choice=group.choices.firstOrNull{it.id==selected.value[group.id]}
+        Column(
+            modifier=Modifier.padding(14.dp),
+            verticalArrangement=Arrangement.spacedBy(10.dp)
+        ) {
+            matchingGroups.forEach { group ->
+                Text(group.name(lang),fontWeight=FontWeight.Bold,
+                    color=Color(0xFF1E1711),
+                    style=MaterialTheme.typography.titleMedium)
+                group.choices.forEach { item ->
                     Row(
-                        horizontalArrangement=Arrangement.spacedBy(6.dp),
-                        modifier=Modifier.fillMaxWidth()
-                    ){
-                        Text(group.name(lang),modifier=Modifier.weight(1f),
-                            color=Color(0xFF1E1711),fontWeight=FontWeight.SemiBold)
-                        TextButton(onClick={expanded=true}) {
-                            Text(choice?.name(lang) ?: ui(strings,"historyMatchChoose"))
-                        }
-                        DropdownMenu(expanded=expanded,onDismissRequest={expanded=false}) {
-                            group.choices.forEach { item ->
-                                DropdownMenuItem(
-                                    text={Text(item.name(lang))},
-                                    onClick={
-                                        selected.value=selected.value+(group.id to item.id)
-                                        expanded=false
-                                    }
-                                )
-                            }
-                        }
-                    }
-                    if(choice!=null) {
-                        Text(choice.explanation(lang),
-                            style=MaterialTheme.typography.bodySmall,
-                            color=Color(0xFF605344))
+                        modifier=Modifier.fillMaxWidth(),
+                        horizontalArrangement=Arrangement.spacedBy(10.dp)
+                    ) {
+                        Text(item.name(lang),modifier=Modifier.weight(1f),
+                            color=Color(0xFF1E1711),
+                            style=MaterialTheme.typography.bodySmall)
+                        Text(item.explanation(lang),modifier=Modifier.weight(2f),
+                            color=Color(0xFF605344),
+                            style=MaterialTheme.typography.bodySmall)
                     }
                 }
-                Text(ui(strings,"historyMatchSelectedNotAuto"),
-                    style=MaterialTheme.typography.bodySmall,color=Color(0xFF605344))
-                TextButton(onClick={
-                    runCatching {
-                        context.startActivity(Intent(
-                            Intent.ACTION_VIEW,
-                            Uri.parse("https://tr.wikisource.org/wiki/Marifetname/42")
-                        ))
-                    }
-                }) {
-                    Text(ui(strings,"historyMatchSource"))
+            }
+            Text(ui(strings,"photoReportHistoryLimit"),
+                style=MaterialTheme.typography.labelSmall,
+                color=Color(0xFF605344))
+            TextButton(onClick={
+                runCatching {
+                    context.startActivity(
+                        Intent(Intent.ACTION_VIEW,
+                            Uri.parse("https://tr.wikisource.org/wiki/Marifetname/42"))
+                    )
                 }
+            }) {
+                Text(ui(strings,"historyMatchSource"))
             }
         }
     }
