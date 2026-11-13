@@ -16,7 +16,16 @@ import java.util.Locale
  * enabling those languages' word glosses.
  */
 class BundledWordIndex(private val context: Context) {
-    companion object { private const val ASSET = "quran/word_ocr.sqlite"; private const val FIRST_ID = 1000000 }
+    companion object {
+        private const val ASSET = "quran/word_ocr.sqlite"
+        private const val FIRST_ID = 1000000
+
+        /** Exclude malformed OCR rows containing embedded TSV/raw coordinate data. */
+        fun isCleanSearchWord(text: String): Boolean =
+            text.isNotBlank() && text.length <= 64 &&
+            text.none { it == '\n' || it == '\r' || it == '\t' ||
+                (it.isISOControl() && it != ' ') }
+    }
     private val file = File(context.noBackupFilesDir, "quran_words_ocr_v2.sqlite")
     private var db: SQLiteDatabase? = null
     private val lock = Any()
@@ -97,16 +106,6 @@ class BundledWordIndex(private val context: Context) {
             } }
         } catch (_: android.database.sqlite.SQLiteException) {}
         return output
-    }
-
-    companion object {
-        /** A corrupted OCR row can contain thousands of embedded TSV records.
-         * Never display those records as one Quran search result.
-         */
-        fun isCleanSearchWord(text: String): Boolean =
-            text.isNotBlank() && text.length <= 64 &&
-            text.none { it == '\\n' || it == '\\r' || it == '\\t' ||
-                (it.isISOControl() && it != ' ') }
     }
 
     /** A selected printed word. OCR is a reading aid, not an authenticated Quran text. */
