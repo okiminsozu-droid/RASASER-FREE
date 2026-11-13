@@ -81,3 +81,13 @@ jobs:
           if-no-files-found: error
           retention-days: 7
           compression-level: 0
+
+      - name: Publish separately installable code-only preview without Quran media
+        if: ${{ (github.ref == 'refs/heads/feature/kurani-v034-five-offline-mlkit-packs' && github.event_name == 'push') || (github.event_name == 'pull_request' && github.head_ref == 'feature/kurani-v034-five-offline-mlkit-packs') }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: Kurani_Kesfet_v036_ContentPreview_CODE_ONLY
+          path: apps/kurankelime/app/build/outputs/apk/contentPreview/app-contentPreview.apk
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 0
