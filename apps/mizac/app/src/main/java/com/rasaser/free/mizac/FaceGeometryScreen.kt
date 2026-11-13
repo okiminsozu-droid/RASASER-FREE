@@ -50,7 +50,10 @@ data class FaceMeasurements(
     val eyeDistanceRatio: Float?,
     val noseMouthRatio: Float?,
     val yaw: Float,
-    val roll: Float
+    val roll: Float,
+    val smileProbability: Float?,
+    val leftEyeOpenProbability: Float?,
+    val rightEyeOpenProbability: Float?
 )
 
 private sealed interface FaceStatus {
@@ -108,12 +111,16 @@ private fun readVideoFrame(file: File): Bitmap? {
 private suspend fun inspectFaceLocally(context: Context): FaceStatus {
     val photo = File(context.filesDir,"mizac_photo.dat")
     val video = File(context.filesDir,"mizac_video.dat")
-    val fromVideo = !photo.exists() && video.exists()
+    val prefs = context.getSharedPreferences("mizac_local_setup", Context.MODE_PRIVATE)
+    val preferred = prefs.getString("last_media_kind", "photo")
     val file = when {
+        preferred == "video" && video.exists() -> video
+        preferred == "photo" && photo.exists() -> photo
         photo.exists() -> photo
         video.exists() -> video
         else -> return FaceStatus.Failed("needPhoto")
     }
+    val fromVideo = file == video
     val bitmap = try {
         withContext(Dispatchers.IO) {
             if (fromVideo) readVideoFrame(file) else readRotatedImage(file)
@@ -126,6 +133,7 @@ private suspend fun inspectFaceLocally(context: Context): FaceStatus {
             .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_ACCURATE)
             .setLandmarkMode(FaceDetectorOptions.LANDMARK_MODE_ALL)
             .setContourMode(FaceDetectorOptions.CONTOUR_MODE_ALL)
+            .setClassificationMode(FaceDetectorOptions.CLASSIFICATION_MODE_ALL)
             .build()
     )
     return try {
@@ -156,7 +164,10 @@ private suspend fun inspectFaceLocally(context: Context): FaceStatus {
                             ).toFloat()/h
                         } else null
                         FaceStatus.Done(FaceMeasurements(fromVideo, faces.size, w, h,
-                            eyes, noseMouth, biggest.headEulerAngleY,biggest.headEulerAngleZ))
+                            eyes, noseMouth, biggest.headEulerAngleY,biggest.headEulerAngleZ,
+                            biggest.smilingProbability,
+                            biggest.leftEyeOpenProbability,
+                            biggest.rightEyeOpenProbability))
                     }
                     if(continuation.isActive)continuation.resume(result)
                 }
@@ -180,32 +191,75 @@ private suspend fun inspectFaceLocally(context: Context): FaceStatus {
 fun FaceGeometryScreen(
     onBack: () -> Unit,
     lang: MizacLang,
-    strings: Map<String, String>
+    strings: Map<String, String>,
+    onHistory: () -> Unit
 ) {
-    val context=LocalContext.current
+    val context = LocalContext.current
     var state by remember { mutableStateOf<FaceStatus>(FaceStatus.Loading) }
+    val historic = remember(lang.code) {
+        loadHistory(context, lang)
+            .filterIndexed { idx, _ -> idx in listOf(1, 4, 5, 6) }
+    }
     LaunchedEffect(Unit) { state = inspectFaceLocally(context) }
-    Column(verticalArrangement=Arrangement.spacedBy(12.dp)) {
-        Text(ui(strings,"geometryTitle"),color=InkColor,
+
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text(
+            ui(strings, "photoReportHistory"), color = InkColor,
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold
+        )
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = WhiteCard),
+            shape = RoundedCornerShape(22.dp)
+        ) {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
+                Text(ui(strings,"photoReportHistoryIntro"),color=InkColor)
+                Text(ui(strings,"photoReportHistoryContext"),color=InkColor,
+                    fontWeight=FontWeight.Bold)
+                historic.forEach { section ->
+                    Text(section.title,color=InkColor,
+                        style=MaterialTheme.typography.titleMedium)
+                    Text(section.explanation,color=MutedColor,
+                        style=MaterialTheme.typography.bodySmall)
+                }
+                Text(ui(strings,"photoReportHistoryLimit"),color=MutedColor,
+                    style=MaterialTheme.typography.bodySmall)
+                Text(ui(strings,"photoReportSource"),color=MutedColor,
+                    style=MaterialTheme.typography.labelSmall)
+            }
+        }
+        Button(onClick=onHistory,modifier=Modifier.fillMaxWidth()) {
+            Text(ui(strings,"photoReportExpandHistory"))
+        }
+
+        Text(ui(strings,"photoReportScience"),color=InkColor,
             style=MaterialTheme.typography.headlineSmall,
             fontWeight=FontWeight.Bold)
-        Text(ui(strings,"geometryExplain"),color=MutedColor)
-        when(val status=state) {
+        Text(ui(strings,"geometryExplain"),color=MutedColor,
+            style=MaterialTheme.typography.bodySmall)
+        when(val result = state) {
             FaceStatus.Loading -> {
                 CircularProgressIndicator()
                 Text(ui(strings,"geometryLoading"),color=InkColor)
             }
             is FaceStatus.Failed -> {
                 Card(colors=CardDefaults.cardColors(containerColor=WhiteCard)) {
-                    Text(ui(strings,status.reasonKey),color=InkColor,
+                    Text(ui(strings,result.reasonKey),color=InkColor,
                         modifier=Modifier.padding(16.dp))
                 }
             }
             is FaceStatus.Done -> {
-                val v=status.measurement
-                Card(colors=CardDefaults.cardColors(containerColor=WhiteCard),
-                    shape=RoundedCornerShape(22.dp)) {
-                    Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(9.dp)) {
+                val v = result.measurement
+                Card(
+                    modifier=Modifier.fillMaxWidth(),
+                    colors=CardDefaults.cardColors(containerColor=WhiteCard),
+                    shape=RoundedCornerShape(22.dp)
+                ) {
+                    Column(
+                        Modifier.padding(16.dp),
+                        verticalArrangement=Arrangement.spacedBy(9.dp)
+                    ) {
                         GeometryLabel(strings,"geometrySource",
                             ui(strings,if(v.fromVideo)"geometryVideo" else "geometryPhoto"))
                         GeometryLabel(strings,"geometryFaces",v.facesDetected.toString())
@@ -222,12 +276,50 @@ fun FaceGeometryScreen(
                             formatLocalNumber(v.yaw,lang) + "°")
                         GeometryLabel(strings,"geometryRoll",
                             formatLocalNumber(v.roll,lang) + "°")
+                        GeometryLabel(strings,"photoReportSmile",
+                            v.smileProbability?.let { formatLocalNumber(it*100f,lang)+"%" }
+                                ?:ui(strings,"geometryUnavailable"))
+                        GeometryLabel(strings,"photoReportLeftEye",
+                            v.leftEyeOpenProbability?.let {
+                                formatLocalNumber(it*100f,lang)+"%"
+                            } ?:ui(strings,"geometryUnavailable"))
+                        GeometryLabel(strings,"photoReportRightEye",
+                            v.rightEyeOpenProbability?.let {
+                                formatLocalNumber(it*100f,lang)+"%"
+                            } ?:ui(strings,"geometryUnavailable"))
                         if(v.facesDetected>1)
                             Text(ui(strings,"geometryMultiple"),color=MutedColor)
                     }
                 }
+                Text(ui(strings,"photoReportAppearanceNote"),color=MutedColor,
+                    style=MaterialTheme.typography.bodySmall)
+                if(v.fromVideo)
+                    Text(ui(strings,"photoReportVideoNote"),color=MutedColor,
+                        style=MaterialTheme.typography.bodySmall)
                 Text(ui(strings,"geometryNote"),color=MutedColor,
                     style=MaterialTheme.typography.bodySmall)
+            }
+        }
+
+        listOf(
+            "photoReportPersonalTraits" to "photoReportPersonalTraitsNotMeasurable",
+            "photoReportHealth" to "photoReportHealthNotMeasurable",
+            "photoReportIntelligence" to "photoReportIntelligenceNotMeasurable"
+        ).forEach { (title,desc) ->
+            Card(
+                modifier=Modifier.fillMaxWidth(),
+                colors=CardDefaults.cardColors(containerColor=WhiteCard),
+                shape=RoundedCornerShape(20.dp)
+            ) {
+                Column(Modifier.padding(16.dp),
+                    verticalArrangement=Arrangement.spacedBy(6.dp)) {
+                    Text(ui(strings,title),color=InkColor,fontWeight=FontWeight.Bold,
+                        style=MaterialTheme.typography.titleMedium)
+                    Text(ui(strings,"photoReportNoScore"),color=MutedColor,
+                        style=MaterialTheme.typography.labelSmall)
+                    Text(ui(strings,desc),color=MutedColor,
+                        style=MaterialTheme.typography.bodySmall)
+                }
             }
         }
         Text(ui(strings,"geometryPrivacy"),color=InkColor,
@@ -236,7 +328,7 @@ fun FaceGeometryScreen(
 }
 
 @Composable
-private fun GeometryLabel(strings:Map<String,String>,key:String,value:String) {
+private fun GeometryLabel(strings: Map<String,String>, key: String, value: String) {
     Column(verticalArrangement=Arrangement.spacedBy(2.dp)) {
         Text(ui(strings,key),color=MutedColor,
             style=MaterialTheme.typography.labelMedium)
