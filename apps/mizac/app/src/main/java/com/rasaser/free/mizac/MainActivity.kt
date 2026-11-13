@@ -115,9 +115,12 @@ private fun MizacRoot() {
     var screen by rememberSaveable { mutableStateOf("home") }
     var count by rememberSaveable { mutableStateOf(10) }
     BackHandler(screen != "home") {
-        screen = if (screen == "geometry" || screen == "questions" || screen == "history-reflection") {
-            "analysis-setup"
-        } else "home"
+        screen = when(screen) {
+            "geometry" -> "home"
+            "questions" -> "analysis-setup"
+            "history-reflection" -> "history"
+            else -> "home"
+        }
     }
     CompositionLocalProvider(
         LocalLayoutDirection provides if (lang.code == "ar") LayoutDirection.Rtl else LayoutDirection.Ltr
@@ -171,7 +174,8 @@ private fun MizacRoot() {
                         onHistory = { screen = "history" }
                     )
                     "history" -> MarifetnameScreen(
-                        onBack = { screen = "home" }, lang = lang, strings = dict
+                        onBack = { screen = "home" }, lang = lang, strings = dict,
+                        onReflection = { screen = "history-reflection" }
                     )
                     "history-reflection" -> HistoricalReflectionScreen(
                         lang, dict, onBack = { screen = "analysis-setup" }
