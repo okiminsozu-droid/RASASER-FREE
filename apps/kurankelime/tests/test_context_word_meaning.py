@@ -38,13 +38,14 @@ class QuranContextualTranslationTest(unittest.TestCase):
         src = self.source("OnDeviceWordTranslator.kt")
         self.assertIn("val localHint = OfflineWordMeaning.find(selectedText, source, target)", src)
         self.assertIn("printed = fromPrintedPdf", src)
-        self.assertIn("else if (printed != null)", src)
-        self.assertIn("else if (localHint != null)", src)
+        self.assertIn("printed?.text?.takeIf { it.isNotBlank() }", src)
+        self.assertIn("localHint?.text?.takeIf { it.isNotBlank() }", src)
         self.assertIn('source == "ar" && target == "tr"', src)
         self.assertIn("selectableLayer.printedTurkishBelow(readerPage, firstOcrId, selectedText)", src)
         self.assertIn("if (result == null && fromPrintedPdf == null && localHint == null &&", src)
-        self.assertIn("reviewed?.meaning ?: printed?.text ?: localHint?.text ?: machineResult", src)
-        self.assertIn("Bağlam", src.replace("bağlam", "Bağlam"))
+        self.assertIn("fun translatedWord(): String? = reviewed?.meaning?.takeIf", src)
+        self.assertIn("machineResult?.takeIf { it.isNotBlank() }", src)
+        self.assertIn("dialog.setMessage(translatedWord() ?: status)", src)
 
     def test_pdf_printed_gloss_never_claimed_as_reviewed(self):
         src = self.source("SelectableTextLayer.kt")
