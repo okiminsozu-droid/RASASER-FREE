@@ -31,6 +31,21 @@ jobs:
           packages: platform-tools
       - name: Android SDK
         run: sdkmanager --install "platforms;android-35" "build-tools;35.0.0"
+      - name: Export public Android 35 APK validation/signing tools (no private keys)
+        run: |
+          mkdir -p exported/android-tools
+          cp -R "${ANDROID_HOME}/build-tools/35.0.0/lib" exported/android-tools/lib
+          cp "${ANDROID_HOME}/build-tools/35.0.0/zipalign" exported/android-tools/zipalign
+          cp "${ANDROID_HOME}/build-tools/35.0.0/apksigner" exported/android-tools/apksigner
+      - name: Archive Android tools for private 605-page APK assembly
+        if: ${{ (github.ref == 'refs/heads/feature/kurani-v034-five-offline-mlkit-packs' && github.event_name == 'push') || (github.event_name == 'pull_request' && github.head_ref == 'feature/kurani-v034-five-offline-mlkit-packs') }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: Kurani_Android35_Public_Signing_Tools_No_Keys
+          path: exported/android-tools/
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 0
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
