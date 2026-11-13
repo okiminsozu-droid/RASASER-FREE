@@ -4,6 +4,7 @@ on:
     branches:
       - feature/kurankelime-five-language-offline-v1
       - feature/kurani-v034-five-offline-mlkit-packs
+      - fix/kurani-v037-mlkit-language-download-retry
     paths:
       - 'apps/kurankelime/**'
       - '.github/workflows/04-kuran-kelime.yml'
@@ -31,21 +32,6 @@ jobs:
           packages: platform-tools
       - name: Android SDK
         run: sdkmanager --install "platforms;android-35" "build-tools;35.0.0"
-      - name: Export public Android 35 APK validation/signing tools (no private keys)
-        run: |
-          mkdir -p exported/android-tools
-          cp -R "${ANDROID_HOME}/build-tools/35.0.0/lib" exported/android-tools/lib
-          cp "${ANDROID_HOME}/build-tools/35.0.0/zipalign" exported/android-tools/zipalign
-          cp "${ANDROID_HOME}/build-tools/35.0.0/apksigner" exported/android-tools/apksigner
-      - name: Archive Android tools for private 605-page APK assembly
-        if: ${{ (github.ref == 'refs/heads/feature/kurani-v034-five-offline-mlkit-packs' && github.event_name == 'push') || (github.event_name == 'pull_request' && github.head_ref == 'feature/kurani-v034-five-offline-mlkit-packs') }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: Kurani_Android35_Public_Signing_Tools_No_Keys
-          path: exported/android-tools/
-          if-no-files-found: error
-          retention-days: 7
-          compression-level: 0
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
@@ -102,6 +88,16 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Kurani_Kesfet_v036_ContentPreview_CODE_ONLY
+          path: apps/kurankelime/app/build/outputs/apk/contentPreview/app-contentPreview.apk
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 0
+
+      - name: Publish v0.3.7 ML Kit download fix APK without private Quran assets
+        if: ${{ (github.ref == 'refs/heads/fix/kurani-v037-mlkit-language-download-retry' && github.event_name == 'push') || (github.event_name == 'pull_request' && github.head_ref == 'fix/kurani-v037-mlkit-language-download-retry') }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: Kurani_Kesfet_v037_PackFix_CODE_ONLY
           path: apps/kurankelime/app/build/outputs/apk/contentPreview/app-contentPreview.apk
           if-no-files-found: error
           retention-days: 7

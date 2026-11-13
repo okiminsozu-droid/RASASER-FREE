@@ -14,9 +14,19 @@ class SixOfflineLanguagePacksTest(unittest.TestCase):
         self.assertNotIn('Pack("en",', src)
         self.assertIn('setOf("en")', src)
         self.assertIn('getDownloadedModels', src)
-        self.assertIn('requireWifi()', src)
+        self.assertIn("hasWifiInternet(context)", src)
+        self.assertIn("DownloadConditions.Builder().build()", src)
+        self.assertNotIn("DownloadConditions.Builder().requireWifi()", src)
+        self.assertIn("missing.forEach { pack ->", src)
+        self.assertIn("handler.postDelayed", src)
+        self.assertIn("isModelDownloaded(model)", src)
+        self.assertIn("180_000L", src)
         self.assertIn('downloadAll(current)', src)
         self.assertIn('if (pack.code in installed)', src)
+
+    def test_explicit_wifi_network_permission(self):
+        manifest = (ROOT / "app/src/main/AndroidManifest.xml").read_text(encoding="utf-8")
+        self.assertIn("android.permission.ACCESS_NETWORK_STATE", manifest)
 
     def test_one_tap_button_below_homepage_language_menu(self):
         src = (SRC / "DiscoverHomeActivity.kt").read_text(encoding="utf-8")
@@ -31,6 +41,8 @@ class SixOfflineLanguagePacksTest(unittest.TestCase):
         self.assertIn('"ja" to "日本語"', src)
         self.assertIn("OfflineLanguagePacks.pairReady(source, target)", src)
         self.assertIn("performGoogle(sourceTag, targetTag)", src)
+        self.assertNotIn("DownloadConditions.Builder().requireWifi()", src)
+        self.assertIn("OfflineLanguagePacks.hasWifiInternet(activity)", src)
         self.assertIn('glossary.find(readerPage, firstOcrId, source, target, selectedText)', src)
 
     def test_does_not_ship_private_assets(self):

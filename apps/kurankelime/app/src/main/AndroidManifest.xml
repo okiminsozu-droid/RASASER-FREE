@@ -3,6 +3,7 @@
     <!-- Internet is used only for user-approved initial ML Kit language-model downloads.
          Reading, search, bookmarks and installed translation models work offline. -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <application android:label="@string/app_name"
                  android:icon="@drawable/kurani_launcher"
                  android:roundIcon="@drawable/kurani_launcher"

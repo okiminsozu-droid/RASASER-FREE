@@ -103,7 +103,7 @@ internal class OnDeviceWordTranslator(private val activity: Activity) {
                 "quran_translation_models", Context.MODE_PRIVATE
             )
             client.downloadModelIfNeeded(
-                DownloadConditions.Builder().requireWifi().build()
+                DownloadConditions.Builder().build()
             ).addOnSuccessListener {
                 prefs.edit().putBoolean(pairKey, true).apply()
                 client.translate(selectedText)
@@ -143,6 +143,10 @@ internal class OnDeviceWordTranslator(private val activity: Activity) {
             OfflineLanguagePacks.pairReady(source, target) { alreadyInstalled ->
                 if (alreadyInstalled) {
                     performGoogle(sourceTag, targetTag)
+                } else if (!OfflineLanguagePacks.hasWifiInternet(activity)) {
+                    status = "İlk model indirme için internete bağlı Wi-Fi gerekiyor. " +
+                        "Ana sayfadaki Çevrimdışı Dil Paketlerini İndir bölümünü açın."
+                    render()
                 } else {
                     AlertDialog.Builder(activity)
                         .setTitle("Dil paketi gerekli")
