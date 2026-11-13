@@ -132,4 +132,71 @@ internal class SelectableTextLayer(private val context:Context) {
             4f*(dx*dx+dy*dy)+0.025f*(cx*cx+cy*cy)+0.25f*(100f-hit.confidence)
         }
     }
+
+    /**
+     * The Turkish text printed directly below one selected Arabic OCR token
+     * on exactly the same 605-page display image. Only geometrically matched
+     * candidates are returned; this is OCR, NOT a certified Quran translation.
+     */
+    data class PrintedTurkishGloss(val text: String, val confidence: Float)
+
+    fun printedTurkishBelow(page: Int, ocrId: Int, selectedArabic: String): PrintedTurkishGloss? {
+        if (page !in 1..605 || ocrId <= 0 || selectedArabic.isBlank()) return null
+        val database = db() ?: return null
+        data class ArabicBox(val x: Float, val y: Float, val w: Float,
+                             val h: Float, val word: String)
+        data class TurkishWord(val word: String, val x: Float, val y: Float,
+                               val confidence: Float)
+        val source = try {
+            database.rawQuery(
+                "SELECT x,y,w,h,word FROM words WHERE page=? AND ocr_id=? AND lang='ara' LIMIT 1",
+                arrayOf(page.toString(), ocrId.toString())
+            ).use { cursor ->
+                if (cursor.moveToFirst()) ArabicBox(
+                    cursor.getFloat(0), cursor.getFloat(1), cursor.getFloat(2),
+                    cursor.getFloat(3), cursor.getString(4)
+                ) else null
+            }
+        } catch (_: Exception) { null } ?: return null
+
+        if (source.word.trim() != selectedArabic.trim() ||
+            source.w <= 0f || source.h <= 0f) return null
+        val bottom = source.y + source.h
+        val candidates = ArrayList<TurkishWord>()
+        try {
+            database.rawQuery(
+                "SELECT word,x,y,confidence FROM words WHERE page=? AND lang='tur' " +
+                    "AND confidence>=62 AND y>=CAST(? AS REAL) AND y<=CAST(? AS REAL) " +
+                    "AND (x+w*0.5)>=CAST(? AS REAL) " +
+                    "AND (x+w*0.5)<=CAST(? AS REAL) ORDER BY y,x LIMIT 24",
+                arrayOf(
+                    page.toString(), (bottom - .005f).toString(),
+                    (bottom + .054f).toString(), (source.x - .001f).toString(),
+                    (source.x + source.w + .001f).toString()
+                )
+            ).use { cursor ->
+                while (cursor.moveToNext()) {
+                    val token = cursor.getString(0)?.trim().orEmpty()
+                    if (token.any { it.isLetter() }) {
+                        candidates.add(
+                            TurkishWord(
+                                token, cursor.getFloat(1), cursor.getFloat(2),
+                                cursor.getFloat(3)
+                            )
+                        )
+                    }
+                }
+            }
+        } catch (_: Exception) { return null }
+        if (candidates.isEmpty()) return null
+        val firstY = candidates.first().y
+        val lines = candidates.filter { it.y <= firstY + .019f }
+        if (lines.isEmpty() || lines.size > 12) return null
+        val ordered = lines.sortedWith(compareBy<TurkishWord> {
+            ((it.y - firstY) / .012f).toInt()
+        }.thenBy { it.x })
+        val gloss = ordered.joinToString(" ") { it.word }.trim()
+        if (gloss.isBlank() || gloss.length > 180) return null
+        return PrintedTurkishGloss(gloss, ordered.map { it.confidence }.average().toFloat())
+    }
 }
