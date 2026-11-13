@@ -73,6 +73,7 @@ class StableReaderActivity : Activity() {
     private var wordActionMode: ActionMode? = null
     private val translationDelegate = lazy { OnDeviceWordTranslator(this, selectableLayer) }
     private val translation by translationDelegate
+    private val ui by lazy { ReaderUiText.load(this) }
 
     private fun dp(v: Int): Int = (v * resources.displayMetrics.density).toInt()
     private fun label(value: String, size: Float = 17f): TextView = TextView(this).apply {
@@ -156,9 +157,9 @@ class StableReaderActivity : Activity() {
         }
         bottom("−"){pageView.zoomBy(-.5f)}
         bottom("+"){pageView.zoomBy(.5f)}
-        bottom("Sığdır"){pageView.toggleFit()}
-        bottom("Paylaş"){share()}
-        bottom("Gizle"){pageView.onToggle()}
+        bottom(ui.fit){pageView.toggleFit()}
+        bottom(ui.share){share()}
+        bottom(ui.hide){pageView.onToggle()}
         main.addView(footer,FrameLayout.LayoutParams(-1,dp(52),Gravity.BOTTOM))
         pageFooter=label("",12f).apply {
             setBackgroundColor(0xFFFDF9ED.toInt())
@@ -176,7 +177,7 @@ class StableReaderActivity : Activity() {
                 if (value!=null) {
                     (getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager)
                         .setPrimaryClip(ClipData.newPlainText("Kur'an kelimesi",value))
-                    Toast.makeText(this@StableReaderActivity,"Kelime kopyalandı",Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@StableReaderActivity,ui.copied,Toast.LENGTH_SHORT).show()
                     hideWordInfo()
                 }
             }
@@ -193,7 +194,7 @@ class StableReaderActivity : Activity() {
             setBackgroundColor(0xFFF9F0DC.toInt())
             elevation=dp(6).toFloat()
             visibility=View.GONE
-            contentDescription="Seçilen kelime işlemleri"
+            contentDescription=ui.translate
         }
         selectionLabel=TextView(this).apply {
             setTextColor(green)
@@ -201,7 +202,7 @@ class StableReaderActivity : Activity() {
             maxLines=1
             ellipsize=android.text.TextUtils.TruncateAt.END
             setPadding(dp(8),0,dp(6),0)
-            contentDescription="Seçilen kelime"
+            contentDescription=ui.copy
         }
         selectionBar.addView(selectionLabel,LinearLayout.LayoutParams(0,dp(50),1f))
         fun selectionAction(icon:Int, title:String, action:()->Unit) {
@@ -223,21 +224,21 @@ class StableReaderActivity : Activity() {
                 leftMargin=dp(5)
             })
         }
-        selectionAction(R.drawable.ic_word_copy,"Kopyala") {
+        selectionAction(R.drawable.ic_word_copy,ui.copy) {
             selectedWord?.let { selected ->
                 (getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager)
                     .setPrimaryClip(ClipData.newPlainText("Kur’an kelimesi",selected.text))
-                Toast.makeText(this,"Kelime kopyalandı",Toast.LENGTH_SHORT).show()
+                Toast.makeText(this,ui.copied,Toast.LENGTH_SHORT).show()
             }
             dismissWordSelection()
         }
-        selectionAction(R.drawable.ic_word_translate,"Çevir") {
+        selectionAction(R.drawable.ic_word_translate,ui.translate) {
             selectedWord?.let { selected ->
                 translation.translate(selected,page,selectedRangeStart,selectedRangeEnd)
             }
         }
         val closeSelection=label("×",21f).apply {
-            contentDescription="Seçimi kapat"
+            contentDescription=ui.closeSelection
             setOnClickListener { dismissWordSelection() }
         }
         selectionBar.addView(closeSelection,LinearLayout.LayoutParams(dp(40),dp(48)))
@@ -329,7 +330,7 @@ class StableReaderActivity : Activity() {
         counter.text=page.toString()+" / "+single.count
         bookmark.text=if(store.isFavorite(single.page(page).sourcePdfPage)) "★" else "☆"
         chapterTitle.text=single.chapterHeading(page)
-        pageFooter.text="Sayfa "+page+" / "+single.count
+        pageFooter.text=ui.page+" "+page+" / "+single.count
     }
 
     private fun hideWordInfo() {
@@ -493,9 +494,9 @@ class StableReaderActivity : Activity() {
             inputType=android.text.InputType.TYPE_CLASS_NUMBER
             setText(page.toString())
         }
-        AlertDialog.Builder(this).setTitle("Okuma sayfası (1–605)").setView(edit)
-            .setNegativeButton("Vazgeç",null)
-            .setPositiveButton("Git") { _, _ ->
+        AlertDialog.Builder(this).setTitle(ui.choosePage).setView(edit)
+            .setNegativeButton(ui.cancel,null)
+            .setPositiveButton(ui.go) { _, _ ->
                 val target=edit.text.toString().toIntOrNull()
                 if(target!=null&&target in 1..single.count)showPage(target)
             }.show()
@@ -515,10 +516,10 @@ class StableReaderActivity : Activity() {
                         type="image/webp"
                         putExtra(Intent.EXTRA_STREAM,uri)
                         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                    },"Sayfayı paylaş"))
+                    },ui.sharePage))
                 }
             } catch(e:Exception) {
-                runOnUiThread{Toast.makeText(this,"Paylaşım yapılamadı",Toast.LENGTH_SHORT).show()}
+                runOnUiThread{Toast.makeText(this,ui.shareFailed,Toast.LENGTH_SHORT).show()}
             }
         }
     }
