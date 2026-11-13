@@ -171,3 +171,22 @@ jobs:
           if-no-files-found: error
           retention-days: 7
           compression-level: 0
+
+  bundletool-for-private-validation:
+    if: ${{ github.head_ref == 'release/kurani-v0313-play-aab-draft' || github.ref == 'refs/heads/release/kurani-v0313-play-aab-draft' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Fetch official bundletool validation utility
+        run: |
+          curl --fail --location --retry 3 --silent --show-error \
+            https://github.com/google/bundletool/releases/download/1.18.3/bundletool-all-1.18.3.jar \
+            -o bundletool-all-1.18.3.jar
+          test -s bundletool-all-1.18.3.jar
+      - name: Archive public bundletool CLI (not proprietary data or signing keys)
+        uses: actions/upload-artifact@v4
+        with:
+          name: Android_Bundletool_1_18_3_public_CLI
+          path: bundletool-all-1.18.3.jar
+          retention-days: 7
+          compression-level: 0
