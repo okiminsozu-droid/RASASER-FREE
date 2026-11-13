@@ -1,0 +1,94 @@
+language|Dil|Language|Sprache|Idioma|اللغة
+home|Ana Sayfa|Home|Startseite|Inicio|الرئيسية
+analyze|Analiz Et|Start Analysis|Analyse starten|Iniciar análisis|ابدأ التحليل
+history|Mârifetnâme • Tarihî Bilgiler|Marifetname • Historical Insights|Marifetnâme • Historisches Wissen|Marifetnâme • Historia|المعرفة • معلومات تاريخية
+privacy|Gizlilik ve Lisanslar|Privacy and Licenses|Datenschutz und Lizenzen|Privacidad y licencias|الخصوصية والتراخيص
+setupTitle|Kişilik Analizi|Personality Reflection|Persönlichkeitsreflexion|Reflexión personal|التأمل في الشخصية
+backHome|‹ Ana Sayfa|‹ Home|‹ Startseite|‹ Inicio|‹ الرئيسية
+backSetup|‹ Seçim Ekranı|‹ Selection Screen|‹ Auswahl|‹ Selección|‹ شاشة الاختيار
+photoTitle|Fotoğraf (isteğe bağlı)|Photo (optional)|Foto (freiwillig)|Foto (opcional)|صورة (اختيارية)
+photoChoose|Fotoğraf Seç|Choose Photo|Foto wählen|Elegir foto|اختر صورة
+photoReplace|Fotoğrafı Değiştir|Change Photo|Foto ändern|Cambiar foto|تغيير الصورة
+photoDelete|Fotoğrafı Sil|Remove Photo|Foto entfernen|Eliminar foto|حذف الصورة
+photoSaved|Fotoğraf yalnız cihazda kayıtlı.|Photo saved only on this device.|Foto nur auf dem Gerät gespeichert.|Foto guardada solo en este dispositivo.|الصورة محفوظة على هذا الجهاز فقط.
+photoHint|Galeriden fotoğraf seçebilirsin.|You may choose a photo from your gallery.|Du kannst ein Foto aus der Galerie wählen.|Puedes elegir una foto de la galería.|يمكنك اختيار صورة من المعرض.
+videoTitle|Video (en fazla 30 saniye)|Video (maximum 30 seconds)|Video (höchstens 30 Sekunden)|Vídeo (máximo 30 segundos)|فيديو (30 ثانية كحد أقصى)
+videoHint|Galeriden seç veya kısa video çek.|Choose from gallery or record a short video.|Aus Galerie wählen oder kurzes Video aufnehmen.|Elige de la galería o graba un vídeo corto.|اختر من المعرض أو سجل فيديو قصيرًا.
+videoChoose|Video Seç|Choose Video|Video wählen|Elegir vídeo|اختر فيديو
+videoRecord|Video Çek|Record Video|Video aufnehmen|Grabar vídeo|تسجيل فيديو
+videoDelete|Videoyu Sil|Remove Video|Video entfernen|Eliminar vídeo|حذف الفيديو
+videoSaved|Video yalnız cihazda kayıtlı.|Video saved only on this device.|Video nur auf dem Gerät gespeichert.|Vídeo guardado solo en este dispositivo.|الفيديو محفوظ على هذا الجهاز فقط.
+chooseCount|Kaç soru cevaplamak istersin?|How many questions would you like?|Wie viele Fragen möchtest du beantworten?|¿Cuántas preguntas quieres responder?|كم سؤالًا تريد الإجابة عنه؟
+questions|Soru|Questions|Fragen|Preguntas|أسئلة
+fast|Hızlı|Quick|Kurz|Rápido|سريع
+normal|Standart|Standard|Standard|Estándar|قياسي
+deep|Ayrıntılı|Detailed|Ausführlich|Detallado|مفصل
+saveChoice|Seçimi Kaydet|Save Selection|Auswahl speichern|Guardar selección|حفظ الاختيار
+startQuestions|Soruları Başlat|Start Questions|Fragen starten|Empezar preguntas|ابدأ الأسئلة
+geometry|Yüz Geometrisini İncele|View Face Geometry|Gesichtsgeometrie ansehen|Ver geometría facial|عرض هندسة الوجه
+historyButton|Mârifetnâme Tarihî İçerikleri|Marifetname History|Mârifetnâme Geschichte|Historia de Marifetname|محتوى المعرفة التاريخي
+localPrivacy|Verileriniz yalnızca size aittir.|Your data belongs only to you.|Deine Daten gehören nur dir.|Tus datos solo te pertenecen a ti.|بياناتك ملك لك وحدك.
+localPrivacyBody|Fotoğraf, video ve cevaplar yalnız telefonunda tutulur; RaSaSeR'a veya bir sunucuya gönderilmez.|Photos, videos and answers stay on your phone; they are never sent to RaSaSeR or any server.|Fotos, Videos und Antworten bleiben auf deinem Telefon und werden nicht an RaSaSeR oder Server gesendet.|Las fotos, vídeos y respuestas quedan en tu teléfono; no se envían a RaSaSeR ni a servidores.|تبقى الصور والفيديوهات والإجابات في هاتفك ولا تُرسل إلى راساسير أو أي خادم.
+noCameraPersonality|Fotoğraf görünüşten kişilik belirlemek için kullanılmaz.|A photo cannot reliably determine personality.|Aus Fotos lässt sich Persönlichkeit nicht zuverlässig bestimmen.|Una foto no permite determinar la personalidad con fiabilidad.|لا يمكن للصورة تحديد الشخصية بصورة موثوقة.
+saveFeedback|Seçimin telefona kaydedildi.|Your selection was saved on your phone.|Deine Auswahl wurde auf dem Gerät gespeichert.|Tu selección se guardó en tu teléfono.|تم حفظ اختيارك على هاتفك.
+needPhoto|Önce fotoğraf veya video seç.|Choose a photo or video first.|Wähle zuerst ein Foto oder Video.|Elige primero una foto o un vídeo.|اختر صورة أو فيديو أولًا.
+savePhoto|Fotoğraf cihazına kaydedildi.|Photo saved on your device.|Foto auf deinem Gerät gespeichert.|Foto guardada en tu dispositivo.|تم حفظ الصورة على جهازك.
+saveVideo|Video cihazına kaydedildi.|Video saved on your device.|Video auf deinem Gerät gespeichert.|Vídeo guardado en tu dispositivo.|تم حفظ الفيديو على جهازك.
+saveFailure|Dosya kaydedilemedi.|Could not save the file.|Datei konnte nicht gespeichert werden.|No se pudo guardar el archivo.|تعذر حفظ الملف.
+tooLong|Video 30 saniyeden uzun olamaz.|Video cannot exceed 30 seconds.|Video darf nicht länger als 30 Sekunden sein.|El vídeo no puede superar 30 segundos.|لا يمكن أن يتجاوز الفيديو 30 ثانية.
+tooLarge|Dosya boyutu çok büyük.|File size is too large.|Datei ist zu groß.|El archivo es demasiado grande.|الملف كبير جدًا.
+recordCancelled|Video kaydı iptal edildi.|Video recording was cancelled.|Videoaufnahme abgebrochen.|Se canceló la grabación.|تم إلغاء تسجيل الفيديو.
+cameraUnavailable|Video kamerası açılamadı.|Video camera could not be opened.|Videokamera konnte nicht geöffnet werden.|No se pudo abrir la cámara.|تعذر فتح كاميرا الفيديو.
+removeSuccess|Kayıt uygulamadan kaldırıldı.|The item was removed from the app.|Die Datei wurde aus der App entfernt.|Se eliminó el archivo de la aplicación.|تم حذف الملف من التطبيق.
+scienceHeader|Özgün Öz Değerlendirme|Original Self-Reflection|Eigene Selbsteinschätzung|Autoevaluación original|تقييم ذاتي أصلي
+unvalidated|Bu sorular MİZAÇ için özgün yazılmıştır. Bilimsel olarak doğrulanmış bir kişilik testi veya teşhis değildir.|These questions were written for MİZAÇ. They are not a validated personality test or diagnosis.|Diese Fragen wurden für MİZAÇ verfasst. Sie sind kein validierter Persönlichkeitstest und keine Diagnose.|Estas preguntas se crearon para MİZAÇ. No constituyen una prueba validada ni un diagnóstico.|كُتبت هذه الأسئلة خصيصًا لمزاج، وليست اختبار شخصية مثبت الصلاحية أو تشخيصًا.
+agreement|1 = Hiç katılmıyorum • 5 = Tamamen katılıyorum|1 = Strongly disagree • 5 = Strongly agree|1 = Stimme gar nicht zu • 5 = Stimme völlig zu|1 = Muy en desacuerdo • 5 = Muy de acuerdo|1 = لا أوافق إطلاقًا • 5 = أوافق تمامًا
+next|İleri|Next|Weiter|Siguiente|التالي
+back|Geri|Back|Zurück|Atrás|السابق
+showResult|Sonucu Göster|Show Results|Ergebnis zeigen|Ver resultados|عرض النتيجة
+resultTitle|Kişisel Yanıt Özeti|Your Response Summary|Deine Antwortübersicht|Resumen de respuestas|ملخص إجاباتك
+resultDisclaimer|Bunlar yalnız kendi cevaplarının ortalamalarıdır; başkalarının karakterini veya değerini ölçmez.|These are averages of your own answers; they do not measure anyone's worth or character.|Diese Werte sind Mittelwerte deiner Antworten und messen keinen menschlichen Wert oder Charakter.|Son promedios de tus respuestas y no miden el valor ni el carácter de nadie.|هذه متوسطات إجاباتك فقط ولا تقيس قيمة الإنسان أو شخصيته.
+noNorms|Bu özgün sorular için bilimsel geçerlik, norm ve karşılaştırma puanı henüz oluşturulmadı.|These original questions do not yet have validated norms or comparison scores.|Für diese eigenen Fragen liegen noch keine validierten Normen oder Vergleichswerte vor.|Estas preguntas originales aún no tienen normas validadas ni puntuaciones comparativas.|لم تُعتمد لهذه الأسئلة الأصلية معايير علمية أو درجات مقارنة بعد.
+restart|Yeniden Başla|Start Again|Neu beginnen|Empezar de nuevo|ابدأ من جديد
+factorO|Yeniliğe açıklık|Openness to Ideas|Offenheit für Neues|Apertura a ideas|الانفتاح على الأفكار
+factorC|Sorumluluk ve düzen|Organization and Responsibility|Organisation und Verantwortung|Organización y responsabilidad|التنظيم والمسؤولية
+factorE|Sosyal enerji|Social Energy|Soziale Energie|Energía social|الطاقة الاجتماعية
+factorA|Uyumluluk ve anlayış|Cooperation and Empathy|Zusammenarbeit und Einfühlung|Cooperación y empatía|التعاون والتعاطف
+factorS|Duygusal denge|Emotional Balance|Emotionale Ausgeglichenheit|Equilibrio emocional|الاتزان العاطفي
+historyTitle|Mârifetnâme ve Tarihî Yüz Okuma|Marifetname and Historical Physiognomy|Mârifetnâme und historische Physiognomik|Marifetname y fisiognomía histórica|المعرفة وقراءة الوجه التاريخية
+historyNotice|Bu bölüm tarihî düşünceleri açıklar; yüz hatlarından karakter hükmü çıkarmaz.|This section describes historical beliefs, not character predictions from facial traits.|Dieser Bereich erklärt historische Vorstellungen, keine Charakterurteile aus Gesichtern.|Esta sección explica creencias históricas, no deduce el carácter del rostro.|يشرح هذا القسم معتقدات تاريخية ولا يستنتج الشخصية من ملامح الوجه.
+historySources|Kaynaklar ve yöntem|Sources and Method|Quellen und Methode|Fuentes y método|المصادر والمنهج
+historyOrigin|Kıyâfetnâme geleneği, beden özelliklerine ahlâkî anlamlar bağlayan tarihî bir yorum tarzıydı. Günümüzde bilimsel kişilik ölçümü olarak kabul edilmez.|The kıyâfetnâme tradition linked physical features to moral traits. It is not accepted as scientific personality measurement today.|Die Kıyâfetnâme-Tradition verband körperliche Merkmale mit moralischen Eigenschaften. Sie gilt heute nicht als wissenschaftlicher Persönlichkeitstest.|La tradición kıyâfetnâme relacionaba rasgos físicos con cualidades morales. Hoy no se acepta como medida científica de la personalidad.|ربطت تقاليد القيافة بين ملامح الجسد والصفات الأخلاقية، ولا تُعد اليوم مقياسًا علميًا للشخصية.
+historyCopyright|Bu açıklamalar özgün olarak yazılmıştır; modern yayımlardan uzun alıntı veya çeviri içermez.|These explanations are newly written; they do not reproduce modern editions or translations.|Diese Erklärungen sind neu verfasst und übernehmen keine modernen Ausgaben oder Übersetzungen.|Estas explicaciones se redactaron de forma original; no reproducen ediciones ni traducciones modernas.|صيغت هذه التوضيحات صياغة أصلية دون نقل نصوص الطبعات أو الترجمات الحديثة.
+privacyTitle|Gizlilik • Verilerin Sana Ait|Privacy • Your Data|Datenschutz • Deine Daten|Privacidad • Tus datos|الخصوصية • بياناتك
+privacyText|Fotoğraf, video, seçim ve soruların yanıtları şirket sunucularına gitmez. Fotoğraf ve video yalnız uygulamanın özel alanında saklanır; yanıtlar geçici oturumda kalır. Galerideki asıllar uygulamadan bağımsızdır.|Photos, videos, selections and answers never go to company servers. Media stays in app-private storage; answers remain in the current session. Original gallery files are separate.|Fotos, Videos, Auswahl und Antworten gehen nie an Firmenserver. Medien liegen im privaten App-Speicher; Antworten bleiben in der Sitzung. Galerieoriginale bleiben unberührt.|Las fotos, vídeos, elecciones y respuestas nunca van a servidores de la empresa. Los archivos quedan en el espacio privado; las respuestas, en la sesión. Los originales de la galería son independientes.|لا تُرسل الصور والفيديوهات والاختيارات والإجابات إلى خوادم الشركة. تبقى الوسائط في مساحة التطبيق الخاصة والإجابات في الجلسة الحالية، أما ملفات المعرض الأصلية فهي مستقلة.
+deleteAll|Tüm Yerel Verilerimi Sil|Delete All My Local Data|Alle lokalen Daten löschen|Borrar todos mis datos locales|احذف جميع بياناتي المحلية
+deleteConfirm|Fotoğraf, video ve uygulama tercihlerinin yerel kopyaları silinecek. Galerideki asıl dosyalar korunur. Devam edilsin mi?|Local photos, videos and preferences will be deleted. Original gallery files remain. Continue?|Lokale Fotos, Videos und Einstellungen werden gelöscht. Galerieoriginale bleiben. Fortfahren?|Se borrarán fotos, vídeos y preferencias locales. Los originales de la galería se conservarán. ¿Continuar?|سيتم حذف الصور والفيديوهات والتفضيلات المحلية، وستبقى ملفات المعرض الأصلية. هل نتابع؟
+deleteConfirmTitle|Yerel Verileri Sil|Delete Local Data|Lokale Daten löschen|Borrar datos locales|حذف البيانات المحلية
+deleteYes|Sil|Delete|Löschen|Borrar|حذف
+cancel|Vazgeç|Cancel|Abbrechen|Cancelar|إلغاء
+deleted|Yerel MİZAÇ kayıtları silindi.|Local MİZAÇ records were deleted.|Lokale MİZAÇ-Daten wurden gelöscht.|Se borraron los registros locales de MİZAÇ.|تم حذف سجلات مزاج المحلية.
+deletePartial|Bazı dosyalar silinemedi. Tekrar deneyin.|Some files could not be deleted. Try again.|Einige Dateien konnten nicht gelöscht werden.|No se pudieron borrar algunos archivos.|تعذر حذف بعض الملفات، يرجى المحاولة مجددًا.
+licenseTitle|Lisans ve bilimsel açıklama|License and Scientific Notice|Lizenz und wissenschaftlicher Hinweis|Licencia y aviso científico|الترخيص والبيان العلمي
+licenseNotice|Özgün MİZAÇ anketi psikometrik doğrulamadan geçmemiştir. Tarihî Mârifetnâme yorumları bilimsel kişilik tahmini değildir.|The original MİZAÇ questionnaire has not undergone psychometric validation. Historical Marifetname interpretations are not scientific personality predictions.|Der eigene MİZAÇ-Fragebogen ist nicht psychometrisch validiert. Historische Deutungen sind keine wissenschaftlichen Vorhersagen.|El cuestionario original de MİZAÇ no está validado. Las interpretaciones históricas no predicen científicamente la personalidad.|لم يخضع استبيان مزاج الأصلي للتحقق السيكومتري، ولا تُعد التفسيرات التاريخية تنبؤات علمية للشخصية.
+geometryTitle|Yüzün Gerçek Geometrik Ölçümü|Facial Geometry Measurements|Geometrische Gesichtsmessung|Mediciones geométricas del rostro|قياسات هندسة الوجه
+geometryExplain|Ölçülenler kamera görüntüsündeki 2B oranlardır. Bunlardan kişilik, zekâ, dürüstlük veya sağlık hakkında hüküm verilmez.|Measurements are 2D ratios in the camera image, not conclusions about personality, intelligence, honesty or health.|Gemessen werden 2D-Verhältnisse im Bild, keine Aussagen zu Persönlichkeit, Intelligenz, Ehrlichkeit oder Gesundheit.|Se miden proporciones 2D de la imagen, no la personalidad, inteligencia, honestidad o salud.|القياسات نسب ثنائية الأبعاد في الصورة ولا تحدد الشخصية أو الذكاء أو الصدق أو الصحة.
+geometryLoading|Cihazında ölçüm yapılıyor...|Measuring on your device...|Messung auf deinem Gerät...|Midiendo en tu dispositivo...|جارٍ القياس على جهازك...
+geometryFailed|Yüz tespit edilemedi. Daha net bir fotoğraf dene.|No face detected. Try a clearer photo.|Kein Gesicht erkannt. Versuche ein klareres Foto.|No se detectó rostro. Prueba otra foto más clara.|لم يتم اكتشاف وجه، جرّب صورة أوضح.
+geometrySource|Kaynak|Source|Quelle|Origen|المصدر
+geometryPhoto|Fotoğraf|Photo|Foto|Foto|صورة
+geometryVideo|Video karesi|Video frame|Videobild|Fotograma|إطار فيديو
+geometryFaces|Tespit edilen yüz|Faces detected|Erkannte Gesichter|Rostros detectados|الوجوه المكتشفة
+geometryPixels|Yüz bölgesi (piksel)|Face area (pixels)|Gesichtsbereich (Pixel)|Área facial (píxeles)|منطقة الوجه (بكسل)
+geometryRatio|Genişlik / yükseklik oranı|Width / height ratio|Breite / Höhe|Proporción ancho / alto|نسبة العرض إلى الارتفاع
+geometryEyes|Gözler arası mesafe / yüz genişliği|Eye distance / face width|Augenabstand / Gesichtsbreite|Distancia ocular / ancho facial|المسافة بين العينين / عرض الوجه
+geometryNose|Burun-ağız mesafesi / yüz yüksekliği|Nose-mouth / face height|Nase-Mund / Gesichtshöhe|Nariz-boca / altura facial|المسافة بين الأنف والفم / ارتفاع الوجه
+geometryYaw|Başın yatay dönüşü|Head turn|Kopfdrehung|Giro de cabeza|دوران الرأس أفقيًا
+geometryRoll|Başın eğimi|Head tilt|Kopfneigung|Inclinación de cabeza|ميل الرأس
+geometryUnavailable|Ölçüm noktası yetersiz|Landmark unavailable|Messpunkt fehlt|Punto no disponible|نقطة القياس غير متاحة
+geometryMultiple|Birden çok yüz var; en belirgin yüz ölçüldü.|Multiple faces; the most prominent was measured.|Mehrere Gesichter; das deutlichste wurde gemessen.|Hay varios rostros; se midió el más visible.|توجد وجوه متعددة، وتم قياس الوجه الأوضح.
+geometryNote|Kamera açısı ve ışık ölçümleri değiştirir. Bu bir tıbbi veya kişilik testi değildir.|Camera angle and light affect measurements. This is not a medical or personality test.|Kamerawinkel und Licht beeinflussen die Messung. Kein Medizin- oder Persönlichkeitstest.|La luz y el ángulo afectan la medición. No es prueba médica ni de personalidad.|تؤثر الإضاءة وزاوية الكاميرا في القياس، وليس هذا اختبارًا طبيًا أو للشخصية.
+geometryPrivacy|Görüntü veya ölçüm cihazından gönderilmez.|The image and measurements never leave this device.|Bild und Messwerte verlassen das Gerät nicht.|La imagen y las mediciones no salen del dispositivo.|لا تغادر الصورة والقياسات جهازك.
+geometryError|Cihaz içi ölçüm tamamlanamadı.|On-device measurement could not finish.|Lokale Messung konnte nicht beendet werden.|No se pudo completar la medición local.|تعذر إكمال القياس على الجهاز.
+website|www.okiminsozu.com|www.okiminsozu.com|www.okiminsozu.com|www.okiminsozu.com|www.okiminsozu.com
+brand|RaSaSeR APPS & TECHNOLOGY|RaSaSeR APPS & TECHNOLOGY|RaSaSeR APPS & TECHNOLOGY|RaSaSeR APPS & TECHNOLOGY|RaSaSeR APPS & TECHNOLOGY
