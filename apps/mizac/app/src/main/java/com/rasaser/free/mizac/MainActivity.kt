@@ -496,7 +496,7 @@ private fun AnalysisSelection(
             verticalAlignment=Alignment.CenterVertically) {
             listOf(10,50,120).forEach { value ->
                 Box(
-                    modifier=Modifier.size(96.dp)
+                    modifier=Modifier.size(88.dp)
                         .border(
                             width=if(count==value)3.dp else 1.dp,
                             color=if(count==value)Color(0xFF98702D) else Color(0xFFCCB48E),
