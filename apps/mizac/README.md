@@ -54,3 +54,15 @@ Başlıca kaynaklar:
 - Kaynak tamamlanıp fiziksel cihazda test edildikten sonra güvenli `RASASER` PRIVATE depoya aktarılacak; üretim imzası yalnız PRIVATE ortamında yapılacak.
 - Derleme: `.github/workflows/mizac-android-build.yml` yalnız `apps/mizac/` uygulamasını derler.
 - Mevcut durum: Çok dilli özgün anket + tarihî bölüm + yüz geometrisi entegre edildi; Kotlin derleme ve kullanıcı arayüzü testleri tamamlanmadan yayın hazır denilemez.
+
+## v0.3 — Mârifetnâme önce, görüntü ölçümü sonra
+
+- **Hızlı Analiz** yalnız cihazda `mizac_photo.dat` veya `mizac_video.dat` dosyalarını inceler. Her ikisi varsa **son eklenen** medya seçilir.
+- Sonuç ekranında **1. Mârifetnâme'nin tarihî kıyâfet yorumları** bağımsız beş dilde, kaynaklı bilgi kartları olarak gösterilir. Bunlar görüntüye göre karakter, sağlık veya zekâ tanıları **değildir**; kişinin yüzüne göre bir tarihî etikete karar verilmez.
+- Ardından **2. Bilimsel görüntü ölçümleri**: yüz piksel alanı, iki boyutlu genişlik/yükseklik, göz/burun/ağız arası göreli mesafeler, baş dönüşü/eğimi, mümkünse ML Kit gülümseme ve göz açıklığı **görüntü tahminleri**. Sonuncular duygunun, huyun, sağlık durumunun veya zekânın göstergesi olarak sunulmaz.
+- Sağlık: yüz görüntüsünden tanı veya risk puanı verilmez. Zekâ: görüntüden IQ/öğrenme kapasitesi verilmez. Kişilik: fotoğraftan puan verilmez; ayrı öz değerlendirme soruları doğrulanmış psikometrik test olarak tanıtılmaz.
+- Video görüntüsü tek temsilî orta kareden okunur; 30 saniyelik videonun tamamında süreklilik veya hareket takibi **henüz yoktur**. Kayıt ve veri aktarımı sadece kullanıcının kendi cihazında gerçekleşir.
+- Bu sürüm `versionCode=3`, `versionName=0.3.0` olarak ayrı debug-test paket kimliğiyle derlenir.
+- Başlıca kaynaklar: Google ML Kit Face Detection [resmî dokümantasyon](https://developers.google.com/ml-kit/vision/face-detection/android), TDV İslâm Ansiklopedisi [İbrâhim Hakkı Erzurûmî](https://islamansiklopedisi.org.tr/ibrahim-hakki-erzurumi) ve [Mârifetnâme](https://islamansiklopedisi.org.tr/marifetname). Kişilik yüz tahmini güvenilirliği: [2024 fotoğraftan kişilik izlenimi araştırması](https://journals.sagepub.com/doi/full/10.1177/08902070231225728).
+
+Görüntüye dayalı medikal cihaz iddiası, yüz/bedene göre ahlâk veya zekâ puanlama, sınıflandırılmış kişilik tanısı yapılmayacaktır.
