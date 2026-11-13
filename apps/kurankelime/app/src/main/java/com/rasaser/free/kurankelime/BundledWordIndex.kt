@@ -24,7 +24,7 @@ class BundledWordIndex(private val context: Context) {
         fun isCleanSearchWord(text: String): Boolean =
             text.isNotBlank() && text.length <= 64 &&
             text.none { it == '\n' || it == '\r' || it == '\t' ||
-                (it.isISOControl() && it != ' ') }
+                (it.code < 32 || it.code == 127) }
     }
     private val file = File(context.noBackupFilesDir, "quran_words_ocr_v2.sqlite")
     private var db: SQLiteDatabase? = null
