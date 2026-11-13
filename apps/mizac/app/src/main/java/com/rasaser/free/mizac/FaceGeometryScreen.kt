@@ -267,7 +267,7 @@ fun FaceGeometryScreen(
                     Text(ui(strings,"photoReportVideoNote"),color=MutedColor,
                         style=MaterialTheme.typography.bodySmall)
                 PhotoObservationSummary(strings,v)
-                GeneralGrowthSuggestions(strings)
+                PersonalizedPhotoSuggestions(strings,v)
             }
         }
 
