@@ -86,11 +86,6 @@ fun OriginalQuestionnaire(
                 ui(dict,"selfAssessmentSection"),color=dark,
                 style=MaterialTheme.typography.titleLarge,
                 fontWeight=FontWeight.Bold)
-            Text(
-                ui(dict,"resultTitle"), color=dark,
-                style=MaterialTheme.typography.headlineSmall,
-                fontWeight=FontWeight.Bold
-            )
             val labels=mapOf(
                 "O" to "factorO","C" to "factorC","E" to "factorE",
                 "A" to "factorA","S" to "factorS"
@@ -120,10 +115,6 @@ fun OriginalQuestionnaire(
                     }
                 }
             }
-            Text(ui(dict,"resultDisclaimer"),color=secondary,
-                style=MaterialTheme.typography.bodySmall)
-            Text(ui(dict,"noNorms"),color=secondary,
-                style=MaterialTheme.typography.bodySmall)
             var expandedAnswers by rememberSaveable { mutableStateOf(false) }
             TextButton(onClick={ expandedAnswers=!expandedAnswers },
                 modifier=Modifier.fillMaxWidth()) {
