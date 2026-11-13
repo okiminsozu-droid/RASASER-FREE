@@ -73,7 +73,7 @@ jobs:
           compression-level: 0
 
       - name: Publish independent v0.3.4-base six-language code-only APK
-        if: ${{ github.ref == 'refs/heads/feature/kurani-v034-five-offline-mlkit-packs' && github.event_name == 'push' }}
+        if: ${{ (github.ref == 'refs/heads/feature/kurani-v034-five-offline-mlkit-packs' && github.event_name == 'push') || (github.event_name == 'pull_request' && github.head_ref == 'feature/kurani-v034-five-offline-mlkit-packs') }}
         uses: actions/upload-artifact@v4
         with:
           name: Kurani_Kesfet_v034_Six_Languages_CODE_ONLY
