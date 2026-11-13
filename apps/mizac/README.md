@@ -16,6 +16,20 @@
 3. **Mârifetnâme / İlm-i Kıyâfet** bilgi ekranı (tarihî görüşler, güncel bilimden açıkça ayrılmıştır).
 4. Gizlilik, kaynak/lisans bilgilendirmesi.
 
+## Kullanıcı verilerinin mülkiyeti ve gizliliği
+
+**Veriler kullanıcıya aittir.** MİZAÇ hizmetinin amacı kişisel verileri toplamak değildir.
+
+- İsteğe bağlı fotoğraflar ve **en fazla 30 saniyelik videolar**, telefonun uygulamaya özel alanına kopyalanır.
+- 10 / 50 / 120 soru tercihi yerel SharedPreferences'ta tutulur.
+- Mevcut 10 soruluk prototip yanıtları yalnızca geçici ekran durumundadır; kalıcı kişilik geçmişi henüz yazılmaz.
+- RaSaSeR şirketi kullanıcının fotoğraflarını, videolarını, cevaplarını veya sonuçlarını kendi sunucularına almaz, analiz için dış servise göndermez.
+- Hesap, analitik SDK, reklam SDK'sı, uygulama içi internet istemcisi veya uzaktan kayıt altyapısı kullanılmaz.
+- Gizlilik ekranında **Tüm Yerel MİZAÇ Verilerimi Sil** onayıyla yerel uygulama kopyaları ve tercihleri kaldırılır; telefon galerisindeki orijinal dosyalara dokunulmaz.
+- Android yedekleme kapalıdır (`allowBackup=false`); üçüncü taraf kamera veya galeri uygulamalarının kendi davranışları kullanıcıya açıkça belirtilir.
+- Dış web sitesi bağlantısı kullanıcı dokunmasıyla açılır; uygulama kişilik verilerini web sitesine göndermez.
+- Gelecekte yerel analiz geçmişi eklendiğinde aynı cihazda saklama ve tam silme kuralı korunacak. Ağ üzerinden analiz motoruna gönderim izinsiz eklenmeyecek.
+
 ## İlkeler
 Yüz/boy/beden görünümünden karakter, dürüstlük, zekâ veya niyet çıkarımı yapılmaz. Bu tür fizyonomi anlatıları yalnız tarihî içerik olarak gösterilir. Şeffaflık, rıza ve çevrimdışı kullanım önceliklidir. Klinik teşhis, işe alım kararı veya yüksek riskli karar desteği amaçlanmaz.
 
