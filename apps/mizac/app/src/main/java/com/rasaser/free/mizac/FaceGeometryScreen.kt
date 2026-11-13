@@ -266,6 +266,8 @@ fun FaceGeometryScreen(
                 if(v.fromVideo)
                     Text(ui(strings,"photoReportVideoNote"),color=MutedColor,
                         style=MaterialTheme.typography.bodySmall)
+                PhotoObservationSummary(strings,v)
+                GeneralGrowthSuggestions(strings)
             }
         }
 
