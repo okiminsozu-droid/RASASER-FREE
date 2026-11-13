@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.material3.TextButton
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.height
@@ -77,6 +78,14 @@ fun OriginalQuestionnaire(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         if (finished && answers.all { it in 1..5 }) {
+            Text(ui(dict,"photoReportHistory"), color=dark,
+                style=MaterialTheme.typography.titleLarge,
+                fontWeight=FontWeight.Bold)
+            MarifetnameMatching(lang, dict)
+            Text(
+                ui(dict,"selfAssessmentSection"),color=dark,
+                style=MaterialTheme.typography.titleLarge,
+                fontWeight=FontWeight.Bold)
             Text(
                 ui(dict,"resultTitle"), color=dark,
                 style=MaterialTheme.typography.headlineSmall,
@@ -102,8 +111,12 @@ fun OriginalQuestionnaire(
                         LinearProgressIndicator(
                             progress={score/5f}, modifier=Modifier.fillMaxWidth()
                         )
-                        Text(formatLocalNumber(score,lang)+" / 5",
-                            color=secondary,style=MaterialTheme.typography.bodyMedium)
+                        Text(
+                            formatLocalNumber(score,lang)+" / 5  •  "+
+                                questions.count { it.category==factor }.toString()+
+                                " "+ui(dict,"questions"),
+                            color=secondary,style=MaterialTheme.typography.bodyMedium
+                        )
                     }
                 }
             }
@@ -111,10 +124,31 @@ fun OriginalQuestionnaire(
                 style=MaterialTheme.typography.bodySmall)
             Text(ui(dict,"noNorms"),color=secondary,
                 style=MaterialTheme.typography.bodySmall)
-            OutlinedButton(
-                onClick=onHistory,
-                modifier=Modifier.fillMaxWidth()
-            ) { Text(ui(dict,"history")) }
+            var expandedAnswers by rememberSaveable { mutableStateOf(false) }
+            TextButton(onClick={ expandedAnswers=!expandedAnswers },
+                modifier=Modifier.fillMaxWidth()) {
+                Text(ui(dict, if(expandedAnswers) "hideAnswers" else "viewAnswers"))
+            }
+            if(expandedAnswers) {
+                questions.forEachIndexed { itemIndex, item ->
+                    Card(
+                        modifier=Modifier.fillMaxWidth(),
+                        colors=CardDefaults.cardColors(containerColor=ivory),
+                        shape=RoundedCornerShape(14.dp)
+                    ){
+                        Column(Modifier.padding(10.dp),
+                            verticalArrangement=Arrangement.spacedBy(4.dp)) {
+                            Text("${itemIndex+1}. ${item.text(lang)}",
+                                color=dark,style=MaterialTheme.typography.bodyMedium)
+                            Text(ui(dict,"answerLabel")+": ${answers[itemIndex]} / 5",
+                                color=secondary,style=MaterialTheme.typography.labelMedium)
+                        }
+                    }
+                }
+            }
+            OutlinedButton(onClick=onHistory,modifier=Modifier.fillMaxWidth()) {
+                Text(ui(dict,"history"))
+            }
         } else {
             Text(
                 "${selectedPage+1} / ${questions.size}",
