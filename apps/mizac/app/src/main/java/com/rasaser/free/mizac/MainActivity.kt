@@ -112,6 +112,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 private fun MizacApp() {
     var screen by rememberSaveable { mutableStateOf("home") }
+    var activeQuestionCount by rememberSaveable { mutableStateOf(10) }
     var answers by rememberSaveable { mutableStateOf(List(items.size) { 0 }) }
     BackHandler(enabled = screen != "home") { screen = "home" }
 
@@ -126,7 +127,16 @@ private fun MizacApp() {
                 onHistory = { screen = "history" },
                 onPrivacy = { screen = "privacy" }
             )
-            "analysis-setup" -> AnalysisSetupScreen(onBack = { screen = "home" })
+            "analysis-setup" -> AnalysisSetupScreen(
+                onBack = { screen = "home" },
+                onGeometry = { screen = "geometry" },
+                onQuestionnaire = { count -> activeQuestionCount = count; screen = "questionnaire" }
+            )
+            "geometry" -> FaceGeometryScreen(onBack = { screen = "analysis-setup" })
+            "questionnaire" -> PersonalityTestScreen(
+                questionCount = activeQuestionCount,
+                onBack = { screen = "analysis-setup" }
+            )
             "reflection" -> ReflectionScreen(
                 answers = answers,
                 onAnswer = { index, answer ->
@@ -137,7 +147,7 @@ private fun MizacApp() {
             )
             "results" -> ResultsScreen(answers, onBack = { screen = "home" },
                 onRetry = { answers = List(items.size) { 0 }; screen = "reflection" })
-            "history" -> HistoryScreen(onBack = { screen = "home" })
+            "history" -> MarifetnameScreen(onBack = { screen = "home" })
             "privacy" -> PrivacyScreen(
                 onBack = { screen = "home" },
                 onDeleteAnswers = { answers = List(items.size) { 0 } }
@@ -278,7 +288,11 @@ private fun storeMediaLocally(context: Context, uri: Uri, kind: String) {
 }
 
 @Composable
-private fun AnalysisSetupScreen(onBack: () -> Unit) {
+private fun AnalysisSetupScreen(
+    onBack: () -> Unit,
+    onGeometry: () -> Unit,
+    onQuestionnaire: (Int) -> Unit
+) {
     val context = LocalContext.current
     val prefs = remember(context) {
         context.getSharedPreferences("mizac_local_setup", Context.MODE_PRIVATE)
@@ -412,6 +426,18 @@ private fun AnalysisSetupScreen(onBack: () -> Unit) {
             }) { Text("Videoyu Kaldır") }
         }
     }
+    Button(
+        onClick = onGeometry,
+        enabled = hasPhoto || hasVideo,
+        modifier = Modifier.fillMaxWidth(),
+        colors = ButtonDefaults.buttonColors(containerColor = ivory, contentColor = black)
+    ) {
+        Text("Fotoğrafın / Videonun Yüz Geometrisini İncele")
+    }
+    Text(
+        "Görüntünün yüz ölçümü yalnız cihazda yapılır; görünüşten karakter tahmini üretilmez.",
+        color = muted, style = MaterialTheme.typography.bodySmall
+    )
     Text("Kaç soru ile ilerlemek istersin?", color = black,
         style = MaterialTheme.typography.titleLarge)
     listOf(
@@ -457,6 +483,14 @@ private fun AnalysisSetupScreen(onBack: () -> Unit) {
     if (feedback.isNotEmpty()) {
         Text(feedback, color = black, style = MaterialTheme.typography.bodyMedium)
     }
+    Button(
+        onClick = {
+            prefs.edit().putInt("question_count", questionCount).apply()
+            onQuestionnaire(questionCount)
+        },
+        modifier = Modifier.fillMaxWidth().height(56.dp),
+        colors = ButtonDefaults.buttonColors(containerColor = ivory, contentColor = black)
+    ) { Text("Soruları Başlat", style = MaterialTheme.typography.titleMedium) }
     Text(
         "Verilerin sahibi sizsiniz. MİZAÇ bu aşamada fotoğraf ve videoları analiz etmez; " +
             "analiz motoruna, RaSaSeR'a veya herhangi bir sunucuya göndermez. " +
