@@ -31,7 +31,6 @@ fun MarifetnameScreen(
     val context = LocalContext.current
     val sections = remember(lang.code) { loadHistory(context, lang) }
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Button(onClick = onBack) { Text(ui(strings,"backHome")) }
         Text(ui(strings,"historyTitle"), color = DarkText,
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold)
