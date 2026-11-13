@@ -6,6 +6,8 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.widget.Toast
+import android.widget.TextView
+import android.view.Gravity
 import com.google.mlkit.common.model.DownloadConditions
 import com.google.mlkit.nl.translate.TranslateLanguage
 import com.google.mlkit.nl.translate.Translation
@@ -50,13 +52,11 @@ internal class OnDeviceWordTranslator(
         var reviewed: ReviewedQuranGlossary.Entry? = null
         var printed: SelectableTextLayer.PrintedTurkishGloss? = null
         var machineResult: String? = null
-        var status = "Doğrulanmış kelime anlamı kontrol ediliyor…"
+        var status = "Çevriliyor…"
 
         val dialog = AlertDialog.Builder(activity)
-            .setTitle("Kelime çevirisi · ${names[source] ?: source} → ${names[target] ?: target}")
-            .setMessage("")
-            .setPositiveButton("Google çeviri", null)
-            .setNeutralButton("Kopyala", null)
+            .setMessage("Çevriliyor…")
+            .setPositiveButton("Kopyala", null)
             .setNegativeButton("Kapat", null)
             .create()
         activeDialog = dialog
@@ -64,46 +64,31 @@ internal class OnDeviceWordTranslator(
             if (activeDialog === dialog) activeDialog = null
         }
         dialog.show()
+        // Only the translated word and two actions are visible. No OCR/ML notes.
+        dialog.findViewById<TextView>(android.R.id.message)?.apply {
+            textSize = 23f
+            gravity = Gravity.CENTER
+            setPadding(px(24), px(30), px(24), px(22))
+        }
         // Keep the result compact and inside the SAME reading activity.
         dialog.window?.setLayout(
             minOf(activity.resources.displayMetrics.widthPixels - px(32), px(355)),
             -2
         )
 
+        // All existing data-source precedence remains unchanged; hide provenance,
+        // warnings, source text and model labels from the translation popup.
+        fun translatedWord(): String? = reviewed?.meaning?.takeIf { it.isNotBlank() }
+            ?: printed?.text?.takeIf { it.isNotBlank() }
+            ?: localHint?.text?.takeIf { it.isNotBlank() }
+            ?: machineResult?.takeIf { it.isNotBlank() }
+            ?: if (source == target) selectedText else null
+
         fun render() {
             if (!visible(dialog)) return
-            dialog.setMessage(buildString {
-                append("Seçilen (").append(names[source] ?: source).append("): ")
-                    .append(selectedText).append("\n\n")
-                if (reviewed != null) {
-                    append("Doğrulanmış Kur’an kelime anlamı\n")
-                    append(reviewed!!.meaning)
-                    append("\nKaynak: ").append(reviewed!!.reference).append("\n\n")
-                } else if (printed != null) {
-                    append("PDF’de Arapça kelimenin altında yazan Türkçe (OCR)\n")
-                    append(printed!!.text).append("\n\n")
-                    append("Bu karşılık aynı sayfadan çevrimdışı algılandı; ")
-                    append("OCR eşleşmesinin doğruluğu denetlenmelidir.\n\n")
-                } else if (localHint != null) {
-                    append("Çevrimdışı dilbilgisel karşılık (olası)\n")
-                    append(localHint.text).append("\n\n")
-                    append("Bu Türkçe kelimenin karşılığı cümleye göre değişebilir. ")
-                    append("Bu, doğrulanmış Kur’an kelime meali değildir.\n\n")
-                } else if (source == target) {
-                    append("Seçili metin zaten hedef dilde.\n\n")
-                } else {
-                    append("Bu seçim için doğrulanmış Kur’an kelime anlamı bulunmuyor.\n\n")
-                }
-                if (machineResult != null) {
-                    append("Google ML Kit — bağlamdan bağımsız otomatik öneri\n")
-                    append(machineResult).append("\n\n")
-                    append("Tek kelime çevirisi yanılabilir; Kur’an meali veya tefsir değildir.")
-                } else {
-                    append(status)
-                }
-                append("\n\nNot: Seçili metin OCR ile algılanmış olabilir; ")
-                append("harfleri asıl sayfa üzerinden kontrol edin.")
-            })
+            dialog.setMessage(translatedWord() ?: status)
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE)?.isEnabled =
+                translatedWord() != null
         }
 
         fun performGoogle(sourceTag: String, targetTag: String) {
@@ -181,14 +166,11 @@ internal class OnDeviceWordTranslator(
             }
         }
 
-        dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener {
-            val copied = reviewed?.meaning ?: printed?.text ?: localHint?.text ?: machineResult ?: selectedText
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+            val copied = translatedWord() ?: return@setOnClickListener
             (activity.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager)
                 .setPrimaryClip(ClipData.newPlainText("Kur’an kelimesi", copied))
             Toast.makeText(activity, "Metin kopyalandı", Toast.LENGTH_SHORT).show()
-        }
-        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-            requestGoogle()
         }
         render()
 
@@ -208,15 +190,7 @@ internal class OnDeviceWordTranslator(
                 if (!visible(dialog)) return@runOnUiThread
                 reviewed = result
                 printed = fromPrintedPdf
-                status = when {
-                    result != null -> "Otomatik çeviriyle karşılaştırmak için Google çeviriye dokunun."
-                    fromPrintedPdf != null -> "Basılı Türkçe OCR karşılığı bulundu; " +
-                        "Google otomatik çevirisi ayrıca açılabilir."
-                    localHint != null -> "Bu kelimenin birden çok olası anlamı var. " +
-                        "Google ML Kit sonucunu ayrıca karşılaştırabilirsiniz."
-                    source == target -> ""
-                    else -> "Cihaz içi ML Kit çevirisi kontrol ediliyor…"
-                }
+                status = "Çevriliyor…"
                 render()
                 // Never replace an available verified gloss OR an unambiguous display
                 // of grammatical alternatives with a one-word ML Kit guess.
