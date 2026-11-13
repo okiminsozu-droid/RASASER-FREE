@@ -16,7 +16,16 @@ import java.util.Locale
  * enabling those languages' word glosses.
  */
 class BundledWordIndex(private val context: Context) {
-    companion object { private const val ASSET = "quran/word_ocr.sqlite"; private const val FIRST_ID = 1000000 }
+    companion object {
+        private const val ASSET = "quran/word_ocr.sqlite"
+        private const val FIRST_ID = 1000000
+
+        /** Exclude malformed OCR rows containing embedded TSV/raw coordinate data. */
+        fun isCleanSearchWord(text: String): Boolean =
+            text.isNotBlank() && text.length <= 64 &&
+            text.none { it == '\n' || it == '\r' || it == '\t' ||
+                (it.code < 32 || it.code == 127) }
+    }
     private val file = File(context.noBackupFilesDir, "quran_words_ocr_v2.sqlite")
     private var db: SQLiteDatabase? = null
     private val lock = Any()
@@ -86,9 +95,15 @@ class BundledWordIndex(private val context: Context) {
                 "SELECT t.id,t.page,t.x,t.y,t.w,t.h,t.token FROM ocr_fts f " +
                     "JOIN ocr_tokens t ON t.id=f.docid " +
                     "WHERE ocr_fts MATCH ? AND t.lang=? AND t.confidence>=40 " +
+                    "AND length(t.token) BETWEEN 1 AND 64 " +
+                    "AND instr(t.token,char(9))=0 AND instr(t.token,char(10))=0 " +
+                    "AND instr(t.token,char(13))=0 " +
                     "ORDER BY t.page,t.y,t.x LIMIT ?",
                 arrayOf(match, searchLang, limit.coerceIn(1, 500).toString())
-            ).use { c -> while (c.moveToNext()) output += fromCursor(c) }
+            ).use { c -> while (c.moveToNext()) {
+                val word = fromCursor(c)
+                if (isCleanSearchWord(word.gloss)) output += word
+            } }
         } catch (_: android.database.sqlite.SQLiteException) {}
         return output
     }
