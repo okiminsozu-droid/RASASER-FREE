@@ -20,7 +20,10 @@ import java.util.concurrent.Executors
  * Reviewed scripture meanings may be shown ONLY when the optional, independently
  * reviewed exact-token glossary contains a matching source, page, language and ID.
  */
-internal class OnDeviceWordTranslator(private val activity: Activity) {
+internal class OnDeviceWordTranslator(
+    private val activity: Activity,
+    private val selectableLayer: SelectableTextLayer
+) {
     private val glossary = ReviewedQuranGlossary(activity.applicationContext)
     private val lookupWorker = Executors.newSingleThreadExecutor()
     private val codes = setOf("tr", "en", "de", "es", "zh", "ar", "ja")
@@ -45,6 +48,7 @@ internal class OnDeviceWordTranslator(private val activity: Activity) {
         activeDialog?.dismiss()
         val localHint = OfflineWordMeaning.find(selectedText, source, target)
         var reviewed: ReviewedQuranGlossary.Entry? = null
+        var printed: SelectableTextLayer.PrintedTurkishGloss? = null
         var machineResult: String? = null
         var status = "Doğrulanmış kelime anlamı kontrol ediliyor…"
 
@@ -75,6 +79,11 @@ internal class OnDeviceWordTranslator(private val activity: Activity) {
                     append("Doğrulanmış Kur’an kelime anlamı\n")
                     append(reviewed!!.meaning)
                     append("\nKaynak: ").append(reviewed!!.reference).append("\n\n")
+                } else if (printed != null) {
+                    append("PDF’de Arapça kelimenin altında yazan Türkçe (OCR)\\n")
+                    append(printed!!.text).append("\\n\\n")
+                    append("Bu karşılık aynı sayfadan çevrimdışı algılandı; ")
+                    append("OCR eşleşmesinin doğruluğu denetlenmelidir.\\n\\n")
                 } else if (localHint != null) {
                     append("Çevrimdışı dilbilgisel karşılık (olası)\n")
                     append(localHint.text).append("\n\n")
@@ -173,7 +182,7 @@ internal class OnDeviceWordTranslator(private val activity: Activity) {
         }
 
         dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener {
-            val copied = reviewed?.meaning ?: localHint?.text ?: machineResult ?: selectedText
+            val copied = reviewed?.meaning ?: printed?.text ?: localHint?.text ?: machineResult ?: selectedText
             (activity.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager)
                 .setPrimaryClip(ClipData.newPlainText("Kur’an kelimesi", copied))
             Toast.makeText(activity, "Metin kopyalandı", Toast.LENGTH_SHORT).show()
@@ -186,14 +195,23 @@ internal class OnDeviceWordTranslator(private val activity: Activity) {
         lookupWorker.execute {
             // Multiple OCR words cannot be inferred to have a verified single-word
             // gloss. Public builds have no approved glossary and safely fall back.
-            val result = if (firstOcrId > 0 && firstOcrId == lastOcrId) {
+            val isOneWord = firstOcrId > 0 && firstOcrId == lastOcrId
+            val result = if (isOneWord) {
                 glossary.find(readerPage, firstOcrId, source, target, selectedText)
+            } else null
+            val fromPrintedPdf = if (result == null && isOneWord &&
+                source == "ar" && target == "tr"
+            ) {
+                selectableLayer.printedTurkishBelow(readerPage, firstOcrId, selectedText)
             } else null
             activity.runOnUiThread {
                 if (!visible(dialog)) return@runOnUiThread
                 reviewed = result
+                printed = fromPrintedPdf
                 status = when {
                     result != null -> "Otomatik çeviriyle karşılaştırmak için Google çeviriye dokunun."
+                    fromPrintedPdf != null -> "Basılı Türkçe OCR karşılığı bulundu; " +
+                        "Google otomatik çevirisi ayrıca açılabilir."
                     localHint != null -> "Bu kelimenin birden çok olası anlamı var. " +
                         "Google ML Kit sonucunu ayrıca karşılaştırabilirsiniz."
                     source == target -> ""
@@ -202,7 +220,8 @@ internal class OnDeviceWordTranslator(private val activity: Activity) {
                 render()
                 // Never replace an available verified gloss OR an unambiguous display
                 // of grammatical alternatives with a one-word ML Kit guess.
-                if (result == null && localHint == null && source != target) requestGoogle()
+                if (result == null && fromPrintedPdf == null && localHint == null &&
+                    source != target) requestGoogle()
             }
         }
     }
