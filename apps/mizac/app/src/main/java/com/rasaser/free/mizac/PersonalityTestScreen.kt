@@ -225,7 +225,6 @@ fun HistoricalReflectionScreen(
         mutableStateOf(List(10){0})
     }
     Column(verticalArrangement=Arrangement.spacedBy(12.dp)) {
-        OutlinedButton(onClick=onBack) { Text(ui(dict,"backSetup")) }
         Text(ui(dict,"historyReflectionTitle"),color=dark,
             style=MaterialTheme.typography.headlineSmall,fontWeight=FontWeight.Bold)
         Text(ui(dict,"historyReflectionNotice"),color=secondary)
