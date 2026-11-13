@@ -10,8 +10,8 @@ android {
         applicationId = "com.rasaser.free.kurankelime"
         minSdk = 26
         targetSdk = 35
-        versionCode = 23
-        versionName = "0.3.12"
+        versionCode = 24
+        versionName = "0.3.13"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     buildTypes {
