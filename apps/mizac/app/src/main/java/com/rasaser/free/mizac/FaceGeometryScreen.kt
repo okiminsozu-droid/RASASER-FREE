@@ -7,6 +7,7 @@ import android.graphics.Matrix
 import android.media.MediaMetadataRetriever
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -277,27 +278,6 @@ fun FaceGeometryScreen(
             }
         }
 
-        listOf(
-            "photoReportPersonalTraits" to "photoReportPersonalTraitsNotMeasurable",
-            "photoReportHealth" to "photoReportHealthNotMeasurable",
-            "photoReportIntelligence" to "photoReportIntelligenceNotMeasurable"
-        ).forEach { (title,desc) ->
-            Card(
-                modifier=Modifier.fillMaxWidth(),
-                colors=CardDefaults.cardColors(containerColor=WhiteCard),
-                shape=RoundedCornerShape(20.dp)
-            ) {
-                Column(Modifier.padding(16.dp),
-                    verticalArrangement=Arrangement.spacedBy(6.dp)) {
-                    Text(ui(strings,title),color=InkColor,fontWeight=FontWeight.Bold,
-                        style=MaterialTheme.typography.titleMedium)
-                    Text(ui(strings,"photoReportNoScore"),color=MutedColor,
-                        style=MaterialTheme.typography.labelSmall)
-                    Text(ui(strings,desc),color=MutedColor,
-                        style=MaterialTheme.typography.bodySmall)
-                }
-            }
-        }
         Text(ui(strings,"geometryPrivacy"),color=InkColor,
             style=MaterialTheme.typography.bodySmall)
     }
@@ -305,9 +285,14 @@ fun FaceGeometryScreen(
 
 @Composable
 private fun GeometryLabel(strings: Map<String,String>, key: String, value: String) {
-    Column(verticalArrangement=Arrangement.spacedBy(2.dp)) {
-        Text(ui(strings,key),color=MutedColor,
-            style=MaterialTheme.typography.labelMedium)
-        Text(value,color=InkColor,style=MaterialTheme.typography.titleMedium)
+    Row(
+        modifier=Modifier.fillMaxWidth().padding(vertical=3.dp),
+        horizontalArrangement=Arrangement.spacedBy(12.dp)
+    ) {
+        Text(ui(strings,key),modifier=Modifier.weight(1.7f),
+            color=MutedColor,style=MaterialTheme.typography.bodyMedium)
+        Text(value,modifier=Modifier.weight(1f),
+            color=InkColor,fontWeight=FontWeight.SemiBold,
+            style=MaterialTheme.typography.bodyMedium)
     }
 }
