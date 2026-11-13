@@ -150,8 +150,12 @@ fun QuestionnaireGrowthSummary(
     val bottom=sorted.last()
     val spread=(scores[top]?:0f)-(scores[bottom]?:0f)
     val distinctEnough=spread>=0.35f
-    val high=if(distinctEnough) sorted.take(2) else emptyList()
-    val low=if(distinctEnough) sorted.takeLast(2).reversed() else emptyList()
+    val high=if(distinctEnough)
+        sorted.filter { (scores[top]?:0f)-(scores[it]?:0f)<=0.25f }.take(2)
+        else emptyList()
+    val low=if(distinctEnough)
+        sorted.reversed().filter { (scores[it]?:0f)-(scores[bottom]?:0f)<=0.25f }
+            .take(2) else emptyList()
 
     Text(ui(strings,"personalAnswerProfile"),color=GrowthInk,
         style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
