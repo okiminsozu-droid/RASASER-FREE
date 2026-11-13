@@ -110,14 +110,18 @@ private fun MizacRoot() {
         LocalLayoutDirection provides if (lang.code == "ar") LayoutDirection.Rtl else LayoutDirection.Ltr
     ) {
         Column(Modifier.fillMaxSize().background(Sand)) {
-            Row(
-                Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 2.dp),
-                horizontalArrangement = Arrangement.End,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                LanguageFlags(lang, dict) { selected ->
-                    languageCode = selected.code
-                    prefs.edit().putString("ui_language", selected.code).apply()
+            // Keep the flag selector at the physical top-right in every language,
+            // while the page content mirrors for Arabic.
+            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                Row(
+                    Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 2.dp),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    LanguageFlags(lang, dict) { selected ->
+                        languageCode = selected.code
+                        prefs.edit().putString("ui_language", selected.code).apply()
+                    }
                 }
             }
             Column(
