@@ -178,12 +178,23 @@ private fun DiscoverHome() {
                 }
             }
             Spacer(Modifier.weight(1f))
-            if (logo != null) {
-                Image(logo, contentDescription="Kurani Keşfet logosu",
-                    modifier=Modifier.size(68.dp), contentScale=ContentScale.Fit)
-            } else {
-                Icon(Icons.Default.AutoStories, contentDescription="Kurani Keşfet", tint=HomeGreen,
-                    modifier=Modifier.size(46.dp))
+            // Site association belongs to the EXISTING logo; the image is unchanged.
+            Column(
+                modifier=Modifier.clickable {
+                    context.startActivity(Intent(Intent.ACTION_VIEW,
+                        Uri.parse("https://www.okiminsozu.com")))
+                },
+                horizontalAlignment=Alignment.CenterHorizontally
+            ) {
+                if (logo != null) {
+                    Image(logo, contentDescription="www.okiminsozu.com",
+                        modifier=Modifier.size(68.dp), contentScale=ContentScale.Fit)
+                } else {
+                    Icon(Icons.Default.AutoStories, contentDescription="www.okiminsozu.com",
+                        tint=HomeGreen, modifier=Modifier.size(46.dp))
+                }
+                Text("www.okiminsozu.com", fontSize=9.sp, color=HomeGreen,
+                    maxLines=1, textAlign=TextAlign.Center)
             }
         }
         if (screen == "home") {
@@ -241,7 +252,7 @@ private fun DiscoverHome() {
                 val hasFullSearch = bundledReady || onDeviceReady || fullIndex.hasFullIndex
                 val searchMessage = when {
                     indexing -> "Çevrimdışı metin dizini hazırlanıyor: $scannedPages / $pageCount sayfa"
-                    bundledReady -> "304 sayfalık çevrimdışı dizin hazır · OCR sonuçları doğrulama gerektirir"
+                    bundledReady -> "" // Hide old OCR warning; actual search index remains unchanged.
                     onDeviceReady -> "PDF'den oluşturulan yerel arama dizini hazır · internet gerekmez"
                     fullIndex.hasFullIndex -> "Uygulamaya eklenmiş 304 sayfalık arama dizini hazır"
                     noTextLayer -> "Bu PDF'nin metin katmanı okunamadı. Kelime dizini eklenmeli."
@@ -249,8 +260,10 @@ private fun DiscoverHome() {
                     Build.VERSION.SDK_INT < 35 -> "Android 15 altında tam arama için yerel kelime dizini gereklidir."
                     else -> "Tam arama verisi henüz hazır değil; Fâtiha örnek araması açık."
                 }
-                Text(searchMessage, fontSize=11.sp, color=HomeBrown,
-                    modifier=Modifier.padding(vertical=8.dp))
+                if (searchMessage.isNotBlank()) {
+                    Text(searchMessage, fontSize=11.sp, color=HomeBrown,
+                        modifier=Modifier.padding(vertical=8.dp))
+                }
                 if (indexing) LinearProgressIndicator(
                     progress = { scannedPages.toFloat() / pageCount.coerceAtLeast(1) },
                     modifier=Modifier.fillMaxWidth()
