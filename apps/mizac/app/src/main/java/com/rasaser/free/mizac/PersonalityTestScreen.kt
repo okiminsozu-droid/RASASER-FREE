@@ -252,7 +252,6 @@ fun HistoricalReflectionScreen(
     Column(verticalArrangement=Arrangement.spacedBy(12.dp)) {
         Text(ui(dict,"historyReflectionTitle"),color=dark,
             style=MaterialTheme.typography.headlineSmall,fontWeight=FontWeight.Bold)
-        Text(ui(dict,"historyReflectionNotice"),color=secondary)
         questions.forEachIndexed { idx, prompt ->
             Card(colors=CardDefaults.cardColors(containerColor=ivory),
                 shape=RoundedCornerShape(18.dp),modifier=Modifier.fillMaxWidth()) {
@@ -277,8 +276,6 @@ fun HistoricalReflectionScreen(
             }
         }
         Text(ui(dict,"agreement"),color=secondary,
-            style=MaterialTheme.typography.bodySmall)
-        Text(ui(dict,"historyReflectionEnd"),color=secondary,
             style=MaterialTheme.typography.bodySmall)
     }
 }
