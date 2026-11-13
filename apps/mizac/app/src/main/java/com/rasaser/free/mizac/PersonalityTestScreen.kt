@@ -3,6 +3,18 @@ package com.rasaser.free.mizac
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -45,101 +57,157 @@ fun OriginalQuestionnaire(
     lang: MizacLang,
     dict: Map<String, String>,
     questionCount: Int,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onHistory: () -> Unit
 ) {
     val context = LocalContext.current
-    val all = remember(context) { loadOriginalQuestions(context) }
-    val questions = remember(questionCount, all) {
-        selectOriginalQuestions(all, questionCount)
+    val questions = remember(questionCount) {
+        selectOriginalQuestions(loadOriginalQuestions(context), questionCount)
     }
     var answers by rememberSaveable(questionCount) {
         mutableStateOf(List(questions.size) { 0 })
     }
-    var index by rememberSaveable(questionCount) { mutableStateOf(0) }
     var finished by rememberSaveable(questionCount) { mutableStateOf(false) }
-    Column(verticalArrangement=Arrangement.spacedBy(12.dp)) {
-        Text(ui(dict,"scienceHeader"),color=dark,
-            style=MaterialTheme.typography.headlineSmall,fontWeight=FontWeight.Bold)
-        Text(ui(dict,"unvalidated"),color=secondary,
-            style=MaterialTheme.typography.bodySmall)
-        if(finished && answers.all { it in 1..5 }) {
-            Text(ui(dict,"resultTitle"),color=dark,
-                style=MaterialTheme.typography.titleLarge)
+    val pagerState = rememberPagerState(pageCount = { questions.size })
+    val scope = rememberCoroutineScope()
+    val selectedPage = pagerState.currentPage
+
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        if (finished && answers.all { it in 1..5 }) {
+            Text(
+                ui(dict,"resultTitle"), color=dark,
+                style=MaterialTheme.typography.headlineSmall,
+                fontWeight=FontWeight.Bold
+            )
             val labels=mapOf(
                 "O" to "factorO","C" to "factorC","E" to "factorE",
                 "A" to "factorA","S" to "factorS"
             )
             MIZAC_FACTORS.forEach { factor ->
                 val score=originalScore(questions,answers,factor)
-                Card(colors=CardDefaults.cardColors(containerColor=ivory),
-                    shape=RoundedCornerShape(19.dp),modifier=Modifier.fillMaxWidth()) {
-                    Column(Modifier.padding(14.dp),
-                        verticalArrangement=Arrangement.spacedBy(7.dp)) {
+                Card(
+                    colors=CardDefaults.cardColors(containerColor=ivory),
+                    shape=RoundedCornerShape(22.dp),
+                    modifier=Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        Modifier.padding(16.dp),
+                        verticalArrangement=Arrangement.spacedBy(8.dp)
+                    ) {
                         Text(ui(dict,labels.getValue(factor)),color=dark,
                             style=MaterialTheme.typography.titleMedium)
-                        LinearProgressIndicator(progress={score / 5f},modifier=Modifier.fillMaxWidth())
-                        Text(formatLocalNumber(score,lang) + " / 5",
-                            color=secondary,style=MaterialTheme.typography.bodySmall)
+                        LinearProgressIndicator(
+                            progress={score/5f}, modifier=Modifier.fillMaxWidth()
+                        )
+                        Text(formatLocalNumber(score,lang)+" / 5",
+                            color=secondary,style=MaterialTheme.typography.bodyMedium)
                     }
                 }
             }
-            Text(ui(dict,"resultDisclaimer"),color=secondary)
+            Text(ui(dict,"resultDisclaimer"),color=secondary,
+                style=MaterialTheme.typography.bodySmall)
             Text(ui(dict,"noNorms"),color=secondary,
                 style=MaterialTheme.typography.bodySmall)
-            Button(onClick={
-                answers=List(questions.size){0}
-                index=0
-                finished=false
-            },modifier=Modifier.fillMaxWidth(),
-                colors=ButtonDefaults.buttonColors(containerColor=ivory,contentColor=dark)) {
-                Text(ui(dict,"restart"))
-            }
+            OutlinedButton(
+                onClick=onHistory,
+                modifier=Modifier.fillMaxWidth()
+            ) { Text(ui(dict,"history")) }
         } else {
             Text(
-                ui(dict,"questions") + ": ${index+1} / ${questions.size}",
-                color=dark,style=MaterialTheme.typography.titleMedium
+                "${selectedPage+1} / ${questions.size}",
+                modifier=Modifier.fillMaxWidth(),
+                color=dark,
+                textAlign=TextAlign.Center,
+                style=MaterialTheme.typography.titleLarge,
+                fontWeight=FontWeight.Bold
             )
-            LinearProgressIndicator(progress={(index+1f)/questions.size},
-                modifier=Modifier.fillMaxWidth())
-            Card(colors=CardDefaults.cardColors(containerColor=ivory),
-                shape=RoundedCornerShape(24.dp),modifier=Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
-                    Text(questions[index].text(lang),color=dark,
-                        style=MaterialTheme.typography.titleLarge)
-                    Text(ui(dict,"agreement"),color=secondary,
-                        style=MaterialTheme.typography.bodySmall)
-                    Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween,
-                        verticalAlignment=Alignment.CenterVertically) {
-                        (1..5).forEach { value ->
-                            Column(horizontalAlignment=Alignment.CenterHorizontally) {
-                                RadioButton(selected=answers[index]==value,
-                                    onClick={
-                                        answers=answers.toMutableList().also { it[index]=value }
-                                    })
-                                Text(value.toString(),color=dark)
+            LinearProgressIndicator(
+                progress={(selectedPage+1f)/questions.size},
+                modifier=Modifier.fillMaxWidth()
+            )
+            HorizontalPager(
+                state=pagerState,
+                modifier=Modifier.fillMaxWidth().height(286.dp),
+                key={ page -> questions[page].id }
+            ) { page ->
+                Card(
+                    colors=CardDefaults.cardColors(containerColor=ivory),
+                    shape=RoundedCornerShape(26.dp),
+                    modifier=Modifier.fillMaxWidth().padding(horizontal=3.dp)
+                ) {
+                    Column(
+                        modifier=Modifier.fillMaxWidth().padding(18.dp),
+                        verticalArrangement=Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            questions[page].text(lang),
+                            modifier=Modifier.fillMaxWidth().height(135.dp),
+                            color=dark,
+                            textAlign=TextAlign.Center,
+                            style=MaterialTheme.typography.titleLarge
+                        )
+                        Row(
+                            modifier=Modifier.fillMaxWidth(),
+                            horizontalArrangement=Arrangement.SpaceBetween
+                        ) {
+                            (1..5).forEach { value ->
+                                val isSelected=answers[page]==value
+                                Box(
+                                    modifier=Modifier.size(47.dp)
+                                        .background(
+                                            if(isSelected)Color(0xFFD8B57B) else Color.White,
+                                            RoundedCornerShape(11.dp)
+                                        )
+                                        .border(
+                                            if(isSelected)2.dp else 1.dp,
+                                            if(isSelected)Color(0xFF8D6428) else Color(0xFFD1C7B8),
+                                            RoundedCornerShape(11.dp)
+                                        )
+                                        .clickable {
+                                            answers=answers.toMutableList().also{it[page]=value}
+                                        },
+                                    contentAlignment=Alignment.Center
+                                ) {
+                                    Text(
+                                        value.toString(),
+                                        color=dark,
+                                        fontWeight=if(isSelected)FontWeight.Bold else FontWeight.Medium,
+                                        style=MaterialTheme.typography.titleMedium
+                                    )
+                                }
                             }
                         }
                     }
                 }
             }
-            Text(ui(dict,"localPrivacy"),color=secondary,
-                style=MaterialTheme.typography.bodySmall)
-            Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(
-                    enabled=index>0,onClick={index--},modifier=Modifier.weight(1f)
-                ){Text(ui(dict,"back"))}
-                Button(
-                    enabled=answers[index]>0,
-                    onClick={
-                        if(index==questions.lastIndex){
-                            val firstMissing=answers.indexOfFirst{it==0}
-                            if(firstMissing>=0)index=firstMissing else finished=true
-                        }else index++
-                    },modifier=Modifier.weight(1f),
-                    colors=ButtonDefaults.buttonColors(containerColor=ivory,contentColor=dark)
-                ){
-                    Text(ui(dict,if(index==questions.lastIndex)"showResult" else "next"))
-                }
+            Button(
+                onClick={
+                    if(selectedPage == questions.lastIndex) {
+                        val missing=answers.indexOfFirst{it==0}
+                        if(missing>=0) {
+                            scope.launch { pagerState.animateScrollToPage(missing) }
+                        } else {
+                            finished=true
+                        }
+                    } else {
+                        scope.launch { pagerState.animateScrollToPage(selectedPage+1) }
+                    }
+                },
+                enabled=answers[selectedPage]>0,
+                modifier=Modifier.fillMaxWidth().height(60.dp),
+                shape=RoundedCornerShape(27.dp),
+                colors=ButtonDefaults.buttonColors(
+                    containerColor=ivory,contentColor=dark
+                )
+            ) {
+                Text(
+                    ui(dict,"next"),
+                    style=MaterialTheme.typography.titleLarge,
+                    fontWeight=FontWeight.SemiBold
+                )
             }
         }
     }
