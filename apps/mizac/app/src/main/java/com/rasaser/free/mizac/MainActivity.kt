@@ -3,6 +3,8 @@ package com.rasaser.free.mizac
 import android.graphics.BitmapFactory
 import android.os.Bundle
 import android.content.Context
+import android.content.ClipData
+import androidx.core.content.FileProvider
 import android.content.Intent
 import android.media.MediaMetadataRetriever
 import android.net.Uri
@@ -299,10 +301,25 @@ private fun AnalysisSetupScreen(onBack: () -> Unit) {
     val videoPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) {
         save(it, "video")
     }
+    val captureFile = remember(context) { File(context.cacheDir, "mizac_video_capture.mp4") }
+    val captureUri = remember(context) {
+        FileProvider.getUriForFile(
+            context, context.packageName + ".fileprovider", captureFile
+        )
+    }
     val videoRecorder = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
         if (it.resultCode == android.app.Activity.RESULT_OK) {
-            save(it.data?.data, "video")
+            val uri = if (captureFile.exists() && captureFile.length() > 0L) {
+                captureUri
+            } else {
+                it.data?.data
+            }
+            if (uri == null) feedback = "Kamera kayıt dosyası bulunamadı."
+            else save(uri, "video")
+        } else {
+            feedback = "Video kaydı iptal edildi."
         }
+        captureFile.delete()
     }
     PageHeader("Kişilik Analizi", onBack)
     Text(
@@ -350,9 +367,16 @@ private fun AnalysisSetupScreen(onBack: () -> Unit) {
                     Text("Video Seç")
                 }
                 OutlinedButton(onClick = {
+                    captureFile.delete()
                     val intent = Intent(MediaStore.ACTION_VIDEO_CAPTURE).apply {
                         putExtra(MediaStore.EXTRA_DURATION_LIMIT, 30)
                         putExtra(MediaStore.EXTRA_VIDEO_QUALITY, 1)
+                        putExtra(MediaStore.EXTRA_OUTPUT, captureUri)
+                        clipData = ClipData.newUri(context.contentResolver, "MİZAÇ video", captureUri)
+                        addFlags(
+                            Intent.FLAG_GRANT_READ_URI_PERMISSION or
+                                Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                        )
                     }
                     runCatching { videoRecorder.launch(intent) }
                         .onFailure { feedback = "Video kamerası açılamadı." }
