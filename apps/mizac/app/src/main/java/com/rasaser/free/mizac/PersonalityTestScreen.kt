@@ -3,9 +3,7 @@ package com.rasaser.free.mizac
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -20,241 +18,176 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import java.util.Locale
 
-private data class TraitItem(val statement: String, val factor: String, val reverse: Boolean)
+private val dark = Color(0xFF211911)
+private val ivory = Color(0xFFFFFBF6)
+private val secondary = Color(0xFF5A4C40)
 
-private val traitLabels = listOf(
-    "E" to "Dışadönüklük",
-    "A" to "Uyumluluk",
-    "C" to "Özdisiplin ve düzen",
-    "S" to "Duygusal denge",
-    "O" to "Deneyime açıklık"
-)
-
-// TIPI (Gosling, Rentfrow & Swann, 2003): 7 points, 10 items,
-// exact five two-item domain key and reverse scoring.
-// Turkish wording below is a provisional translation, not an independently validated Turkish form.
-private val tipi10 = listOf(
-    TraitItem("Sosyal ve coşkulu", "E", false),
-    TraitItem("Eleştirel ve tartışmacı", "A", true),
-    TraitItem("Güvenilir ve özdisiplinli", "C", false),
-    TraitItem("Kaygılı, kolay üzülen", "S", true),
-    TraitItem("Yeni deneyimlere açık, karmaşık düşüncelere yatkın", "O", false),
-    TraitItem("Çekingen ve sessiz", "E", true),
-    TraitItem("Anlayışlı ve sıcakkanlı", "A", false),
-    TraitItem("Düzensiz ve dikkatsiz", "C", true),
-    TraitItem("Sakin ve duygusal bakımdan dengeli", "S", false),
-    TraitItem("Geleneksel ve yaratıcı olmayan", "O", true)
-)
-
-// The canonical 50 IPIP factor markers (Goldberg / IPIP); 10 per Big Five factor.
-// Item polarity/order within each factor follows ipip.ori.org/newBigFive5broadKey.htm
-// Turkish phrasing is provisional; no Turkish validity or norms are claimed here.
-private val ipip50 = listOf(
-    TraitItem("Bir topluluğun neşeli ve canlı kişisi olurum.", "E", false),
-    TraitItem("İnsanların yanında kendimi rahat hissederim.", "E", false),
-    TraitItem("Konuşma başlatırım.", "E", false),
-    TraitItem("Toplantılarda çok sayıda farklı insanla sohbet ederim.", "E", false),
-    TraitItem("İlginin merkezinde olmak beni rahatsız etmez.", "E", false),
-    TraitItem("Çok konuşmam.", "E", true),
-    TraitItem("Arka planda kalmayı tercih ederim.", "E", true),
-    TraitItem("Söyleyecek pek az şeyim olur.", "E", true),
-    TraitItem("Dikkati üzerime çekmekten hoşlanmam.", "E", true),
-    TraitItem("Yabancıların yanında sessiz kalırım.", "E", true),
-    TraitItem("İnsanlarla ilgilenirim.", "A", false),
-    TraitItem("Başkalarının duygularını anlayabilirim.", "A", false),
-    TraitItem("Yumuşak kalpliyimdir.", "A", false),
-    TraitItem("Başkalarına zaman ayırırım.", "A", false),
-    TraitItem("Başkalarının duygularını hissedebilirim.", "A", false),
-    TraitItem("İnsanları rahat hissettiririm.", "A", false),
-    TraitItem("Diğer insanlarla pek ilgilenmem.", "A", true),
-    TraitItem("İnsanlara hakaret ederim.", "A", true),
-    TraitItem("Başkalarının sorunlarıyla ilgilenmem.", "A", true),
-    TraitItem("Başkaları için pek kaygılanmam.", "A", true),
-    TraitItem("Her zaman hazırlıklı olurum.", "C", false),
-    TraitItem("Ayrıntılara dikkat ederim.", "C", false),
-    TraitItem("Ev işlerini hemen hallederim.", "C", false),
-    TraitItem("Düzeni severim.", "C", false),
-    TraitItem("Bir programa uyarım.", "C", false),
-    TraitItem("İşimde titiz davranırım.", "C", false),
-    TraitItem("Eşyalarımı etrafta bırakırım.", "C", true),
-    TraitItem("Etrafı dağıtırım.", "C", true),
-    TraitItem("Eşyaları yerlerine koymayı sık sık unuturum.", "C", true),
-    TraitItem("Sorumluluklarımdan kaçarım.", "C", true),
-    TraitItem("Çoğu zaman rahatım.", "S", false),
-    TraitItem("Nadiren kendimi kederli hissederim.", "S", false),
-    TraitItem("Kolayca strese girerim.", "S", true),
-    TraitItem("Bazı şeyler hakkında sık sık endişelenirim.", "S", true),
-    TraitItem("Kolayca rahatsız olurum.", "S", true),
-    TraitItem("Kolayca üzülürüm.", "S", true),
-    TraitItem("Ruh hâlim sık değişir.", "S", true),
-    TraitItem("Sık sık duygu dalgalanmaları yaşarım.", "S", true),
-    TraitItem("Kolayca sinirlenirim.", "S", true),
-    TraitItem("Sık sık mutsuz hissederim.", "S", true),
-    TraitItem("Geniş bir sözcük dağarcığım vardır.", "O", false),
-    TraitItem("Canlı bir hayal gücüm vardır.", "O", false),
-    TraitItem("Harika fikirlerim olur.", "O", false),
-    TraitItem("Bir şeyleri çabuk anlarım.", "O", false),
-    TraitItem("Zor kelimeler kullanırım.", "O", false),
-    TraitItem("Bir şeyler üzerine düşünerek zaman geçiririm.", "O", false),
-    TraitItem("Fikirlerle doluyumdur.", "O", false),
-    TraitItem("Soyut düşünceleri anlamakta zorlanırım.", "O", true),
-    TraitItem("Soyut fikirlerle ilgilenmem.", "O", true),
-    TraitItem("Hayal gücüm pek iyi değildir.", "O", true)
-)
-
-private fun personalityScores(items: List<TraitItem>, answers: List<Int>, max: Int): List<Pair<String, Float>> {
-    require(items.size == answers.size && answers.all { it in 1..max })
-    return traitLabels.map { (factor, label) ->
-        val values = items.mapIndexedNotNull { i, item ->
-            if (item.factor != factor) null
-            else (if (item.reverse) max + 1 - answers[i] else answers[i]).toFloat()
-        }
-        label to values.average().toFloat()
+private fun originalScore(list: List<OriginalQuestion>, answers: List<Int>, factor: String): Float {
+    val values = list.mapIndexedNotNull { idx, item ->
+        if (item.category != factor) null
+        else (if (item.reverse) 6 - answers[idx] else answers[idx]).toFloat()
     }
+    return values.average().toFloat()
 }
 
 @Composable
-fun PersonalityTestScreen(questionCount: Int, onBack: () -> Unit) {
-    val dark = Color(0xFF231A13)
-    val faded = Color(0xFF605344)
-    val white = Color(0xFFFFFBF6)
-    val questions = when (questionCount) {
-        10 -> tipi10
-        50 -> ipip50
-        else -> emptyList()
+fun OriginalQuestionnaire(
+    lang: MizacLang,
+    dict: Map<String, String>,
+    questionCount: Int,
+    onBack: () -> Unit
+) {
+    val context = LocalContext.current
+    val all = remember(context) { loadOriginalQuestions(context) }
+    val questions = remember(questionCount, all) {
+        selectOriginalQuestions(all, questionCount)
     }
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Button(onClick = onBack) { Text("‹ Analiz Seçimi") }
-        Text("Bilimsel Kişilik Ölçekleri", color = dark,
-            style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-        if (questions.isEmpty()) {
-            Card(colors = CardDefaults.cardColors(containerColor = white)) {
-                Text(
-                    "120 soruluk IPIP-NEO için özgün 120 madde, 30 alt boyut " +
-                        "puanlama anahtarı ve Türkçe çeviri doğrulaması henüz tamamlanmadı. " +
-                        "Yanlış rapor üretmemek için bu seçenek şimdilik puanlama yapmaz. " +
-                        "Lütfen 10 veya 50 soruluk sürümü seçin.",
-                    modifier = Modifier.padding(18.dp), color = dark
-                )
-            }
-            return@Column
-        }
-        Text(
-            if (questionCount == 10)
-                "TIPI-10 (Gosling ve ark., 2003). 7 aşamalı yanıt, 5 boyut. " +
-                    "Türkçe metin ön çeviridir; kısa ölçek daha sınırlı hassasiyete sahiptir."
-            else
-                "IPIP-50 kamu malı ölçeğinin özgün 50 maddelik yapısının Türkçe ön çevirisi. " +
-                    "Bu çeviriye ait Türkçe norm ve geçerlik henüz doğrulanmamıştır.",
-            color = faded, style = MaterialTheme.typography.bodyMedium
-        )
-        var answers by rememberSaveable(questionCount) {
-            mutableStateOf(List(questions.size) { 0 })
-        }
-        var index by rememberSaveable(questionCount) { mutableStateOf(0) }
-        var showResults by rememberSaveable(questionCount) { mutableStateOf(false) }
-        if (showResults && answers.all { it > 0 }) {
-            Text("Kendi Yanıtlarınızın Özeti", color = dark,
-                style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
-            personalityScores(questions, answers, if (questionCount == 10) 7 else 5)
-                .forEach { (label, score) ->
-                    val maximum = if (questionCount == 10) 7f else 5f
-                    Text(label, color = dark, style = MaterialTheme.typography.titleMedium)
-                    LinearProgressIndicator(
-                        progress = { (score / maximum).coerceIn(0f, 1f) },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Text(
-                        String.format(Locale.getDefault(), "%.2f / %.0f", score, maximum),
-                        color = faded, style = MaterialTheme.typography.bodySmall
-                    )
-                }
-            Text(
-                "Sonuçlar özgün ölçeklerin yanıt anahtarıyla hesaplanan alan " +
-                    "ortalamalarıdır; toplumsal yüzdelik, klinik teşhis veya " +
-                    "değişmez karakter hükmü değildir. Türkçe ön çevirilerin " +
-                    "psikometrik doğrulaması yapılmamıştır.",
-                color = faded, style = MaterialTheme.typography.bodySmall
+    var answers by rememberSaveable(questionCount) {
+        mutableStateOf(List(questions.size) { 0 })
+    }
+    var index by rememberSaveable(questionCount) { mutableStateOf(0) }
+    var finished by rememberSaveable(questionCount) { mutableStateOf(false) }
+    Column(verticalArrangement=Arrangement.spacedBy(12.dp)) {
+        OutlinedButton(onClick=onBack) { Text(ui(dict,"backSetup")) }
+        Text(ui(dict,"scienceHeader"),color=dark,
+            style=MaterialTheme.typography.headlineSmall,fontWeight=FontWeight.Bold)
+        Text(ui(dict,"unvalidated"),color=secondary,
+            style=MaterialTheme.typography.bodySmall)
+        if(finished && answers.all { it in 1..5 }) {
+            Text(ui(dict,"resultTitle"),color=dark,
+                style=MaterialTheme.typography.titleLarge)
+            val labels=mapOf(
+                "O" to "factorO","C" to "factorC","E" to "factorE",
+                "A" to "factorA","S" to "factorS"
             )
-            Button(onClick = {
-                answers = List(questions.size) { 0 }
-                index = 0
-                showResults = false
-            }, modifier = Modifier.fillMaxWidth()) {
-                Text("Yeniden Başla")
+            MIZAC_FACTORS.forEach { factor ->
+                val score=originalScore(questions,answers,factor)
+                Card(colors=CardDefaults.cardColors(containerColor=ivory),
+                    shape=RoundedCornerShape(19.dp),modifier=Modifier.fillMaxWidth()) {
+                    Column(Modifier.padding(14.dp),
+                        verticalArrangement=Arrangement.spacedBy(7.dp)) {
+                        Text(ui(dict,labels.getValue(factor)),color=dark,
+                            style=MaterialTheme.typography.titleMedium)
+                        LinearProgressIndicator(progress={score / 5f},modifier=Modifier.fillMaxWidth())
+                        Text(formatLocalNumber(score,lang) + " / 5",
+                            color=secondary,style=MaterialTheme.typography.bodySmall)
+                    }
+                }
+            }
+            Text(ui(dict,"resultDisclaimer"),color=secondary)
+            Text(ui(dict,"noNorms"),color=secondary,
+                style=MaterialTheme.typography.bodySmall)
+            Button(onClick={
+                answers=List(questions.size){0}
+                index=0
+                finished=false
+            },modifier=Modifier.fillMaxWidth(),
+                colors=ButtonDefaults.buttonColors(containerColor=ivory,contentColor=dark)) {
+                Text(ui(dict,"restart"))
             }
         } else {
-            val max = if (questionCount == 10) 7 else 5
-            val question = questions[index]
-            Text("Soru ${index + 1} / ${questions.size}", color = dark,
-                style = MaterialTheme.typography.titleMedium)
-            LinearProgressIndicator(
-                progress = { (index + 1f) / questions.size },
-                modifier = Modifier.fillMaxWidth()
+            Text(
+                ui(dict,"questions") + ": ${index+1} / ${questions.size}",
+                color=dark,style=MaterialTheme.typography.titleMedium
             )
-            Card(shape = RoundedCornerShape(22.dp),
-                colors = CardDefaults.cardColors(containerColor = white)) {
-                Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    if (questionCount == 10) {
-                        Text("Kendimi şöyle tanımlarım:",
-                            color = faded, style = MaterialTheme.typography.bodyMedium)
-                    }
-                    Text(question.statement, color = dark,
-                        style = MaterialTheme.typography.titleLarge)
-                    Text(
-                        if (questionCount == 10)
-                            "1 = Kesinlikle katılmıyorum   ·   7 = Kesinlikle katılıyorum"
-                        else "1 = Hiç uygun değil   ·   5 = Tamamen uygun",
-                        color = faded, style = MaterialTheme.typography.bodySmall
-                    )
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        (1..max).forEach { n ->
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                RadioButton(
-                                    selected = answers[index] == n,
-                                    onClick = {
-                                        answers = answers.toMutableList().also { it[index] = n }
-                                    }
-                                )
-                                Text(n.toString(), color = dark)
+            LinearProgressIndicator(progress={(index+1f)/questions.size},
+                modifier=Modifier.fillMaxWidth())
+            Card(colors=CardDefaults.cardColors(containerColor=ivory),
+                shape=RoundedCornerShape(24.dp),modifier=Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
+                    Text(questions[index].text(lang),color=dark,
+                        style=MaterialTheme.typography.titleLarge)
+                    Text(ui(dict,"agreement"),color=secondary,
+                        style=MaterialTheme.typography.bodySmall)
+                    Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween,
+                        verticalAlignment=Alignment.CenterVertically) {
+                        (1..5).forEach { value ->
+                            Column(horizontalAlignment=Alignment.CenterHorizontally) {
+                                RadioButton(selected=answers[index]==value,
+                                    onClick={
+                                        answers=answers.toMutableList().also { it[index]=value }
+                                    })
+                                Text(value.toString(),color=dark)
                             }
                         }
                     }
                 }
             }
-            Text(
-                "Yanıtlar bu oturumda telefonda kalır. RaSaSeR'a gönderilmez.",
-                color = faded, style = MaterialTheme.typography.bodySmall
-            )
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                OutlinedButton(onClick = { if (index > 0) index-- },
-                    enabled = index > 0, modifier = Modifier.weight(1f)) {
-                    Text("Geri")
-                }
+            Text(ui(dict,"localPrivacy"),color=secondary,
+                style=MaterialTheme.typography.bodySmall)
+            Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(
+                    enabled=index>0,onClick={index--},modifier=Modifier.weight(1f)
+                ){Text(ui(dict,"back"))}
                 Button(
-                    onClick = {
-                        if (index < questions.lastIndex) index++
-                        else if (answers.all { it > 0 }) showResults = true
-                    },
-                    enabled = answers[index] != 0 &&
-                        (index < questions.lastIndex || answers.all { it != 0 }),
-                    modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.buttonColors(containerColor = white, contentColor = dark)
-                ) { Text(if (index == questions.lastIndex) "Sonucu Gör" else "İleri") }
+                    enabled=answers[index]>0,
+                    onClick={
+                        if(index==questions.lastIndex){
+                            val firstMissing=answers.indexOfFirst{it==0}
+                            if(firstMissing>=0)index=firstMissing else finished=true
+                        }else index++
+                    },modifier=Modifier.weight(1f),
+                    colors=ButtonDefaults.buttonColors(containerColor=ivory,contentColor=dark)
+                ){
+                    Text(ui(dict,if(index==questions.lastIndex)"showResult" else "next"))
+                }
             }
         }
+    }
+}
+
+@Composable
+fun HistoricalReflectionScreen(
+    lang: MizacLang,
+    dict: Map<String, String>,
+    onBack: () -> Unit
+) {
+    val context=LocalContext.current
+    val questions=remember(lang.code) { loadHistoryReflection(context,lang) }
+    var answers by rememberSaveable {
+        mutableStateOf(List(10){0})
+    }
+    Column(verticalArrangement=Arrangement.spacedBy(12.dp)) {
+        OutlinedButton(onClick=onBack) { Text(ui(dict,"backSetup")) }
+        Text(ui(dict,"historyReflectionTitle"),color=dark,
+            style=MaterialTheme.typography.headlineSmall,fontWeight=FontWeight.Bold)
+        Text(ui(dict,"historyReflectionNotice"),color=secondary)
+        questions.forEachIndexed { idx, prompt ->
+            Card(colors=CardDefaults.cardColors(containerColor=ivory),
+                shape=RoundedCornerShape(18.dp),modifier=Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(12.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
+                    Text("${idx+1}. $prompt",color=dark,
+                        style=MaterialTheme.typography.bodyLarge)
+                    Row(horizontalArrangement=Arrangement.SpaceBetween,
+                        modifier=Modifier.fillMaxWidth()) {
+                        (1..5).forEach { score ->
+                            Column(horizontalAlignment=Alignment.CenterHorizontally) {
+                                RadioButton(
+                                    selected=answers[idx]==score,
+                                    onClick={
+                                        answers=answers.toMutableList().also{it[idx]=score}
+                                    }
+                                )
+                                Text(score.toString(),color=dark)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        Text(ui(dict,"agreement"),color=secondary,
+            style=MaterialTheme.typography.bodySmall)
+        Text(ui(dict,"historyReflectionEnd"),color=secondary,
+            style=MaterialTheme.typography.bodySmall)
     }
 }
