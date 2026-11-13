@@ -128,3 +128,7 @@ historyBookMethod|Mârifetnâme'ye göre tarihî yüz yorumları|Historical face
 photoReportMeasured|Fotoğrafta ölçülenler|Measurements from the image|Im Foto gemessene Merkmale|Mediciones obtenidas de la imagen|القياسات المستخرجة من الصورة
 photoReportQuality|Bu oranlar yalnızca iki boyutlu görüntüden ölçülür; çekim açısı değişirse sonuç da değişebilir.|These ratios are measured only from a 2D image; camera angle can change the result.|Diese Werte stammen nur aus einem 2D-Bild; der Kamerawinkel kann sie verändern.|Son proporciones de una imagen 2D; el ángulo de la cámara puede modificarlas.|هذه نسب من صورة ثنائية الأبعاد ويمكن أن تتغير مع زاوية التصوير.
 photoReportUnavailable|Fotoğraftan güvenilir biçimde değerlendirilemez|Cannot be reliably assessed from an image|Aus dem Bild nicht zuverlässig bestimmbar|No se puede evaluar con fiabilidad desde una imagen|لا يمكن تقييمه بصورة موثوقة من الصورة
+selfAssessmentSection|2 · Kişisel Soru Sonuçları|2 · Questionnaire Results|2 · Ergebnisse der Selbstbefragung|2 · Resultados del cuestionario|٢ · نتائج الاستبيان الشخصي
+viewAnswers|Tüm Soruları ve Cevapları Gör|Show All Questions and Answers|Alle Fragen und Antworten anzeigen|Ver todas las preguntas y respuestas|عرض جميع الأسئلة والأجوبة
+hideAnswers|Soruları ve Cevapları Gizle|Hide Questions and Answers|Fragen und Antworten ausblenden|Ocultar preguntas y respuestas|إخفاء الأسئلة والأجوبة
+answerLabel|Cevap|Answer|Antwort|Respuesta|الإجابة
