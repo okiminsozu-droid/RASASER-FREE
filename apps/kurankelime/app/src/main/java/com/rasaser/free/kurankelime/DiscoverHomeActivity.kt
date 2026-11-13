@@ -63,9 +63,22 @@ private fun labels(code: String) = when(code) {
     "ja" -> UiLabels("クルアーンを発見","単語ごとの意味","創造主からあなたへの手紙",
         "読む","検索","お気に入り","単語を検索","検索結果がありません",
         "無料です。商業目的ではありません。")
+    "zh" -> UiLabels("探索古兰经","逐词释义","来自造物主给你的信",
+        "阅读","搜索","收藏","搜索单词","没有找到结果",
+        "完全免费，无商业用途。")
     else -> UiLabels("KURANI KEŞFET","KELİME MEALLİ UYGULAMA","Yaratıcından sana bir mektup",
         "Oku","Ara","Favoriler","Kelime ara","Mevcut önizleme dizininde sonuç yok",
         "Ücretsizdir, hiçbir maddi amacımız yoktur.")
+}
+
+private fun offlinePacksButtonText(language: String): String = when (language) {
+    "en" -> "Download offline language packs"
+    "de" -> "Offline-Sprachpakete herunterladen"
+    "es" -> "Descargar paquetes de idiomas sin conexión"
+    "ar" -> "تنزيل حزم اللغات دون اتصال"
+    "ja" -> "オフライン言語パックをダウンロード"
+    "zh" -> "下载离线语言包"
+    else -> "Çevrimdışı dil paketlerini indir"
 }
 
 class DiscoverHomeActivity : ComponentActivity() {
@@ -178,12 +191,23 @@ private fun DiscoverHome() {
                 }
             }
             Spacer(Modifier.weight(1f))
-            if (logo != null) {
-                Image(logo, contentDescription="Kurani Keşfet logosu",
-                    modifier=Modifier.size(68.dp), contentScale=ContentScale.Fit)
-            } else {
-                Icon(Icons.Default.AutoStories, contentDescription="Kurani Keşfet", tint=HomeGreen,
-                    modifier=Modifier.size(46.dp))
+            // Site association belongs to the EXISTING logo; the image is unchanged.
+            Column(
+                modifier=Modifier.clickable {
+                    context.startActivity(Intent(Intent.ACTION_VIEW,
+                        Uri.parse("https://www.okiminsozu.com")))
+                },
+                horizontalAlignment=Alignment.CenterHorizontally
+            ) {
+                if (logo != null) {
+                    Image(logo, contentDescription="www.okiminsozu.com",
+                        modifier=Modifier.size(68.dp), contentScale=ContentScale.Fit)
+                } else {
+                    Icon(Icons.Default.AutoStories, contentDescription="www.okiminsozu.com",
+                        tint=HomeGreen, modifier=Modifier.size(46.dp))
+                }
+                Text("www.okiminsozu.com", fontSize=9.sp, color=HomeGreen,
+                    maxLines=1, textAlign=TextAlign.Center)
             }
         }
         if (screen == "home") {
@@ -194,7 +218,7 @@ private fun DiscoverHome() {
             ) {
                 Icon(Icons.Default.CloudDownload, contentDescription=null, tint=HomeGreen, modifier=Modifier.size(17.dp))
                 Spacer(Modifier.width(6.dp))
-                Text("Çevrimdışı dil paketlerini indir", color=HomeGreen, fontSize=12.sp)
+                Text(offlinePacksButtonText(language), color=HomeGreen, fontSize=12.sp)
             }
             Column(Modifier.fillMaxWidth().padding(top=10.dp, bottom=6.dp),
                 horizontalAlignment=Alignment.CenterHorizontally) {
@@ -241,7 +265,7 @@ private fun DiscoverHome() {
                 val hasFullSearch = bundledReady || onDeviceReady || fullIndex.hasFullIndex
                 val searchMessage = when {
                     indexing -> "Çevrimdışı metin dizini hazırlanıyor: $scannedPages / $pageCount sayfa"
-                    bundledReady -> "304 sayfalık çevrimdışı dizin hazır · OCR sonuçları doğrulama gerektirir"
+                    bundledReady -> "" // Hide old OCR warning; actual search index remains unchanged.
                     onDeviceReady -> "PDF'den oluşturulan yerel arama dizini hazır · internet gerekmez"
                     fullIndex.hasFullIndex -> "Uygulamaya eklenmiş 304 sayfalık arama dizini hazır"
                     noTextLayer -> "Bu PDF'nin metin katmanı okunamadı. Kelime dizini eklenmeli."
@@ -249,8 +273,10 @@ private fun DiscoverHome() {
                     Build.VERSION.SDK_INT < 35 -> "Android 15 altında tam arama için yerel kelime dizini gereklidir."
                     else -> "Tam arama verisi henüz hazır değil; Fâtiha örnek araması açık."
                 }
-                Text(searchMessage, fontSize=11.sp, color=HomeBrown,
-                    modifier=Modifier.padding(vertical=8.dp))
+                if (searchMessage.isNotBlank()) {
+                    Text(searchMessage, fontSize=11.sp, color=HomeBrown,
+                        modifier=Modifier.padding(vertical=8.dp))
+                }
                 if (indexing) LinearProgressIndicator(
                     progress = { scannedPages.toFloat() / pageCount.coerceAtLeast(1) },
                     modifier=Modifier.fillMaxWidth()

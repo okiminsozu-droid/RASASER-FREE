@@ -10,8 +10,8 @@ android {
         applicationId = "com.rasaser.free.kurankelime"
         minSdk = 26
         targetSdk = 35
-        versionCode = 22
-        versionName = "0.3.11"
+        versionCode = 23
+        versionName = "0.3.12"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     buildTypes {
@@ -29,7 +29,7 @@ android {
         // avoid the old .trial build's different debug/test signing certificate.
         create("contentPreview") {
             initWith(getByName("release"))
-            applicationIdSuffix = ".searchfix"
+            applicationIdSuffix = ".ui312"
             versionNameSuffix = "-content-preview"
             signingConfig = signingConfigs.getByName("debug")
             matchingFallbacks += listOf("release")
