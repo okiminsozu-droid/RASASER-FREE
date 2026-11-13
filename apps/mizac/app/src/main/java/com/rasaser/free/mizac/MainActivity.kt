@@ -154,6 +154,8 @@ private fun MizacRoot() {
                         modifier = Modifier.fillMaxWidth(),
                         style = MaterialTheme.typography.bodySmall)
                     ApprovedMizacLogo(208)
+                } else if (screen != "analysis-setup") {
+                    ApprovedMizacLogo(68)
                 }
                 when (screen) {
                     "home" -> HomeQuickActions(
