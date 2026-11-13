@@ -20,11 +20,13 @@ class TestReaderTranslationContract(unittest.TestCase):
         self.assertIn('getSharedPreferences("discovery_home"', translator)
         self.assertIn("TranslateLanguage.fromLanguageTag", translator)
         self.assertIn("downloadModelIfNeeded", translator)
-        self.assertIn("Google ML Kit — otomatik çeviri", translator)
+        self.assertIn("Google ML Kit — bağlamdan bağımsız otomatik öneri", translator)
         self.assertIn("Doğrulanmış Kur’an kelime anlamı", translator)
         self.assertNotIn("cloudtranslate.googleapis.com", translator)
         self.assertNotIn("translate.googleapis.com", translator)
-        self.assertIn("if (result == null) requestGoogle()", translator)
+        self.assertIn("if (result == null && fromPrintedPdf == null && localHint == null &&", translator)
+        self.assertIn("source != target) requestGoogle()", translator)
+        self.assertIn("OfflineWordMeaning.find(selectedText, source, target)", translator)
 
     def test_preview_never_claims_ocr_is_verified(self):
         glossary = (CODE / "ReviewedQuranGlossary.kt").read_text(encoding="utf-8")

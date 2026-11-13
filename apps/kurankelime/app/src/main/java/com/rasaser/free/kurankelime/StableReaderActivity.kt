@@ -71,7 +71,7 @@ class StableReaderActivity : Activity() {
     private var selectedRangeEnd=0
     private var selectedRangeLang:String?=null
     private var wordActionMode: ActionMode? = null
-    private val translationDelegate = lazy { OnDeviceWordTranslator(this) }
+    private val translationDelegate = lazy { OnDeviceWordTranslator(this, selectableLayer) }
     private val translation by translationDelegate
 
     private fun dp(v: Int): Int = (v * resources.displayMetrics.density).toInt()
