@@ -26,6 +26,12 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.border
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -38,6 +44,11 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Icon
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.AddPhotoAlternate
+import androidx.compose.material.icons.outlined.VideoLibrary
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
@@ -58,10 +69,12 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.content.FileProvider
 import java.io.File
 import java.nio.file.Files
@@ -135,27 +148,27 @@ private fun MizacRoot() {
                         modifier = Modifier.fillMaxWidth(), fontWeight = FontWeight.SemiBold)
                     Text("Your appearance is the key to your character.",
                         color = Ink, textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth())
+                        modifier = Modifier.fillMaxWidth(),
+                        style = MaterialTheme.typography.bodySmall)
+                    ApprovedMizacLogo(208)
                 }
-                ApprovedMizacLogo(if (screen == "home") 230 else 95)
                 when (screen) {
-                    "home" -> {
-                        WhiteAction(ui(dict, "analyze")) { screen = "analysis-setup" }
-                        WhiteAction(ui(dict, "history")) { screen = "history" }
-                        WhiteAction(ui(dict, "privacy")) { screen = "privacy" }
-                    }
+                    "home" -> HomeQuickActions(
+                        dict = dict,
+                        onStandard = { screen = "analysis-setup" },
+                        onQuick = { screen = "geometry" }
+                    )
                     "analysis-setup" -> AnalysisSelection(
-                        lang, dict,
-                        onBack = { screen = "home" },
-                        onGeometry = { screen = "geometry" },
-                        onQuestions = { number -> count = number; screen = "questions" },
-                        onHistory = { screen = "history-reflection" }
+                        dict = dict,
+                        onQuestions = { number -> count = number; screen = "questions" }
                     )
                     "geometry" -> FaceGeometryScreen(
-                        onBack = { screen = "analysis-setup" }, lang = lang, strings = dict
+                        onBack = { screen = "home" }, lang = lang, strings = dict
                     )
                     "questions" -> OriginalQuestionnaire(
-                        lang, dict, count, onBack = { screen = "analysis-setup" }
+                        lang = lang, dict = dict, questionCount = count,
+                        onBack = { screen = "analysis-setup" },
+                        onHistory = { screen = "history" }
                     )
                     "history" -> MarifetnameScreen(
                         onBack = { screen = "home" }, lang = lang, strings = dict
@@ -163,10 +176,16 @@ private fun MizacRoot() {
                     "history-reflection" -> HistoricalReflectionScreen(
                         lang, dict, onBack = { screen = "analysis-setup" }
                     )
-                    "privacy" -> PrivacyPage(dict, onBack = { screen = "home" })
+                    "privacy" -> PrivacyPage(
+                        dict = dict,
+                        onBack = { screen = "home" },
+                        onHistory = { screen = "history" }
+                    )
                 }
             }
-            Footer(dict)
+            if (screen == "home") {
+                Footer(dict, onLicense = { screen = "privacy" })
+            }
         }
     }
 }
@@ -227,31 +246,37 @@ private fun WhiteAction(title: String, onClick: () -> Unit) {
 }
 
 @Composable
-private fun Footer(dict: Map<String, String>) {
+private fun Footer(dict: Map<String, String>, onLicense: () -> Unit) {
     val context = LocalContext.current
-    Column(
-        Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 3.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(ui(dict, "brand"), color = Ink, textAlign = TextAlign.Center,
-            style = MaterialTheme.typography.labelMedium)
-        TextButton(onClick = {
-            runCatching {
-                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://www.okiminsozu.com")))
+    Box(Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, bottom = 18.dp, top = 1.dp)) {
+        TextButton(
+            modifier = Modifier.align(Alignment.BottomStart).size(44.dp),
+            onClick = onLicense
+        ) {
+            Icon(Icons.Outlined.Info, contentDescription = ui(dict,"privacy"),
+                tint = Ink, modifier = Modifier.size(19.dp))
+        }
+        Column(
+            modifier = Modifier.align(Alignment.Center),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(ui(dict, "brand"), color = Ink, textAlign = TextAlign.Center,
+                fontSize = 11.sp, maxLines = 1)
+            TextButton(
+                onClick = {
+                    runCatching {
+                        context.startActivity(
+                            Intent(Intent.ACTION_VIEW, Uri.parse("https://www.okiminsozu.com"))
+                        )
+                    }
+                },
+                modifier = Modifier.height(34.dp)
+            ) {
+                Text(ui(dict, "website"), fontSize = 12.sp,
+                    color = Ink, textDecoration = TextDecoration.Underline)
             }
-        }) {
-            Text(ui(dict, "website"), color = Ink, textDecoration = TextDecoration.Underline)
         }
     }
-}
-
-@Composable
-private fun Heading(title: String, back: String, onBack: () -> Unit) {
-    OutlinedButton(onClick = onBack, colors = ButtonDefaults.outlinedButtonColors(
-        containerColor = Ivory, contentColor = Ink
-    )) { Text(back) }
-    Text(title, color = Ink, fontWeight = FontWeight.Bold,
-        style = MaterialTheme.typography.headlineSmall)
 }
 
 private fun saveMediaLocally(context: Context, uri: Uri, kind: String): Boolean {
@@ -292,145 +317,202 @@ private fun saveMediaLocally(context: Context, uri: Uri, kind: String): Boolean 
 }
 
 @Composable
-private fun AnalysisSelection(
-    lang: MizacLang,
+private fun HomeQuickActions(
     dict: Map<String, String>,
-    onBack: () -> Unit,
-    onGeometry: () -> Unit,
-    onQuestions: (Int) -> Unit,
-    onHistory: () -> Unit
+    onStandard: () -> Unit,
+    onQuick: () -> Unit
 ) {
     val context = LocalContext.current
-    val prefs = remember(context) {
-        context.getSharedPreferences("mizac_local_setup", Context.MODE_PRIVATE)
-    }
-    var count by rememberSaveable {
-        mutableStateOf(prefs.getInt("question_count", 10).takeIf { it in listOf(10,50,120) } ?: 10)
-    }
-    var photo by remember { mutableStateOf(File(context.filesDir, "mizac_photo.dat").exists()) }
-    var video by remember { mutableStateOf(File(context.filesDir, "mizac_video.dat").exists()) }
+    var photoSaved by remember { mutableStateOf(File(context.filesDir,"mizac_photo.dat").exists()) }
+    var videoSaved by remember { mutableStateOf(File(context.filesDir,"mizac_video.dat").exists()) }
     var feedback by remember { mutableStateOf("") }
+    var pendingQuick by remember { mutableStateOf(false) }
+    var videoOptions by remember { mutableStateOf(false) }
+
     fun save(uri: Uri?, kind: String) {
-        if (uri == null) return
-        runCatching { saveMediaLocally(context, uri, kind) }.onSuccess {
-            if (kind == "photo") photo = true else video = true
-            feedback = ui(dict, if (kind == "photo") "savePhoto" else "saveVideo")
-        }.onFailure {
-            feedback = ui(dict, when (it.message) {
-                "tooLong" -> "tooLong"
-                "tooLarge" -> "tooLarge"
-                else -> "saveFailure"
-            })
+        if (uri == null) {
+            pendingQuick = false
+            return
         }
+        runCatching { saveMediaLocally(context, uri, kind) }
+            .onSuccess {
+                if (kind == "photo") photoSaved = true else videoSaved = true
+                feedback = ui(dict,if(kind=="photo")"savePhoto" else "saveVideo")
+                if (pendingQuick) {
+                    pendingQuick = false
+                    onQuick()
+                }
+            }
+            .onFailure {
+                pendingQuick = false
+                feedback = ui(dict,when(it.message) {
+                    "tooLong" -> "tooLong"
+                    "tooLarge" -> "tooLarge"
+                    else -> "saveFailure"
+                })
+            }
     }
+
     val photoPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) {
-        save(it, "photo")
+        save(it,"photo")
     }
     val videoPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) {
-        save(it, "video")
+        save(it,"video")
     }
-    val captureFile = remember(context) { File(context.cacheDir, "mizac_video_capture.mp4") }
+    val captureFile = remember(context) { File(context.cacheDir,"mizac_video_capture.mp4") }
     val captureUri = remember(context) {
-        FileProvider.getUriForFile(context, context.packageName + ".fileprovider", captureFile)
+        FileProvider.getUriForFile(context,context.packageName + ".fileprovider",captureFile)
     }
     val capture = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
         if (it.resultCode == Activity.RESULT_OK) {
-            val uri = if (captureFile.exists() && captureFile.length() > 0L) captureUri
+            val uri = if(captureFile.exists() && captureFile.length()>0L) captureUri
                 else it.data?.data
-            if (uri != null) save(uri, "video") else feedback = ui(dict, "saveFailure")
-        } else feedback = ui(dict, "recordCancelled")
+            if(uri!=null) save(uri,"video") else feedback=ui(dict,"saveFailure")
+        } else feedback=ui(dict,"recordCancelled")
         captureFile.delete()
     }
-    Heading(ui(dict,"setupTitle"),ui(dict,"backHome"),onBack)
-    Card(colors = CardDefaults.cardColors(containerColor = Ivory)) {
-        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-            Text("🔒 " + ui(dict,"localPrivacy"), color = Ink, fontWeight = FontWeight.Bold)
-            Text(ui(dict,"localPrivacyBody"), color = Muted)
+    fun recordVideo() {
+        captureFile.delete()
+        val intent=Intent(MediaStore.ACTION_VIDEO_CAPTURE).apply {
+            putExtra(MediaStore.EXTRA_DURATION_LIMIT,30)
+            putExtra(MediaStore.EXTRA_VIDEO_QUALITY,1)
+            putExtra(MediaStore.EXTRA_OUTPUT,captureUri)
+            clipData=ClipData.newUri(context.contentResolver,"MIZAC",captureUri)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+        }
+        runCatching { capture.launch(intent) }.onFailure {
+            feedback=ui(dict,"cameraUnavailable")
         }
     }
-    Card(colors = CardDefaults.cardColors(containerColor = Ivory)) {
-        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(ui(dict,"photoTitle"), color = Ink, style = MaterialTheme.typography.titleMedium)
-            Text(ui(dict,if(photo) "photoSaved" else "photoHint"), color = Muted)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(onClick = { photoPicker.launch("image/*") }) {
-                    Text(ui(dict,if(photo) "photoReplace" else "photoChoose"))
-                }
-                if (photo) {
-                    OutlinedButton(onClick = {
-                        File(context.filesDir,"mizac_photo.dat").delete()
-                        photo = false
-                        feedback = ui(dict,"removeSuccess")
-                    }) { Text(ui(dict,"photoDelete")) }
-                }
-            }
-        }
+
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
+        horizontalArrangement = Arrangement.spacedBy(28.dp,Alignment.CenterHorizontally),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        MediaCircle(
+            isSaved = photoSaved,
+            label = ui(dict,"photoChoose"),
+            icon = { Icon(Icons.Outlined.AddPhotoAlternate,contentDescription = null,
+                tint = Ink,modifier=Modifier.size(34.dp)) },
+            onClick = { pendingQuick=false; photoPicker.launch("image/*") }
+        )
+        MediaCircle(
+            isSaved = videoSaved,
+            label = ui(dict,"videoChoose"),
+            icon = { Icon(Icons.Outlined.VideoLibrary,contentDescription = null,
+                tint = Ink,modifier=Modifier.size(34.dp)) },
+            onClick = { videoOptions=true }
+        )
     }
-    Card(colors = CardDefaults.cardColors(containerColor = Ivory)) {
-        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(ui(dict,"videoTitle"),color = Ink,style = MaterialTheme.typography.titleMedium)
-            Text(ui(dict,if(video) "videoSaved" else "videoHint"),color = Muted)
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                OutlinedButton(onClick = { videoPicker.launch("video/*") }) {
+    WhiteAction(ui(dict,"analyze"),onClick=onStandard)
+    WhiteAction(ui(dict,"quickAnalysis"),onClick={
+        when {
+            photoSaved || videoSaved -> onQuick()
+            else -> { pendingQuick=true; photoPicker.launch("image/*") }
+        }
+    })
+    if (feedback.isNotBlank()) {
+        Text(feedback, color = Muted, textAlign=TextAlign.Center,
+            modifier = Modifier.fillMaxWidth(),style=MaterialTheme.typography.bodySmall)
+    }
+    if (videoOptions) {
+        AlertDialog(
+            onDismissRequest = { videoOptions=false },
+            title = { Text(ui(dict,"videoTitle")) },
+            text = { Text(ui(dict,"videoHint")) },
+            confirmButton = {
+                TextButton(onClick = { videoOptions=false; videoPicker.launch("video/*") }) {
                     Text(ui(dict,"videoChoose"))
                 }
-                OutlinedButton(onClick = {
-                    captureFile.delete()
-                    val intent = Intent(MediaStore.ACTION_VIDEO_CAPTURE).apply {
-                        putExtra(MediaStore.EXTRA_DURATION_LIMIT,30)
-                        putExtra(MediaStore.EXTRA_VIDEO_QUALITY,1)
-                        putExtra(MediaStore.EXTRA_OUTPUT,captureUri)
-                        clipData = ClipData.newUri(context.contentResolver, "MIZAC",captureUri)
-                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+            },
+            dismissButton = {
+                Column {
+                    TextButton(onClick={videoOptions=false; recordVideo()}) {
+                        Text(ui(dict,"videoRecord"))
                     }
-                    runCatching { capture.launch(intent) }.onFailure {
-                        feedback = ui(dict,"cameraUnavailable")
+                    TextButton(onClick={videoOptions=false}) {
+                        Text(ui(dict,"cancel"))
                     }
-                }) { Text(ui(dict,"videoRecord")) }
+                }
             }
-            if (video) {
-                OutlinedButton(onClick = {
-                    File(context.filesDir,"mizac_video.dat").delete()
-                    video = false
-                    feedback = ui(dict,"removeSuccess")
-                }) { Text(ui(dict,"videoDelete")) }
-            }
-        }
+        )
     }
-    WhiteAction(ui(dict,"geometry"),onClick = {
-        if (photo || video) onGeometry() else feedback = ui(dict,"needPhoto")
-    })
-    Text(ui(dict,"noCameraPersonality"),color = Muted,
-        style = MaterialTheme.typography.bodySmall)
-    Text(ui(dict,"chooseCount"),color = Ink,style = MaterialTheme.typography.titleMedium)
-    listOf(10,50,120).forEach { option ->
-        Card(
-            modifier = Modifier.fillMaxWidth().clickable { count = option },
-            colors = CardDefaults.cardColors(containerColor = Ivory),
-            shape = RoundedCornerShape(24.dp)
+}
+
+@Composable
+private fun MediaCircle(
+    isSaved: Boolean,
+    label: String,
+    icon: @Composable () -> Unit,
+    onClick: () -> Unit
+) {
+    Column(horizontalAlignment=Alignment.CenterHorizontally,
+        verticalArrangement=Arrangement.spacedBy(6.dp)) {
+        Box(
+            Modifier.size(76.dp).border(
+                width=if(isSaved)3.dp else 1.dp,
+                color=if(isSaved) Color(0xFF9D742C) else Color(0xFFA68D6C),
+                shape=CircleShape
+            ).background(Ivory,CircleShape).clickable(onClick=onClick),
+            contentAlignment=Alignment.Center
         ) {
-            Row(Modifier.fillMaxWidth().padding(12.dp),
-                verticalAlignment = Alignment.CenterVertically) {
-                RadioButton(selected = count == option, onClick = { count = option })
-                Text("$option " + ui(dict,"questions") + " · " + ui(dict,
-                    when(option){10->"fast";50->"normal";else->"deep"}), color=Ink)
+            icon()
+            if(isSaved) Text("✓",color=Color(0xFF47763E),
+                modifier=Modifier.align(Alignment.TopEnd).padding(end=6.dp),
+                fontWeight=FontWeight.Bold)
+        }
+        Text(label,color=Ink,textAlign=TextAlign.Center,
+            fontSize=11.sp,maxLines=1,overflow=TextOverflow.Ellipsis,
+            modifier=Modifier.width(125.dp))
+    }
+}
+
+@Composable
+private fun AnalysisSelection(
+    dict: Map<String, String>,
+    onQuestions: (Int) -> Unit
+) {
+    val context=LocalContext.current
+    val prefs=remember(context) {
+        context.getSharedPreferences("mizac_local_setup",Context.MODE_PRIVATE)
+    }
+    var count by rememberSaveable {
+        mutableStateOf(prefs.getInt("question_count",10).takeIf { it in listOf(10,50,120) } ?: 10)
+    }
+    Column(
+        modifier=Modifier.fillMaxWidth().padding(top=56.dp),
+        verticalArrangement=Arrangement.spacedBy(42.dp),
+        horizontalAlignment=Alignment.CenterHorizontally
+    ) {
+        Row(Modifier.fillMaxWidth(),
+            horizontalArrangement=Arrangement.SpaceEvenly,
+            verticalAlignment=Alignment.CenterVertically) {
+            listOf(10,50,120).forEach { value ->
+                Box(
+                    modifier=Modifier.size(96.dp)
+                        .border(
+                            width=if(count==value)3.dp else 1.dp,
+                            color=if(count==value)Color(0xFF98702D) else Color(0xFFCCB48E),
+                            shape=CircleShape
+                        )
+                        .background(Ivory,CircleShape)
+                        .clickable { count=value },
+                    contentAlignment=Alignment.Center
+                ) {
+                    Column(horizontalAlignment=Alignment.CenterHorizontally) {
+                        Text(value.toString(),color=Ink,fontWeight=FontWeight.Bold,
+                            fontSize=28.sp)
+                        Text(ui(dict,"questions"),color=Ink,fontSize=11.sp)
+                    }
+                }
             }
         }
+        WhiteAction(ui(dict,"start"),onClick={
+            prefs.edit().putInt("question_count",count).apply()
+            onQuestions(count)
+        })
     }
-    OutlinedButton(onClick = {
-        prefs.edit().putInt("question_count",count).apply()
-        feedback = ui(dict,"saveFeedback")
-    },modifier=Modifier.fillMaxWidth()) {
-        Text(ui(dict,"saveChoice"))
-    }
-    WhiteAction(ui(dict,"startQuestions"),onClick = {
-        prefs.edit().putInt("question_count",count).apply()
-        onQuestions(count)
-    })
-    OutlinedButton(onClick = onHistory,modifier=Modifier.fillMaxWidth()) {
-        Text(ui(dict,"historyButton"))
-    }
-    if (feedback.isNotBlank()) Text(feedback,color=Ink)
 }
 
 @Composable
