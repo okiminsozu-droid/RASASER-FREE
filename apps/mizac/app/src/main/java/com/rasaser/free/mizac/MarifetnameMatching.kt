@@ -48,10 +48,10 @@ private fun readBookFile(context: Context, file: String): List<BookEntry> =
     }
 
 private fun allBookEntries(context: Context): List<BookEntry> =
-    listOf("catalog_4.tsv", "catalog_5.tsv", "catalog_6.tsv",
+    listOf("catalog_4.tsv", "catalog_5.tsv", "catalog_6.tsv", "catalog_7.tsv",
         "catalog_8.tsv", "catalog_mizac.tsv")
         .flatMap { readBookFile(context, it) }
-        .also { require(it.size == 239) { "Missing book records: ${it.size}" } }
+        .also { require(it.size == 244) { "Missing book records: ${it.size}" } }
 
 private fun visibleGroupKey(entry: BookEntry): String =
     entry.chapter + ":" + entry.group
@@ -72,7 +72,7 @@ fun MarifetnameMatching(lang: MizacLang, strings: Map<String, String>) {
     val rows = when (mode) {
         "twitch" -> all.filter { it.chapter == "8" }
         "mizac" -> all.filter { it.chapter == "M" }
-        else -> all.filter { it.chapter in listOf("4", "5", "6") }
+        else -> all.filter { it.chapter in listOf("4", "5", "6", "7") }
     }
 
     val grouped = rows.groupBy(::visibleGroupKey)
