@@ -5,12 +5,9 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Matrix
 import android.media.MediaMetadataRetriever
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -36,94 +33,93 @@ import com.google.mlkit.vision.face.FaceDetection
 import com.google.mlkit.vision.face.FaceDetectorOptions
 import com.google.mlkit.vision.face.FaceLandmark
 import java.io.File
-import java.util.Locale
 import kotlin.coroutines.resume
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 
-private val ink = Color(0xFF1E1711)
-private val beigeCard = Color(0xFFFFFBF6)
-private val softInk = Color(0xFF65584A)
+private val InkColor = Color(0xFF1E1711)
+private val WhiteCard = Color(0xFFFFFBF6)
+private val MutedColor = Color(0xFF65584A)
 
-data class GeometryReport(
-    val origin: String,
-    val people: Int,
-    val widthPx: Int,
-    val heightPx: Int,
-    val widthHeightRatio: Float,
+data class FaceMeasurements(
+    val fromVideo: Boolean,
+    val facesDetected: Int,
+    val width: Int,
+    val height: Int,
     val eyeDistanceRatio: Float?,
     val noseMouthRatio: Float?,
-    val yawDegrees: Float,
-    val rollDegrees: Float
+    val yaw: Float,
+    val roll: Float
 )
 
-private sealed interface GeometryState {
-    data object Loading : GeometryState
-    data class Success(val report: GeometryReport) : GeometryState
-    data class Error(val message: String) : GeometryState
+private sealed interface FaceStatus {
+    data object Loading : FaceStatus
+    data class Done(val measurement: FaceMeasurements): FaceStatus
+    data class Failed(val reasonKey: String) : FaceStatus
 }
 
-private fun orientedPhoto(file: File): Bitmap? {
-    val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-    BitmapFactory.decodeFile(file.path, options)
-    if (options.outWidth <= 0 || options.outHeight <= 0) return null
-    val sample = maxOf(1, maxOf(options.outWidth, options.outHeight) / 1440)
-    val bitmap = BitmapFactory.decodeFile(
-        file.path, BitmapFactory.Options().apply { inSampleSize = sample }
-    ) ?: return null
-    val orientation = try {
+private fun readRotatedImage(file: File): Bitmap? {
+    val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+    BitmapFactory.decodeFile(file.path, bounds)
+    if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
+    val sample = maxOf(1, maxOf(bounds.outWidth, bounds.outHeight) / 1440)
+    val bitmap = BitmapFactory.decodeFile(file.path,
+        BitmapFactory.Options().apply { inSampleSize = sample }) ?: return null
+    val angle = try {
         ExifInterface(file.path).getAttributeInt(
             ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL
         )
-    } catch (_: Exception) {
-        ExifInterface.ORIENTATION_NORMAL
-    }
+    } catch (_: Exception) { ExifInterface.ORIENTATION_NORMAL }
     val matrix = Matrix()
-    when (orientation) {
+    when (angle) {
         ExifInterface.ORIENTATION_ROTATE_90 -> matrix.postRotate(90f)
         ExifInterface.ORIENTATION_ROTATE_180 -> matrix.postRotate(180f)
         ExifInterface.ORIENTATION_ROTATE_270 -> matrix.postRotate(270f)
-        ExifInterface.ORIENTATION_FLIP_HORIZONTAL -> matrix.preScale(-1f, 1f)
-        ExifInterface.ORIENTATION_FLIP_VERTICAL -> matrix.preScale(1f, -1f)
-        ExifInterface.ORIENTATION_TRANSPOSE -> { matrix.preScale(-1f, 1f); matrix.postRotate(90f) }
-        ExifInterface.ORIENTATION_TRANSVERSE -> { matrix.preScale(-1f, 1f); matrix.postRotate(270f) }
+        ExifInterface.ORIENTATION_FLIP_HORIZONTAL -> matrix.preScale(-1f,1f)
+        ExifInterface.ORIENTATION_FLIP_VERTICAL -> matrix.preScale(1f,-1f)
+        ExifInterface.ORIENTATION_TRANSPOSE -> {
+            matrix.preScale(-1f,1f)
+            matrix.postRotate(90f)
+        }
+        ExifInterface.ORIENTATION_TRANSVERSE -> {
+            matrix.preScale(-1f,1f)
+            matrix.postRotate(270f)
+        }
         else -> return bitmap
     }
-    val corrected = Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
-    if (corrected !== bitmap) bitmap.recycle()
-    return corrected
+    val result = Bitmap.createBitmap(bitmap,0,0,bitmap.width,bitmap.height,matrix,true)
+    if (result !== bitmap) bitmap.recycle()
+    return result
 }
 
-private fun videoFrame(file: File): Bitmap? {
-    val retriever = MediaMetadataRetriever()
+private fun readVideoFrame(file: File): Bitmap? {
+    val reader = MediaMetadataRetriever()
     return try {
-        retriever.setDataSource(file.absolutePath)
-        val durationMs = retriever.extractMetadata(
+        reader.setDataSource(file.absolutePath)
+        val duration = reader.extractMetadata(
             MediaMetadataRetriever.METADATA_KEY_DURATION
         )?.toLongOrNull() ?: 0L
-        val center = (durationMs.coerceIn(0L, 30_000L) / 2L) * 1_000L
-        retriever.getFrameAtTime(center, MediaMetadataRetriever.OPTION_CLOSEST_SYNC)
-    } finally {
-        retriever.release()
-    }
+        val centerTimeUs = (duration.coerceIn(0L,30_000L) / 2L) * 1000L
+        reader.getFrameAtTime(centerTimeUs, MediaMetadataRetriever.OPTION_CLOSEST_SYNC)
+    } finally { reader.release() }
 }
 
-private suspend fun scanLocally(context: Context): GeometryState {
-    val photo = File(context.filesDir, "mizac_photo.dat")
-    val video = File(context.filesDir, "mizac_video.dat")
-    val fromPhoto = photo.exists()
-    val source = when {
-        fromPhoto -> photo
+private suspend fun inspectFaceLocally(context: Context): FaceStatus {
+    val photo = File(context.filesDir,"mizac_photo.dat")
+    val video = File(context.filesDir,"mizac_video.dat")
+    val fromVideo = !photo.exists() && video.exists()
+    val file = when {
+        photo.exists() -> photo
         video.exists() -> video
-        else -> return GeometryState.Error("Önce fotoğraf veya video seçmelisiniz.")
+        else -> return FaceStatus.Failed("needPhoto")
     }
     val bitmap = try {
         withContext(Dispatchers.IO) {
-            if (fromPhoto) orientedPhoto(source) else videoFrame(source)
+            if (fromVideo) readVideoFrame(file) else readRotatedImage(file)
         }
     } catch (_: Exception) { null }
-        ?: return GeometryState.Error("Görüntü okunamadı. Daha net bir fotoğraf deneyin.")
+        ?: return FaceStatus.Failed("geometryError")
 
     val detector = FaceDetection.getClient(
         FaceDetectorOptions.Builder()
@@ -134,51 +130,39 @@ private suspend fun scanLocally(context: Context): GeometryState {
     )
     return try {
         suspendCancellableCoroutine { continuation ->
-            detector.process(InputImage.fromBitmap(bitmap, 0))
+            detector.process(InputImage.fromBitmap(bitmap,0))
                 .addOnSuccessListener { faces ->
-                    val face = faces.maxByOrNull { it.boundingBox.width() * it.boundingBox.height() }
-                    val report = if (face == null) {
-                        GeometryState.Error("Yüz belirlenemedi. Önden, iyi ışıkta çekilmiş fotoğraf seçin.")
-                    } else {
-                        val box = face.boundingBox
-                        val width = box.width().coerceAtLeast(1)
-                        val height = box.height().coerceAtLeast(1)
-                        val leftEye = face.getLandmark(FaceLandmark.LEFT_EYE)?.position
-                        val rightEye = face.getLandmark(FaceLandmark.RIGHT_EYE)?.position
-                        val eyeDistance = if (leftEye != null && rightEye != null) {
-                            kotlin.math.hypot(
-                                (rightEye.x - leftEye.x).toDouble(),
-                                (rightEye.y - leftEye.y).toDouble()
-                            ).toFloat() / width.toFloat()
-                        } else null
-                        val nose = face.getLandmark(FaceLandmark.NOSE_BASE)?.position
-                        val mouth = face.getLandmark(FaceLandmark.MOUTH_BOTTOM)?.position
-                        val noseMouthDistance = if (nose != null && mouth != null) {
-                            kotlin.math.hypot(
-                                (mouth.x - nose.x).toDouble(),
-                                (mouth.y - nose.y).toDouble()
-                            ).toFloat() / height.toFloat()
-                        } else null
-                        GeometryState.Success(
-                            GeometryReport(
-                                origin = if (fromPhoto) "Fotoğraf" else "Video (tek kare)",
-                                people = faces.size,
-                                widthPx = width,
-                                heightPx = height,
-                                widthHeightRatio = width.toFloat() / height,
-                                eyeDistanceRatio = eyeDistance,
-                                noseMouthRatio = noseMouthDistance,
-                                yawDegrees = face.headEulerAngleY,
-                                rollDegrees = face.headEulerAngleZ
-                            )
-                        )
+                    val biggest = faces.maxByOrNull {
+                        it.boundingBox.width() * it.boundingBox.height()
                     }
-                    if (continuation.isActive) continuation.resume(report)
+                    val result = if (biggest == null) FaceStatus.Failed("geometryFailed")
+                    else {
+                        val rect=biggest.boundingBox
+                        val w=rect.width().coerceAtLeast(1)
+                        val h=rect.height().coerceAtLeast(1)
+                        val l=biggest.getLandmark(FaceLandmark.LEFT_EYE)?.position
+                        val r=biggest.getLandmark(FaceLandmark.RIGHT_EYE)?.position
+                        val nose=biggest.getLandmark(FaceLandmark.NOSE_BASE)?.position
+                        val mouth=biggest.getLandmark(FaceLandmark.MOUTH_BOTTOM)?.position
+                        val eyes=if(l!=null&&r!=null){
+                            kotlin.math.hypot(
+                                (r.x-l.x).toDouble(),(r.y-l.y).toDouble()
+                            ).toFloat()/w
+                        } else null
+                        val noseMouth=if(nose!=null&&mouth!=null) {
+                            kotlin.math.hypot(
+                                (mouth.x-nose.x).toDouble(),
+                                (mouth.y-nose.y).toDouble()
+                            ).toFloat()/h
+                        } else null
+                        FaceStatus.Done(FaceMeasurements(fromVideo, faces.size, w, h,
+                            eyes, noseMouth, biggest.headEulerAngleY,biggest.headEulerAngleZ))
+                    }
+                    if(continuation.isActive)continuation.resume(result)
                 }
                 .addOnFailureListener {
-                    if (continuation.isActive) {
-                        continuation.resume(GeometryState.Error("Cihaz içi yüz ölçümü başarısız oldu."))
-                    }
+                    if(continuation.isActive)
+                        continuation.resume(FaceStatus.Failed("geometryError"))
                 }
                 .addOnCompleteListener {
                     detector.close()
@@ -187,83 +171,76 @@ private suspend fun scanLocally(context: Context): GeometryState {
         }
     } catch (_: Exception) {
         detector.close()
-        if (!bitmap.isRecycled) bitmap.recycle()
-        GeometryState.Error("Yüz ölçümü tamamlanamadı.")
+        if(!bitmap.isRecycled)bitmap.recycle()
+        FaceStatus.Failed("geometryError")
     }
 }
 
 @Composable
-fun FaceGeometryScreen(onBack: () -> Unit) {
-    val context = LocalContext.current
-    var state by remember { mutableStateOf<GeometryState>(GeometryState.Loading) }
-    LaunchedEffect(Unit) {
-        state = scanLocally(context)
-    }
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Button(onClick = onBack) { Text("‹ Analiz Seçimi") }
-        Text("Gerçek Yüz Geometrisi", color = ink,
-            style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-        Text(
-            "Google ML Kit görüntü üzerindeki ölçülebilir noktaları cihazınızda tespit eder. " +
-                "Bu bilgilerden kişilik, zeka, dürüstlük veya niyet çıkarılmaz.",
-            color = softInk
-        )
-        when (val current = state) {
-            GeometryState.Loading -> {
-                CircularProgressIndicator(color = ink)
-                Text("Fotoğraf telefonunuzda inceleniyor...", color = ink)
+fun FaceGeometryScreen(
+    onBack: () -> Unit,
+    lang: MizacLang,
+    strings: Map<String, String>
+) {
+    val context=LocalContext.current
+    var state by remember { mutableStateOf<FaceStatus>(FaceStatus.Loading) }
+    LaunchedEffect(Unit) { state = inspectFaceLocally(context) }
+    Column(verticalArrangement=Arrangement.spacedBy(12.dp)) {
+        Button(onClick=onBack) { Text(ui(strings,"backSetup")) }
+        Text(ui(strings,"geometryTitle"),color=InkColor,
+            style=MaterialTheme.typography.headlineSmall,
+            fontWeight=FontWeight.Bold)
+        Text(ui(strings,"geometryExplain"),color=MutedColor)
+        when(val status=state) {
+            FaceStatus.Loading -> {
+                CircularProgressIndicator()
+                Text(ui(strings,"geometryLoading"),color=InkColor)
             }
-            is GeometryState.Error -> {
-                Card(colors = CardDefaults.cardColors(containerColor = beigeCard)) {
-                    Text(current.message, color = ink, modifier = Modifier.padding(16.dp))
+            is FaceStatus.Failed -> {
+                Card(colors=CardDefaults.cardColors(containerColor=WhiteCard)) {
+                    Text(ui(strings,status.reasonKey),color=InkColor,
+                        modifier=Modifier.padding(16.dp))
                 }
             }
-            is GeometryState.Success -> {
-                val report = current.report
-                Card(shape = RoundedCornerShape(22.dp),
-                    colors = CardDefaults.cardColors(containerColor = beigeCard)) {
-                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Text("Kaynak: " + report.origin, color = ink)
-                        Text("Algılanan yüz sayısı: " + report.people, color = ink)
-                        ReportValue("Yüz bölgesi (piksel)", "${report.widthPx} × ${report.heightPx}")
-                        ReportValue("2B genişlik / yükseklik oranı",
-                            String.format(Locale.US, "%.3f", report.widthHeightRatio))
-                        ReportValue("Gözler arası mesafe / yüz genişliği",
-                            report.eyeDistanceRatio?.let { String.format(Locale.US, "%.3f", it) }
-                                ?: "İşaret noktaları yeterli değil")
-                        ReportValue("Burun - alt dudak / yüz yüksekliği",
-                            report.noseMouthRatio?.let { String.format(Locale.US, "%.3f", it) }
-                                ?: "İşaret noktaları yeterli değil")
-                        ReportValue("Başın sağa-sola dönüşü",
-                            String.format(Locale.US, "%.1f°", report.yawDegrees))
-                        ReportValue("Başın yatay eksende eğimi",
-                            String.format(Locale.US, "%.1f°", report.rollDegrees))
-                        if (report.people > 1) Text(
-                            "Birden fazla yüz var: en büyük görünen yüz ölçüldü.",
-                            color = softInk
-                        )
+            is FaceStatus.Done -> {
+                val v=status.measurement
+                Card(colors=CardDefaults.cardColors(containerColor=WhiteCard),
+                    shape=RoundedCornerShape(22.dp)) {
+                    Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(9.dp)) {
+                        GeometryLabel(strings,"geometrySource",
+                            ui(strings,if(v.fromVideo)"geometryVideo" else "geometryPhoto"))
+                        GeometryLabel(strings,"geometryFaces",v.facesDetected.toString())
+                        GeometryLabel(strings,"geometryPixels","${v.width} × ${v.height}")
+                        GeometryLabel(strings,"geometryRatio",
+                            formatLocalNumber(v.width.toFloat()/v.height,lang))
+                        GeometryLabel(strings,"geometryEyes",
+                            v.eyeDistanceRatio?.let { formatLocalNumber(it,lang) }
+                                ?: ui(strings,"geometryUnavailable"))
+                        GeometryLabel(strings,"geometryNose",
+                            v.noseMouthRatio?.let { formatLocalNumber(it,lang) }
+                                ?: ui(strings,"geometryUnavailable"))
+                        GeometryLabel(strings,"geometryYaw",
+                            formatLocalNumber(v.yaw,lang) + "°")
+                        GeometryLabel(strings,"geometryRoll",
+                            formatLocalNumber(v.roll,lang) + "°")
+                        if(v.facesDetected>1)
+                            Text(ui(strings,"geometryMultiple"),color=MutedColor)
                     }
                 }
-                Text(
-                    "Bunlar tıbbi ölçüm veya gerçek dünya santimetreleri değildir; " +
-                        "kameranın açısı, ışık ve yüz pozisyonundan etkilenir. " +
-                        "Video için yalnızca temsilî bir kare incelenir.",
-                    color = softInk, style = MaterialTheme.typography.bodySmall
-                )
+                Text(ui(strings,"geometryNote"),color=MutedColor,
+                    style=MaterialTheme.typography.bodySmall)
             }
         }
-        Spacer(Modifier.height(4.dp))
-        Text(
-            "Gizlilik: Görüntü ve ölçüm sonucu sunucuya gönderilmez. Sonuç sadece bu ekranda hesaplanır.",
-            color = ink, style = MaterialTheme.typography.bodySmall
-        )
+        Text(ui(strings,"geometryPrivacy"),color=InkColor,
+            style=MaterialTheme.typography.bodySmall)
     }
 }
 
 @Composable
-private fun ReportValue(name: String, value: String) {
-    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        Text(name, color = softInk, style = MaterialTheme.typography.labelMedium)
-        Text(value, color = ink, style = MaterialTheme.typography.titleMedium)
+private fun GeometryLabel(strings:Map<String,String>,key:String,value:String) {
+    Column(verticalArrangement=Arrangement.spacedBy(2.dp)) {
+        Text(ui(strings,key),color=MutedColor,
+            style=MaterialTheme.typography.labelMedium)
+        Text(value,color=InkColor,style=MaterialTheme.typography.titleMedium)
     }
 }
