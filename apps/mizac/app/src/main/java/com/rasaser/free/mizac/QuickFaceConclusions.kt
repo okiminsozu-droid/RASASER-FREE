@@ -154,6 +154,7 @@ private fun HistoricalRow(item: HistoricalSnippet, strings: Map<String, String>)
 fun QuickBookReading(
     measurement: FaceMeasurements,
     bodyReport: BodyPoseReport?,
+    lang: MizacLang,
     strings: Map<String, String>
 ) {
     val context = LocalContext.current
@@ -174,6 +175,10 @@ fun QuickBookReading(
                 fontWeight = FontWeight.Bold)
             Text(ui(strings, "photoReportHistoryIntro"), color = quickGray,
                 style = MaterialTheme.typography.bodySmall)
+            if(lang.code != "tr") {
+                Text(ui(strings, "catalogOriginalLanguage"), color = quickGray,
+                    style = MaterialTheme.typography.labelSmall)
+            }
 
             when {
                 !singleFace -> Text(ui(strings, "quickNeedsOneFace"), color = quickGray)

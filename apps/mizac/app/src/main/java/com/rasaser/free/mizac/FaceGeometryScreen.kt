@@ -265,7 +265,7 @@ fun FaceGeometryScreen(
                 val v = result.measurement
                 // ML Kit eye/smile classifiers are valid chiefly near frontal yaw.
                 val reliableClassification = kotlin.math.abs(v.yaw) <= 18f
-                QuickBookReading(v,bodyReport,strings)
+                QuickBookReading(v,bodyReport,lang,strings)
                 QuickMeasuredConclusions(v,lang,strings)
                 TextButton(
                     modifier=Modifier.fillMaxWidth(),
