@@ -66,7 +66,7 @@ private sealed interface FaceStatus {
     data class Failed(val reasonKey: String) : FaceStatus
 }
 
-private fun readRotatedImage(file: File): Bitmap? {
+internal fun readRotatedImage(file: File): Bitmap? {
     val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
     BitmapFactory.decodeFile(file.path, bounds)
     if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
@@ -100,7 +100,7 @@ private fun readRotatedImage(file: File): Bitmap? {
     return result
 }
 
-private fun readVideoFrame(file: File): Bitmap? {
+internal fun readVideoFrame(file: File): Bitmap? {
     val reader = MediaMetadataRetriever()
     return try {
         reader.setDataSource(file.absolutePath)
@@ -203,7 +203,13 @@ fun FaceGeometryScreen(
     var state by remember { mutableStateOf<FaceStatus>(FaceStatus.Loading) }
     var showBookCatalog by rememberSaveable { mutableStateOf(false) }
     var showTechnical by rememberSaveable { mutableStateOf(false) }
-    LaunchedEffect(Unit) { state = inspectFaceLocally(context) }
+    var bodyReport by remember { mutableStateOf<BodyPoseReport?>(null) }
+    var bodyReady by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        state = inspectFaceLocally(context)
+        bodyReport = inspectBodyLocally(context)
+        bodyReady = true
+    }
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(
@@ -291,6 +297,16 @@ fun FaceGeometryScreen(
                 QuickFrameImprovements(v,strings)
                 QuickSelfReportStrengthsAndGrowth(strings,onEthics)
             }
+        }
+        if(bodyReady) {
+            BodyPoseResults(
+                bodyReport, strings, lang,
+                multiFace=(state as? FaceStatus.Done)?.measurement?.facesDetected
+                    ?.let{ it>1 } ?: false
+            )
+        } else {
+            Text(ui(strings,"bodyLoading"),color=MutedColor,
+                style=MaterialTheme.typography.bodySmall)
         }
         TextButton(
             modifier=Modifier.fillMaxWidth(),
