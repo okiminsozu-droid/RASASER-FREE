@@ -131,4 +131,26 @@ class ContentIntegrityTest {
         assertTrue(selected.all{it.action==allAdvice[it.itemNo]})
         assertTrue(selectSelfReportedConcerns(List(88){1},allAdvice).isEmpty())
     }
+
+    @Test fun bodyAndFaceMeasurementLabelsHaveAllFiveUiLanguages() {
+        val rows = lines("i18n/ui.txt")
+            .associate { row -> row.substringBefore('|') to row.split('|') }
+        val required = listOf(
+            "bodyReportTitle", "bodyNoPose", "bodyLandmarks", "bodyFull",
+            "bodyPartlyVisible", "bodyShoulderTorso", "bodyHipTorso",
+            "bodyShoulderHip", "bodyShoulderTilt", "bodyHipTilt",
+            "bodyLeftElbow", "bodyRightElbow", "bodyLeftKnee",
+            "bodyRightKnee", "bodyLeftArmTorso", "bodyRightArmTorso",
+            "bodyLeftLegTorso", "bodyRightLegTorso",
+            "faceMouthWidth", "faceNoseWidth",
+            "faceEyeOutline", "faceBrowGap",
+            "quickPositiveToImprove"
+        )
+        required.forEach { key ->
+            val translations = rows[key]
+            assertTrue("Missing language key: $key",translations!=null)
+            assertEquals("Missing one of five translations for $key",6,translations!!.size)
+            assertTrue("Empty translation for $key",translations.all { it.isNotBlank() })
+        }
+    }
 }
