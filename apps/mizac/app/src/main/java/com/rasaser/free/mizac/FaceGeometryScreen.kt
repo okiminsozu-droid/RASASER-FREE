@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -201,6 +202,7 @@ fun FaceGeometryScreen(
     val context = LocalContext.current
     var state by remember { mutableStateOf<FaceStatus>(FaceStatus.Loading) }
     var showBookCatalog by rememberSaveable { mutableStateOf(false) }
+    var showTechnical by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(Unit) { state = inspectFaceLocally(context) }
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -212,11 +214,12 @@ fun FaceGeometryScreen(
         if(state is FaceStatus.Done) {
             QuickBookReading((state as FaceStatus.Done).measurement,strings)
         }
-        OutlinedButton(
+        TextButton(
             modifier=Modifier.fillMaxWidth(),
             onClick={ showBookCatalog=!showBookCatalog }
         ) {
-            Text(ui(strings,if(showBookCatalog)"quickHideBook" else "quickBrowseBook"))
+            Text(ui(strings,if(showBookCatalog)"quickHideBook" else "quickBrowseBook"),
+                color=MutedColor)
         }
         if(showBookCatalog) MarifetnameMatching(lang, strings, selectable=true)
 
@@ -239,7 +242,14 @@ fun FaceGeometryScreen(
                 // ML Kit eye/smile classifiers are valid chiefly near frontal yaw.
                 val reliableClassification = kotlin.math.abs(v.yaw) <= 18f
                 QuickMeasuredConclusions(v,lang,strings)
-                Card(
+                TextButton(
+                    modifier=Modifier.fillMaxWidth(),
+                    onClick={showTechnical=!showTechnical}
+                ) {
+                    Text(ui(strings,if(showTechnical)"quickHideTech" else "quickShowTech"),
+                        color=MutedColor)
+                }
+                if(showTechnical) Card(
                     modifier=Modifier.fillMaxWidth(),
                     colors=CardDefaults.cardColors(containerColor=WhiteCard),
                     shape=RoundedCornerShape(22.dp)
