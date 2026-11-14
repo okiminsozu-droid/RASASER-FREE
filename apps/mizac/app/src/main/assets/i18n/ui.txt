@@ -271,3 +271,25 @@ quickSmileObservationLabel|Görüntüdeki yüz ifadesi|Visible expression|Sichtb
 quickShowTech|Ayrıntılı Ölçümleri Göster|Show Detailed Measurements|Detaillierte Messungen anzeigen|Mostrar mediciones detalladas|عرض القياسات التفصيلية
 quickHideTech|Ayrıntılı Ölçümleri Gizle|Hide Detailed Measurements|Detaillierte Messungen verbergen|Ocultar mediciones detalladas|إخفاء القياسات التفصيلية
 quickResultHeading|Hızlı Analiz Sonucu|Quick Analysis Result|Schnellanalyse – Ergebnis|Resultado del análisis rápido|نتيجة التحليل السريع
+bodyReportTitle|Beden Analizi · Ölçülen Özellikler|Body Analysis · Measured Features|Körperanalyse · Gemessene Merkmale|Análisis corporal · Rasgos medidos|تحليل الجسم · السمات المقاسة
+bodyLoading|Beden noktaları inceleniyor...|Detecting body landmarks...|Körperpunkte werden erkannt...|Detectando puntos del cuerpo...|جار اكتشاف نقاط الجسم...
+bodyNoPose|Bu görüntüde yeterli beden noktası algılanamadı. Bedenin göründüğü net bir fotoğraf veya video kullan.|Not enough body points were detected. Use a clear image with the body visible.|Nicht genügend Körperpunkte erkannt. Bitte ein klares Bild mit sichtbarem Körper verwenden.|No se detectaron suficientes puntos corporales. Usa una imagen clara con el cuerpo visible.|لم تُكتشف نقاط جسم كافية. استخدم صورة واضحة يظهر فيها الجسم.
+bodyMultiplePeople|Birden fazla yüz algılandı. Beden noktalarının seçilen yüze ait olduğu doğrulanamaz.|Several faces were detected. The body points cannot be tied reliably to the selected face.|Mehrere Gesichter erkannt. Körperpunkte können keinem Gesicht sicher zugeordnet werden.|Se detectaron varios rostros. No se pueden atribuir los puntos corporales a una cara con certeza.|تم اكتشاف عدة وجوه ولا يمكن ربط نقاط الجسم بوجه معين بثقة.
+bodyLandmarks|Görüntüde algılanan beden noktaları|Detected body points|Erkannte Körperpunkte|Puntos corporales detectados|نقاط الجسم المكتشفة
+bodyFull|Omuz, kalça, diz ve ayak bileği noktaları görünür.|Shoulders, hips, knees and ankles are visible.|Schultern, Hüften, Knie und Knöchel sind sichtbar.|Se ven hombros, caderas, rodillas y tobillos.|تظهر نقاط الكتفين والوركين والركبتين والكاحلين.
+bodyPartlyVisible|Bedenin bazı bölümleri görünmüyor; yalnız güvenilir ölçüler listeleniyor.|Some body areas are not visible; only reliable measurements are listed.|Einige Körperbereiche sind nicht sichtbar; nur verlässliche Messwerte werden angezeigt.|Algunas zonas no son visibles; solo se muestran mediciones fiables.|بعض أجزاء الجسم غير ظاهرة؛ تُعرض القياسات الموثوقة فقط.
+bodyMeasurementLimit|Oranlar bu görüntüdeki iki boyutlu poz noktalarından hesaplandı; gerçek boy ve karakter ölçümü değildir.|Ratios use 2D pose points in this image, not real-world height or personality.|Die Werte beruhen auf 2D-Punkten, nicht auf Körpergröße oder Persönlichkeit.|Las medidas se basan en puntos 2D, no en estatura real ni personalidad.|تستند النسب إلى نقاط ثنائية الأبعاد ولا تقيس الطول الحقيقي أو الشخصية.
+bodyShoulderTorso|Omuz genişliği / gövde uzunluğu|Shoulder width / torso length|Schulterbreite / Rumpflänge|Ancho de hombros / longitud de torso|عرض الكتفين / طول الجذع
+bodyHipTorso|Kalça genişliği / gövde uzunluğu|Hip width / torso length|Hüftbreite / Rumpflänge|Ancho de caderas / longitud de torso|عرض الوركين / طول الجذع
+bodyShoulderHip|Omuz genişliği / kalça genişliği|Shoulder width / hip width|Schulterbreite / Hüftbreite|Ancho de hombros / ancho de caderas|عرض الكتفين / عرض الوركين
+bodyShoulderTilt|Omuz hattının görüntüdeki eğimi|Shoulder line tilt|Neigung der Schulterlinie|Inclinación de hombros|ميل خط الكتفين
+bodyHipTilt|Kalça hattının görüntüdeki eğimi|Hip line tilt|Neigung der Hüftlinie|Inclinación de caderas|ميل خط الوركين
+bodyLeftElbow|Sol dirsek açısı|Left elbow angle|Linker Ellenbogenwinkel|Ángulo del codo izquierdo|زاوية المرفق الأيسر
+bodyRightElbow|Sağ dirsek açısı|Right elbow angle|Rechter Ellenbogenwinkel|Ángulo del codo derecho|زاوية المرفق الأيمن
+bodyLeftKnee|Sol diz açısı|Left knee angle|Linker Kniewinkel|Ángulo de la rodilla izquierda|زاوية الركبة اليسرى
+bodyRightKnee|Sağ diz açısı|Right knee angle|Rechter Kniewinkel|Ángulo de la rodilla derecha|زاوية الركبة اليمنى
+bodyLeftArmTorso|Sol kol uzunluğu / gövde uzunluğu (görüntü)|Left arm / torso ratio (image)|Linker Arm / Rumpf (Bild)|Brazo izquierdo / torso (imagen)|نسبة الذراع الأيسر إلى الجذع في الصورة
+bodyRightArmTorso|Sağ kol uzunluğu / gövde uzunluğu (görüntü)|Right arm / torso ratio (image)|Rechter Arm / Rumpf (Bild)|Brazo derecho / torso (imagen)|نسبة الذراع الأيمن إلى الجذع في الصورة
+bodyLeftLegTorso|Sol bacak / gövde uzunluğu (görüntü)|Left leg / torso ratio (image)|Linkes Bein / Rumpf (Bild)|Pierna izquierda / torso (imagen)|نسبة الساق اليسرى إلى الجذع في الصورة
+bodyRightLegTorso|Sağ bacak / gövde uzunluğu (görüntü)|Right leg / torso ratio (image)|Rechtes Bein / Rumpf (Bild)|Pierna derecha / torso (imagen)|نسبة الساق اليمنى إلى الجذع في الصورة
+quickPositiveToImprove|Geliştirilebilecek İyi Davranışlar|Positive Behaviors to Develop|Positive Verhaltensweisen zum Entwickeln|Conductas positivas por desarrollar|السلوكيات الإيجابية القابلة للتطوير
