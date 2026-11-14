@@ -270,3 +270,4 @@ quickEyeObservationLabel|Gözlerin görüntüdeki durumu|Eyes in the image|Augen
 quickSmileObservationLabel|Görüntüdeki yüz ifadesi|Visible expression|Sichtbarer Gesichtsausdruck|Expresión visible|تعبير الوجه الظاهر
 quickShowTech|Ayrıntılı Ölçümleri Göster|Show Detailed Measurements|Detaillierte Messungen anzeigen|Mostrar mediciones detalladas|عرض القياسات التفصيلية
 quickHideTech|Ayrıntılı Ölçümleri Gizle|Hide Detailed Measurements|Detaillierte Messungen verbergen|Ocultar mediciones detalladas|إخفاء القياسات التفصيلية
+quickResultHeading|Hızlı Analiz Sonucu|Quick Analysis Result|Schnellanalyse – Ergebnis|Resultado del análisis rápido|نتيجة التحليل السريع
