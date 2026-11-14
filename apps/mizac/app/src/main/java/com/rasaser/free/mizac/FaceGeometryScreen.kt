@@ -195,7 +195,8 @@ fun FaceGeometryScreen(
     onBack: () -> Unit,
     lang: MizacLang,
     strings: Map<String, String>,
-    onHistory: () -> Unit
+    onHistory: () -> Unit,
+    onEthics: () -> Unit
 ) {
     val context = LocalContext.current
     var state by remember { mutableStateOf<FaceStatus>(FaceStatus.Loading) }
@@ -217,7 +218,7 @@ fun FaceGeometryScreen(
         ) {
             Text(ui(strings,if(showBookCatalog)"quickHideBook" else "quickBrowseBook"))
         }
-        if(showBookCatalog) MarifetnameMatching(lang, strings)
+        if(showBookCatalog) MarifetnameMatching(lang, strings, selectable=true)
 
         Text(ui(strings,"photoReportScience"),color=InkColor,
             style=MaterialTheme.typography.headlineSmall,
@@ -279,6 +280,8 @@ fun FaceGeometryScreen(
                 if(v.fromVideo)
                     Text(ui(strings,"photoReportVideoNote"),color=MutedColor,
                         style=MaterialTheme.typography.bodySmall)
+                QuickFrameImprovements(v,strings)
+                QuickSelfReportStrengthsAndGrowth(strings,onEthics)
             }
         }
 
