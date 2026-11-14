@@ -577,6 +577,9 @@ private fun PrivacyPage(
                 val prefs=context.getSharedPreferences("mizac_local_setup",Context.MODE_PRIVATE)
                 val previousLanguage=prefs.getString("ui_language","tr")
                 if(!prefs.edit().clear().putString("ui_language",previousLanguage).commit())ok=false
+                if(!context.getSharedPreferences(
+                    "mizac_quran_ethics_local",Context.MODE_PRIVATE
+                ).edit().clear().commit())ok=false
                 feedback=ui(dict,if(ok)"deleted" else "deletePartial")
                 confirm=false
             }){Text(ui(dict,"deleteYes"))}
