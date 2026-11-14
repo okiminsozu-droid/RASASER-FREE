@@ -57,11 +57,16 @@ private fun visibleGroupKey(entry: BookEntry): String =
     entry.chapter + ":" + entry.group
 
 @Composable
-fun MarifetnameMatching(lang: MizacLang, strings: Map<String, String>) {
+fun MarifetnameMatching(
+    lang: MizacLang,
+    strings: Map<String, String>,
+    selectable: Boolean = false
+) {
     val context = LocalContext.current
     val all = remember(context) { allBookEntries(context) }
     var mode by rememberSaveable { mutableStateOf("appearance") }
     var expanded by rememberSaveable { mutableStateOf("4:Yüz şekli") }
+    var selected by rememberSaveable { mutableStateOf("") }
 
     val modeDefinitions = listOf(
         "appearance" to "catalogAppearance",
@@ -118,6 +123,44 @@ fun MarifetnameMatching(lang: MizacLang, strings: Map<String, String>) {
                     color=Color(0xFF6D5943),
                     style=MaterialTheme.typography.labelSmall)
             }
+            if(selectable) {
+                Text(ui(strings,"quickBookChooseFeature"),
+                    style=MaterialTheme.typography.bodySmall,
+                    color=Color(0xFF6D5943))
+                if(selected.isNotBlank()) {
+                    val active=all.firstOrNull {
+                        it.chapter+"|"+it.feature==selected
+                    }
+                    if(active!=null) {
+                        Card(
+                            colors=CardDefaults.cardColors(
+                                containerColor=Color(0xFFF0DFBF)),
+                            shape=RoundedCornerShape(12.dp)
+                        ) {
+                            Column(Modifier.padding(12.dp),
+                                verticalArrangement=Arrangement.spacedBy(5.dp)) {
+                                Text(ui(strings,"quickSelectedBook"),
+                                    color=Color(0xFF241B13),
+                                    fontWeight=FontWeight.Bold)
+                                Text(active.feature,
+                                    color=Color(0xFF241B13),
+                                    fontWeight=FontWeight.SemiBold)
+                                Text(
+                                    if(active.otherSide==null)active.description
+                                    else ui(strings,"catalogRight")+": "+
+                                        active.description+" • "+
+                                        ui(strings,"catalogLeft")+": "+
+                                        active.otherSide,
+                                    color=Color(0xFF594C3C)
+                                )
+                                Text(ui(strings,"quickBookOneLineLimit"),
+                                    color=Color(0xFF65584A),
+                                    style=MaterialTheme.typography.labelSmall)
+                            }
+                        }
+                    }
+                }
+            }
             grouped.forEach { (groupKey, groupRows) ->
                 val current=expanded==groupKey
                 Text(
@@ -133,8 +176,17 @@ fun MarifetnameMatching(lang: MizacLang, strings: Map<String, String>) {
                 if(current) {
                     groupRows.forEach { item ->
                         Row(
-                            modifier=Modifier.fillMaxWidth().padding(
-                                horizontal=6.dp,vertical=5.dp),
+                            modifier=Modifier.fillMaxWidth()
+                                .then(if(selectable)Modifier.clickable {
+                                    selected=item.chapter+"|"+item.feature
+                                } else Modifier)
+                                .background(
+                                    if(selectable &&
+                                        selected==item.chapter+"|"+item.feature)
+                                        Color(0xFFF0DFBF) else Color.Transparent,
+                                    RoundedCornerShape(8.dp)
+                                )
+                                .padding(horizontal=6.dp,vertical=7.dp),
                             horizontalArrangement=Arrangement.spacedBy(10.dp)
                         ) {
                             Text(
