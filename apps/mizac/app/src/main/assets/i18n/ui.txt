@@ -293,3 +293,7 @@ bodyRightArmTorso|Sağ kol uzunluğu / gövde uzunluğu (görüntü)|Right arm /
 bodyLeftLegTorso|Sol bacak / gövde uzunluğu (görüntü)|Left leg / torso ratio (image)|Linkes Bein / Rumpf (Bild)|Pierna izquierda / torso (imagen)|نسبة الساق اليسرى إلى الجذع في الصورة
 bodyRightLegTorso|Sağ bacak / gövde uzunluğu (görüntü)|Right leg / torso ratio (image)|Rechtes Bein / Rumpf (Bild)|Pierna derecha / torso (imagen)|نسبة الساق اليمنى إلى الجذع في الصورة
 quickPositiveToImprove|Geliştirilebilecek İyi Davranışlar|Positive Behaviors to Develop|Positive Verhaltensweisen zum Entwickeln|Conductas positivas por desarrollar|السلوكيات الإيجابية القابلة للتطوير
+faceMouthWidth|Ağız genişliği / yüz genişliği|Mouth width / face width|Mundbreite / Gesichtsbreite|Ancho de boca / ancho del rostro|عرض الفم / عرض الوجه
+faceNoseWidth|Burun altı genişliği / yüz genişliği|Nose base width / face width|Nasenbasis / Gesichtsbreite|Ancho de nariz / ancho del rostro|عرض قاعدة الأنف / عرض الوجه
+faceEyeOutline|Göz çevresi genişliği / yüz genişliği|Eye outline width / face width|Augenumriss / Gesichtsbreite|Ancho del contorno ocular / rostro|عرض محيط العين / عرض الوجه
+faceBrowGap|Kaşların görüntüdeki aralığı / yüz genişliği|Eyebrow gap / face width|Abstand der Augenbrauen / Gesichtsbreite|Distancia entre cejas / ancho facial|المسافة بين الحاجبين / عرض الوجه
