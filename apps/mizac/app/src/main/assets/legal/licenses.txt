@@ -1,0 +1,25 @@
+RaSaSeR — MİZAÇ Legal and Scientific Notice / Yasal ve Bilimsel Bilgilendirme
+
+© 2026 RaSaSeR APPS & TECHNOLOGY.
+
+This application's UI provides Turkish, English, German, Spanish and Arabic privacy and scientific notices. This file is a developer reference and is not a substitute for a final publication legal review.
+
+GİZLİLİK
+Fotoğraf, en fazla 30 saniyelik video ve soru sayısı tercihleri yalnız uygulamanın telefon içi depolamasına kaydedilir. 10/50/120 soruluk test cevapları oturum sırasında işlenir; 176 soruluk ahlâkî öz değerlendirme cevapları yalnız cihazın özel SharedPreferences alanında saklanır ve kullanıcının veri silme işlemiyle kaldırılır. Sunucu, hesap, reklam/analitik SDK'sı veya kişisel verilerin firmaya aktarımı bulunmaz. Kullanıcı yerel kayıtları silebilir; galerideki orijinaller korunur. Dış web sayfası ancak kullanıcının tıklamasıyla tarayıcıda açılır.
+
+ÖZGÜN ANKET VE TELİF
+120 özgün Türkçe soru (beş alanda 24'er soru) bu MİZAÇ projesi için yeniden yazıldı; İngilizce, Almanca, İspanyolca ve Arapça ifadeler bağımsız çeviri olarak hazırlandı. 10/50/120 seçenekleri aynı özgün havuzu kullanır. Test metinleri modern yayınlardan veya ücretli kişilik ölçeklerinden birebir alınmamıştır. Metinlerin özgün olması bütün ülkelerde hukuki ihtilaf olmayacağına ilişkin mutlak garanti sayılamaz.
+
+BİLİMSEL SINIR
+Bu 120 yeni soru psikometrik olarak valide edilmemiştir; klinik, işe alım, yalan tespiti, zekâ ya da kesin kişilik belirleme amacıyla kullanılamaz. Beş alanda gösterilen ortalamalar kullanıcının beyanlarıdır. Yüz geometrisi ayrı çalışır ve kişilik skorlarına bağlanmaz.
+
+TARİHÎ AÇIKLAMALAR
+Erzurumlu İbrahim Hakkı'nın Mârifetnâme eserindeki kıyâfet geleneği yalnız kültür tarihi içeriği olarak yeniden ve özgün ifadelerle anlatılır. Modern telifli sadeleştirme/çeviri metinleri kopyalanmaz. Tarihî yüz yorumları bilimsel karakter yargıları olarak gösterilmez. Ek 10 soru gelenekten esinlenen, bağımsız, özgün düşünme sorularıdır.
+
+THIRD-PARTY NOTICES
+AndroidX, Kotlin, Jetpack Compose, ML Kit Face Detection, bundled ML Kit Pose Detection (18.0.0-beta5) and Android ExifInterface are used by the app. Review and ship applicable dependency license notices before publication.
+
+EK YÜZ VE BEDEN ANALİZİ (v0.10.0)
+- Gömülü yüz konturu ve beden pozu algılaması tamamen cihazda çalışır; yüz/göz/burun/ağız oranları, görülebilen omuz/kalça/kol/bacak oranları ve eklem açıları iki boyutlu görüntü ölçümleridir. Gövde, boy, sağlık, ahlâk ve zekâ için kişisel teşhis yerine geçmez.
+- Mârifetnâme katalogundaki görünüş hükümleri, yalnız kaynağın ileri sürdüğü metin olarak gösterilir. Nüsha karşılaştırması yapılmamış bir PDF araştırma derlemesinin yorumları, kişiye ait tıbbi/ahlâkî gerçekler diye ilan edilmez.
+- Kullanıcının 176 soruluk öz değerlendirmesinde gösterilen artı/eksi başlıkları ve geliştirilebilecek olumlu nitelikler, PDF'deki aynı başlık ve ayet referanslarıyla verilir. Fotoğraf ya da beden duruşundan kesin kişilik puanı, ahlâk hükmü veya bireysel iyileştirme gereksinimi çıkartılmaz.
