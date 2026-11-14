@@ -149,21 +149,21 @@ fun QuickBookReading(
                     style=MaterialTheme.typography.bodyMedium)
             }
 
-            // The original text is shown as the book's statement, not
-            // as a fact derived about the person's character from their face.
-            Text(ui(strings,"quickBookSourceItems"),color=quickDark,
-                fontWeight=FontWeight.SemiBold,
-                style=MaterialTheme.typography.titleSmall)
-            book.forEach { (trait,meaning) ->
-                Column(verticalArrangement=Arrangement.spacedBy(2.dp)) {
-                    Text(trait,color=quickDark,fontWeight=FontWeight.Medium,
-                        style=MaterialTheme.typography.bodyMedium)
+            // No fixed three-item result for every photograph. Display only
+            // the source passage corresponding to an actually observed smile.
+            // Other body descriptions require the user's explicit selection.
+            if(smilingInFrame) {
+                book.firstOrNull { it.first=="Tebessümlü yüz" }?.let { (trait,meaning) ->
+                    Text(trait,color=quickDark,fontWeight=FontWeight.SemiBold)
                     Text(meaning,color=quickGray,
                         style=MaterialTheme.typography.bodyMedium)
+                    Text(ui(strings,"quickBookCitation"),color=quickGray,
+                        style=MaterialTheme.typography.labelMedium)
                 }
+            } else {
+                Text(ui(strings,"quickBookChooseFeature"),color=quickGray,
+                    style=MaterialTheme.typography.bodyMedium)
             }
-            Text(ui(strings,"quickBookCitation"),color=quickGray,
-                style=MaterialTheme.typography.labelMedium)
             Text(ui(strings,"quickBookOneLineLimit"),color=quickGray,
                 style=MaterialTheme.typography.labelSmall)
         }
