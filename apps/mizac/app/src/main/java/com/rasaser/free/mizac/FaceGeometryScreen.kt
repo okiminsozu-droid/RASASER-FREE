@@ -236,6 +236,8 @@ fun FaceGeometryScreen(
             }
             is FaceStatus.Done -> {
                 val v = result.measurement
+                // ML Kit eye/smile classifiers are valid chiefly near frontal yaw.
+                val reliableClassification = kotlin.math.abs(v.yaw) <= 18f
                 QuickMeasuredConclusions(v,lang,strings)
                 Card(
                     modifier=Modifier.fillMaxWidth(),
@@ -263,14 +265,17 @@ fun FaceGeometryScreen(
                         GeometryLabel(strings,"geometryRoll",
                             formatLocalNumber(v.roll,lang) + "°")
                         GeometryLabel(strings,"photoReportSmile",
-                            v.smileProbability?.let { formatLocalNumber(it*100f,lang)+"%" }
+                            v.smileProbability?.takeIf { reliableClassification && it in 0f..1f }
+                                ?.let { formatLocalNumber(it*100f,lang)+"%" }
                                 ?:ui(strings,"geometryUnavailable"))
                         GeometryLabel(strings,"photoReportLeftEye",
-                            v.leftEyeOpenProbability?.let {
+                            v.leftEyeOpenProbability?.takeIf { reliableClassification && it in 0f..1f }
+                                ?.let {
                                 formatLocalNumber(it*100f,lang)+"%"
                             } ?:ui(strings,"geometryUnavailable"))
                         GeometryLabel(strings,"photoReportRightEye",
-                            v.rightEyeOpenProbability?.let {
+                            v.rightEyeOpenProbability?.takeIf { reliableClassification && it in 0f..1f }
+                                ?.let {
                                 formatLocalNumber(it*100f,lang)+"%"
                             } ?:ui(strings,"geometryUnavailable"))
                         if(v.facesDetected>1)
