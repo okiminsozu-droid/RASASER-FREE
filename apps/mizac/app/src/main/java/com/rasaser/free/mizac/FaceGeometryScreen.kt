@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -22,6 +23,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -197,6 +199,7 @@ fun FaceGeometryScreen(
 ) {
     val context = LocalContext.current
     var state by remember { mutableStateOf<FaceStatus>(FaceStatus.Loading) }
+    var showBookCatalog by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(Unit) { state = inspectFaceLocally(context) }
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -205,7 +208,16 @@ fun FaceGeometryScreen(
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold
         )
-        MarifetnameMatching(lang, strings)
+        if(state is FaceStatus.Done) {
+            QuickBookReading((state as FaceStatus.Done).measurement,strings)
+        }
+        OutlinedButton(
+            modifier=Modifier.fillMaxWidth(),
+            onClick={ showBookCatalog=!showBookCatalog }
+        ) {
+            Text(ui(strings,if(showBookCatalog)"quickHideBook" else "quickBrowseBook"))
+        }
+        if(showBookCatalog) MarifetnameMatching(lang, strings)
 
         Text(ui(strings,"photoReportScience"),color=InkColor,
             style=MaterialTheme.typography.headlineSmall,
@@ -223,6 +235,7 @@ fun FaceGeometryScreen(
             }
             is FaceStatus.Done -> {
                 val v = result.measurement
+                QuickMeasuredConclusions(v,lang,strings)
                 Card(
                     modifier=Modifier.fillMaxWidth(),
                     colors=CardDefaults.cardColors(containerColor=WhiteCard),
