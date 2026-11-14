@@ -207,25 +207,10 @@ fun FaceGeometryScreen(
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(
-            ui(strings, "photoReportHistory"), color = InkColor,
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold
-        )
-        if(state is FaceStatus.Done) {
-            QuickBookReading((state as FaceStatus.Done).measurement,strings)
-        }
-        TextButton(
-            modifier=Modifier.fillMaxWidth(),
-            onClick={ showBookCatalog=!showBookCatalog }
-        ) {
-            Text(ui(strings,if(showBookCatalog)"quickHideBook" else "quickBrowseBook"),
-                color=MutedColor)
-        }
-        if(showBookCatalog) MarifetnameMatching(lang, strings, selectable=true)
-
-        Text(ui(strings,"photoReportScience"),color=InkColor,
+            ui(strings, "quickResultHeading"), color=InkColor,
             style=MaterialTheme.typography.headlineSmall,
-            fontWeight=FontWeight.Bold)
+            fontWeight=FontWeight.Bold
+        )
         when(val result = state) {
             FaceStatus.Loading -> {
                 CircularProgressIndicator()
@@ -295,11 +280,26 @@ fun FaceGeometryScreen(
                 if(v.fromVideo)
                     Text(ui(strings,"photoReportVideoNote"),color=MutedColor,
                         style=MaterialTheme.typography.bodySmall)
+                if(v.facesDetected==1 &&
+                    kotlin.math.abs(v.yaw)<=18f &&
+                    (v.smileProbability?:0f)>=0.7f) {
+                    Text(ui(strings,"photoReportHistory"),color=InkColor,
+                        style=MaterialTheme.typography.titleLarge,
+                        fontWeight=FontWeight.Bold)
+                    QuickBookReading(v,strings)
+                }
                 QuickFrameImprovements(v,strings)
                 QuickSelfReportStrengthsAndGrowth(strings,onEthics)
             }
         }
-
+        TextButton(
+            modifier=Modifier.fillMaxWidth(),
+            onClick={ showBookCatalog=!showBookCatalog }
+        ) {
+            Text(ui(strings,if(showBookCatalog)"quickHideBook" else "quickBrowseBook"),
+                color=MutedColor)
+        }
+        if(showBookCatalog) MarifetnameMatching(lang, strings, selectable=true)
     }
 }
 
