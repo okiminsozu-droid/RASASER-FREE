@@ -107,4 +107,28 @@ class ContentIntegrityTest {
             setOf("quickMeasuredFacts", "quickBookReport", "quickBookSourceItems")
         ).isEmpty())
     }
+
+    @Test fun allEightyEightGrowthTipsAreIndividualAndSourceIndexed() {
+        val rows = lines("ethics/growth_actions_tr.tsv").map { it.split('\t',limit=2) }
+        assertEquals(88,rows.size)
+        assertEquals((1..88).toList(), rows.map {it[0].toInt()})
+        assertEquals(88,rows.map {it[1]}.distinct().size)
+        assertTrue(rows.all{ it[1].length>=24 })
+    }
+
+    @Test fun quickGrowthIsDerivedOnlyFromActualHighSelfRatings() {
+        val allAdvice = lines("ethics/growth_actions_tr.tsv").associate {line->
+            val p=line.split('\t',limit=2)
+            p[0].toInt() to p[1]
+        }
+        val answers = MutableList(88){ 1 }
+        answers[16] = 5 // Yalan söylemek
+        answers[40] = 4 // Öfkeyle saldırgan davranmak
+        val selected = selectSelfReportedConcerns(answers,allAdvice)
+        assertEquals(2,selected.size)
+        assertEquals(listOf(17,41),selected.map{it.itemNo})
+        assertEquals(listOf(5,4),selected.map{it.score})
+        assertTrue(selected.all{it.action==allAdvice[it.itemNo]})
+        assertTrue(selectSelfReportedConcerns(List(88){1},allAdvice).isEmpty())
+    }
 }
