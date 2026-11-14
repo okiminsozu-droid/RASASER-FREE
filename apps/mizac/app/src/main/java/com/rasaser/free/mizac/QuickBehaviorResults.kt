@@ -78,6 +78,10 @@ fun QuickSelfReportStrengthsAndGrowth(
     val good=remember(context){readScores(context,"good")}
     val wrong=remember(context){readScores(context,"wrong")}
     val ready=good!=null && wrong!=null
+    // The quick face analysis must provide a result without demanding another
+    // 176 questions. Show optional personal growth insights only if the user
+    // already completed the separate self-report.
+    if(!ready) return
 
     Card(
         modifier=Modifier.fillMaxWidth(),
