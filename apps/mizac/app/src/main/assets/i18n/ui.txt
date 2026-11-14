@@ -263,3 +263,10 @@ quickFrameRoll|Baş yana eğik: kamerayı ve başı aynı hizaya getir.|The head
 quickFrameCloser|Yüz küçük algılandı: ayrıntılı analiz için daha yakından çek.|The face is small: capture it closer for more detail.|Das Gesicht ist klein: nimm es für mehr Details näher auf.|El rostro es pequeño: acerca la cámara para obtener más detalle.|الوجه صغير: التقط الصورة من مسافة أقرب.
 quickFrameLighting|Göz, burun veya ağız ölçüm noktaları eksik: daha net ve iyi aydınlatılmış bir kare seç.|Eye, nose or mouth landmarks are missing: use a clearer, better lit image.|Augen-, Nasen- oder Mundpunkte fehlen: nutze ein schärferes, heller beleuchtetes Bild.|Faltan puntos de ojos, nariz o boca: usa una imagen más nítida e iluminada.|بعض معالم العين أو الأنف أو الفم مفقودة: استخدم صورة أوضح وأفضل إضاءة.
 quickFrameVideoClip|Video için şu an tek temsilî kare ölçülüyor; videonun bütün hareketleri çözümlenmiyor.|Video analysis currently measures one representative frame, not every movement.|Die Videoanalyse misst derzeit ein repräsentatives Bild, nicht alle Bewegungen.|El vídeo se analiza por un único fotograma representativo, no todo el movimiento.|يُحلل الفيديو حاليًا عبر إطار واحد ممثل وليس جميع الحركات.
+quickFaceDetectedLabel|Yüz tespiti|Face detection|Gesichtserkennung|Detección de rostro|اكتشاف الوجه
+quickFaceDirectionLabel|Yüzün kameraya yönü|Face orientation|Gesichtsausrichtung|Orientación del rostro|اتجاه الوجه
+quickHeadPositionLabel|Başın duruşu|Head position|Kopfhaltung|Posición de la cabeza|وضعية الرأس
+quickEyeObservationLabel|Gözlerin görüntüdeki durumu|Eyes in the image|Augen im Bild|Ojos en la imagen|العينان في الصورة
+quickSmileObservationLabel|Görüntüdeki yüz ifadesi|Visible expression|Sichtbarer Gesichtsausdruck|Expresión visible|تعبير الوجه الظاهر
+quickShowTech|Ayrıntılı Ölçümleri Göster|Show Detailed Measurements|Detaillierte Messungen anzeigen|Mostrar mediciones detalladas|عرض القياسات التفصيلية
+quickHideTech|Ayrıntılı Ölçümleri Gizle|Hide Detailed Measurements|Detaillierte Messungen verbergen|Ocultar mediciones detalladas|إخفاء القياسات التفصيلية
