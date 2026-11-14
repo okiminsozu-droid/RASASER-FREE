@@ -153,4 +153,44 @@ class ContentIntegrityTest {
             assertTrue("Empty translation for $key",translations.all { it.isNotBlank() })
         }
     }
+
+    @Test fun historicalQuickExamplesMatchActualSourceEntries() {
+        val face = lines("history/catalog_4.tsv").map { it.split('\t') }
+        val body = lines("history/catalog_5.tsv").map { it.split('\t') }
+        listOf("Tebessümlü yüz", "Kaşların açık ve ayrı durması",
+            "Orta biçimli göz", "Orta büyüklükte çene").forEach { title ->
+            assertEquals("Missing face source: $title",1,face.count { it[2]==title })
+        }
+        listOf("Ölçülü omuz", "Geniş göğüs", "Uzun parmaklar").forEach { title ->
+            assertEquals("Missing body source: $title",1,body.count { it[2]==title })
+        }
+    }
+
+    @Test fun historicalReportAndBodyDetailControlsAreTranslated() {
+        val keys=lines("i18n/ui.txt").associate { row->
+            val cols=row.split('|')
+            cols[0] to cols
+        }
+        listOf("quickHistoryArticle4","quickHistoryArticle5",
+            "quickHistoryFaceExamples","quickHistoryBodyExamples",
+            "quickHistoryExamplesNotMatched","bodyShowDetails","bodyHideDetails")
+            .forEach { key ->
+                assertEquals("Five languages required for $key",6,keys[key]?.size)
+            }
+    }
+
+    @Test fun imageSmileMatchingNeedsSingleFaceAndReliableAngle() {
+        fun sample(faces:Int, yaw:Float, smile:Float?) = FaceMeasurements(
+            fromVideo=false,facesDetected=faces,width=250,height=330,
+            eyeDistanceRatio=null,noseMouthRatio=null,
+            yaw=yaw,roll=0f,smileProbability=smile,
+            leftEyeOpenProbability=null,rightEyeOpenProbability=null
+        )
+        assertTrue(hasObservedSmile(sample(1,0f,0.95f)))
+        assertFalse(hasObservedSmile(sample(1,19f,0.95f)))
+        assertFalse(hasObservedSmile(sample(2,0f,0.95f)))
+        assertFalse(hasObservedSmile(sample(1,0f,0.3f)))
+        assertFalse(hasObservedSmile(sample(1,0f,null)))
+    }
+
 }

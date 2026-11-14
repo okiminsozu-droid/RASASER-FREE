@@ -189,53 +189,67 @@ fun BodyPoseResults(
     lang: MizacLang,
     multiFace: Boolean
 ) {
+    var showDetails by androidx.compose.runtime.saveable.rememberSaveable {
+        androidx.compose.runtime.mutableStateOf(false)
+    }
     Card(
         modifier=Modifier.fillMaxWidth(),
         colors=CardDefaults.cardColors(containerColor=Color(0xFFFFFBF6)),
         shape=RoundedCornerShape(22.dp)
     ) {
-        Column(Modifier.padding(15.dp),
-            verticalArrangement=Arrangement.spacedBy(8.dp)) {
+        Column(
+            Modifier.padding(15.dp),
+            verticalArrangement=Arrangement.spacedBy(8.dp)
+        ) {
             Text(ui(strings,"bodyReportTitle"),
                 style=MaterialTheme.typography.titleLarge,
                 color=Color(0xFF211911),fontWeight=FontWeight.Bold)
-            when {
-                report==null || !report.recognized -> {
-                    Text(ui(strings,"bodyNoPose"),
+            if(report==null || !report.recognized) {
+                Text(ui(strings,"bodyNoPose"),
+                    color=Color(0xFF645749),
+                    style=MaterialTheme.typography.bodyMedium)
+            } else {
+                if(multiFace) {
+                    Text(ui(strings,"bodyMultiplePeople"),
                         color=Color(0xFF645749),
                         style=MaterialTheme.typography.bodyMedium)
                 }
-                else -> {
-                    if(multiFace) Text(ui(strings,"bodyMultiplePeople"),
-                        color=Color(0xFF645749),
-                        style=MaterialTheme.typography.bodyMedium)
-                    Text(ui(strings,"bodyLandmarks")+": "+report.visibleLandmarks+"/33",
-                        color=Color(0xFF645749),
-                        style=MaterialTheme.typography.bodyMedium)
-                    Text(ui(strings,if(report.fullyFramed)"bodyFull"
-                        else "bodyPartlyVisible"),color=Color(0xFF645749))
-                    report.metrics.forEach{metric ->
-                        Row(
-                            modifier=Modifier.fillMaxWidth()
-                                .padding(vertical=3.dp),
-                            horizontalArrangement=Arrangement.spacedBy(10.dp)
-                        ){
-                            Text(ui(strings,metric.labelKey),
-                                modifier=Modifier.weight(1.7f),
-                                color=Color(0xFF645749),
-                                style=MaterialTheme.typography.bodyMedium)
-                            Text(
-                                formatLocalNumber(metric.value,lang) +
-                                    if(metric.degrees)"°" else "",
-                                modifier=Modifier.weight(1f),
-                                color=Color(0xFF211911),
-                                fontWeight=FontWeight.SemiBold,
-                                style=MaterialTheme.typography.bodyMedium)
+                Text(ui(strings,"bodyLandmarks")+": "+report.visibleLandmarks+"/33",
+                    color=Color(0xFF645749),
+                    style=MaterialTheme.typography.bodyMedium)
+                Text(
+                    ui(strings,if(report.fullyFramed)"bodyFull" else "bodyPartlyVisible"),
+                    color=Color(0xFF645749)
+                )
+                Text(ui(strings,"bodyMeasurementLimit"),color=Color(0xFF645749),
+                    style=MaterialTheme.typography.labelSmall)
+                if(report.metrics.isNotEmpty()) {
+                    androidx.compose.material3.TextButton(
+                        modifier=Modifier.fillMaxWidth(),
+                        onClick={showDetails=!showDetails}
+                    ) {
+                        Text(ui(strings,if(showDetails)"bodyHideDetails" else "bodyShowDetails"),
+                            color=Color(0xFF211911))
+                    }
+                    if(showDetails) {
+                        report.metrics.forEach { metric ->
+                            Row(
+                                modifier=Modifier.fillMaxWidth().padding(vertical=3.dp),
+                                horizontalArrangement=Arrangement.spacedBy(10.dp)
+                            ) {
+                                Text(ui(strings,metric.labelKey),
+                                    modifier=Modifier.weight(1.7f),
+                                    color=Color(0xFF645749),
+                                    style=MaterialTheme.typography.bodyMedium)
+                                Text(formatLocalNumber(metric.value,lang) +
+                                        if(metric.degrees)"°" else "",
+                                    modifier=Modifier.weight(1f),
+                                    color=Color(0xFF211911),
+                                    fontWeight=FontWeight.SemiBold,
+                                    style=MaterialTheme.typography.bodyMedium)
+                            }
                         }
                     }
-                    Text(ui(strings,"bodyMeasurementLimit"),
-                        color=Color(0xFF645749),
-                        style=MaterialTheme.typography.labelSmall)
                 }
             }
         }
