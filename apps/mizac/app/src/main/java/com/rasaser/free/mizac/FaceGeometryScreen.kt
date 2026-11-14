@@ -36,6 +36,7 @@ import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.face.FaceDetection
 import com.google.mlkit.vision.face.FaceDetectorOptions
 import com.google.mlkit.vision.face.FaceLandmark
+import com.google.mlkit.vision.face.FaceContour
 import java.io.File
 import kotlin.coroutines.resume
 import kotlinx.coroutines.Dispatchers
@@ -57,7 +58,11 @@ data class FaceMeasurements(
     val roll: Float,
     val smileProbability: Float?,
     val leftEyeOpenProbability: Float?,
-    val rightEyeOpenProbability: Float?
+    val rightEyeOpenProbability: Float?,
+    val mouthWidthRatio: Float? = null,
+    val noseWidthRatio: Float? = null,
+    val eyeOutlineRatio: Float? = null,
+    val eyebrowGapRatio: Float? = null
 )
 
 private sealed interface FaceStatus {
@@ -136,7 +141,7 @@ private suspend fun inspectFaceLocally(context: Context): FaceStatus {
         FaceDetectorOptions.Builder()
             .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_ACCURATE)
             .setLandmarkMode(FaceDetectorOptions.LANDMARK_MODE_ALL)
-            .setContourMode(FaceDetectorOptions.CONTOUR_MODE_NONE)
+            .setContourMode(FaceDetectorOptions.CONTOUR_MODE_ALL)
             .setClassificationMode(FaceDetectorOptions.CLASSIFICATION_MODE_ALL)
             .build()
     )
@@ -167,11 +172,39 @@ private suspend fun inspectFaceLocally(context: Context): FaceStatus {
                                 (mouth.y-nose.y).toDouble()
                             ).toFloat()/h
                         } else null
+                        // Contours quantify appearance on this 2D image;
+                        // they do not provide physique-to-character thresholds.
+                        fun contourWidth(kind: Int): Float? {
+                            val pts=biggest.getContour(kind)?.points.orEmpty()
+                            if(pts.size<2)return null
+                            return (pts.maxOf{it.x}-pts.minOf{it.x})
+                                .takeIf{it>0f}?.div(w)
+                        }
+                        val mouthL=biggest.getLandmark(FaceLandmark.MOUTH_LEFT)?.position
+                        val mouthR=biggest.getLandmark(FaceLandmark.MOUTH_RIGHT)?.position
+                        val mouthWidth=if(mouthL!=null&&mouthR!=null)
+                            kotlin.math.hypot(
+                                (mouthL.x-mouthR.x).toDouble(),
+                                (mouthL.y-mouthR.y).toDouble()
+                            ).toFloat()/w else null
+                        val leftEyeW=contourWidth(FaceContour.LEFT_EYE)
+                        val rightEyeW=contourWidth(FaceContour.RIGHT_EYE)
+                        val eyeW=if(leftEyeW!=null&&rightEyeW!=null)
+                            (leftEyeW+rightEyeW)/2f else null
+                        val leftBrow=biggest.getContour(
+                            FaceContour.LEFT_EYEBROW_BOTTOM)?.points.orEmpty()
+                        val rightBrow=biggest.getContour(
+                            FaceContour.RIGHT_EYEBROW_BOTTOM)?.points.orEmpty()
+                        val browGap=if(leftBrow.isNotEmpty()&&rightBrow.isNotEmpty())
+                            leftBrow.minOf{a->rightBrow.minOf{b->
+                                kotlin.math.abs(a.x-b.x)}}/w else null
                         FaceStatus.Done(FaceMeasurements(fromVideo, faces.size, w, h,
                             eyes, noseMouth, biggest.headEulerAngleY,biggest.headEulerAngleZ,
                             biggest.smilingProbability,
                             biggest.leftEyeOpenProbability,
-                            biggest.rightEyeOpenProbability))
+                            biggest.rightEyeOpenProbability,
+                            mouthWidth,contourWidth(FaceContour.NOSE_BOTTOM),
+                            eyeW,browGap))
                     }
                     if(continuation.isActive)continuation.resume(result)
                 }
@@ -261,6 +294,15 @@ fun FaceGeometryScreen(
                         GeometryLabel(strings,"geometryNose",
                             v.noseMouthRatio?.let { formatLocalNumber(it,lang) }
                                 ?: ui(strings,"geometryUnavailable"))
+                        listOf(
+                            "faceMouthWidth" to v.mouthWidthRatio,
+                            "faceNoseWidth" to v.noseWidthRatio,
+                            "faceEyeOutline" to v.eyeOutlineRatio,
+                            "faceBrowGap" to v.eyebrowGapRatio
+                        ).forEach { (key,value) ->
+                            if(value!=null)GeometryLabel(strings,key,
+                                formatLocalNumber(value,lang))
+                        }
                         GeometryLabel(strings,"geometryYaw",
                             formatLocalNumber(v.yaw,lang) + "°")
                         GeometryLabel(strings,"geometryRoll",
