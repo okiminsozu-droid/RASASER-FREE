@@ -337,7 +337,6 @@ fun FaceGeometryScreen(
                     QuickBookReading(v,strings)
                 }
                 QuickFrameImprovements(v,strings)
-                QuickSelfReportStrengthsAndGrowth(strings,onEthics)
             }
         }
         if(bodyReady) {
@@ -349,6 +348,9 @@ fun FaceGeometryScreen(
         } else {
             Text(ui(strings,"bodyLoading"),color=MutedColor,
                 style=MaterialTheme.typography.bodySmall)
+        }
+        if(state is FaceStatus.Done) {
+            QuickSelfReportStrengthsAndGrowth(strings,onEthics)
         }
         TextButton(
             modifier=Modifier.fillMaxWidth(),
