@@ -115,6 +115,9 @@ fun QuickBookReading(
     val hasOnePerson=measurement.facesDetected==1
     val prob=safeProbability(measurement.smileProbability,measurement.yaw)
     val smilingInFrame=hasOnePerson && prob!=null && prob>=0.7f
+    // Never display an empty pseudo-result or tell the user to choose a
+    // source item as though it were the automatic analysis outcome.
+    if(!smilingInFrame) return
     val book=remember(context){ readSourceFaceEntries(context) }
 
     Card(
