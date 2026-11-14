@@ -10,12 +10,15 @@ android {
         applicationId = "com.rasaser.free.mizac"
         minSdk = 26
         targetSdk = 35
-        versionCode = 15
-        versionName = "0.10.0"
+        versionCode = 16
+        versionName = "0.10.1"
     }
     buildTypes {
         debug {
             applicationIdSuffix = ".test"
+            // Android ARM64 test phones: retain bundled offline models but
+            // do not package x86/x86_64/armeabi native libraries together.
+            ndk { abiFilters.add("arm64-v8a") }
         }
         release {
             isMinifyEnabled = true
