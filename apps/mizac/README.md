@@ -66,3 +66,17 @@ Başlıca kaynaklar:
 - Başlıca kaynaklar: Google ML Kit Face Detection [resmî dokümantasyon](https://developers.google.com/ml-kit/vision/face-detection/android), TDV İslâm Ansiklopedisi [İbrâhim Hakkı Erzurûmî](https://islamansiklopedisi.org.tr/ibrahim-hakki-erzurumi) ve [Mârifetnâme](https://islamansiklopedisi.org.tr/marifetname). Kişilik yüz tahmini güvenilirliği: [2024 fotoğraftan kişilik izlenimi araştırması](https://journals.sagepub.com/doi/full/10.1177/08902070231225728).
 
 Görüntüye dayalı medikal cihaz iddiası, yüz/bedene göre ahlâk veya zekâ puanlama, sınıflandırılmış kişilik tanısı yapılmayacaktır.
+
+## v0.10.0 — PDF kaynağı + çevrimdışı yüz ve beden ölçümleri
+
+**Araştırma kaynağı:** Kullanıcının sağladığı 19 sayfalık `MIZAC_Marifetname_Tum_Bedensel_Ozellikler_Arastirmasi.pdf` (SHA256 `8ae2e81228901d2a5dca750ccaf704e730cbe881cfa6b92ee38635a23e43be75`). Bu PDF, Mârifetnâme'yi temel alan önceki araştırmanın *derlemesidir*, kritik edisyon veya tüm yazma nüshaların tek tek karşılaştırılması değildir.
+
+**PDF kapsamı:** 4. maddeden 103 yüz/baş/saç/boyun kaydı; 5. maddeden 54 beden/uzuv kaydı; 6. maddeden 7 dörtlü güzellik başlığı ve metinde ayrıca sayılan 4 nitelik; 7. maddeden 5 değerlendirme ilkesi; 8. maddeden 56 sağ-sol seğirme kaydı; 10 beden mizaç belirtisi, 4 hılt ve 5 diğer organ konusu. Uygulamada `assets/history/catalog_*.tsv` olarak **248 kaynak satırı** korunur. Katalogdaki her madde, sadece PDF kaynak derlemesindeki metin olarak gösterilir.
+
+**Fotoğraf yüz motoru:** Gömülü ML Kit face-detection 16.1.7 ile yüz bölgesi, baş açısı, göz merkezleri, burun/ağız mesafeleri ve kontur modu üzerinden göz/burun/ağız/kaş genişlik oranları ölçülür. Açı nedeniyle güvenilir olmayan gülümseme/göz açık tahminleri gizlenir.
+
+**Fotoğraf beden motoru:** İnternetsiz ML Kit Pose Detection 18.0.0-beta5, bir karede 33 olası beden noktasını inceler; yüksek güvenle görüntüde olanlardan omuz/kalça/gövde oranları, omuz-kalça eğimi, diz ve dirsek açıları ve göreli kol/bacak uzunlukları listelenir. Kısmi/eksik vücut kadrajlarında görünmeyen oranlar uydurulmaz. Video için tek temsilî kare kullanılır, hareket veya seğirme takibi yapıldığı iddia edilmez. Gerçek santimetre veya boy tahmini yoktur. Yüz/beden motorları kullanıcı cihazında çalışır; sunucu, analitik SDK veya ücretli API yoktur.
+
+**Hükümlerin kaynağı ve davranış bölümü:** Mârifetnâme'nin görünüş ve beden hükümleri katalogdan aynen aktarılır; yüz oranları veya eklem açıları `dürüstlük`, `zekâ`, `hastalık`, `kibir` gibi kişilik/tıp niteliklerine kesin olarak dönüştürülmez. PDF, şahsın negatif davranışını düzeltmeye yönelik tek tek uygulanabilir adımlar vermediğinden ona ait olmayan öğütler esere atfedilmez. Daha önce 176 soruluk öz değerlendirme tamamlanmışsa yalnızca kullanıcının cevaplarına göre `Kuranda_176_Iyi_ve_Kotu_Insan_Ozellikleri_Ayetli.pdf` kaynak başlıkları ve ayet atıflarıyla güçlü/çalışılacak davranışlar gösterilir; yeni öğüt uydurulmaz.
+
+**Test:** CI'da `assembleDebug`, `testDebugUnitTest`, APK paket kontrolü, kaynak kataloğu/soru/çeviri bütünlüğü kapıları çalışır. Kullanıcının gerçek cihazında yüz ve beden modelinin tüm koşullarda doğruluğu ayrıca sınanmalıdır. Public repoya debug test paketi dışında production imza anahtarı yüklenmez.
