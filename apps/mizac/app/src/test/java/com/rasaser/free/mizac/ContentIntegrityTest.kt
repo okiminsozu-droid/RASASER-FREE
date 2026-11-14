@@ -24,7 +24,7 @@ class ContentIntegrityTest {
         val counts = linkedMapOf(
             "history/catalog_4.tsv" to 103,
             "history/catalog_5.tsv" to 54,
-            "history/catalog_6.tsv" to 7,
+            "history/catalog_6.tsv" to 11,
             "history/catalog_7.tsv" to 5,
             "history/catalog_8.tsv" to 56,
             "history/catalog_mizac.tsv" to 19
@@ -41,7 +41,7 @@ class ContentIntegrityTest {
             }
             total += records.size
         }
-        assertEquals(244, total)
+        assertEquals(248, total)
     }
 
     @Test fun marifetnameQuickReportPassagesExistExactlyOnce() {
