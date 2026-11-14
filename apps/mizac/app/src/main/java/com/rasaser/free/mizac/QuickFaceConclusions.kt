@@ -11,6 +11,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -105,9 +106,10 @@ fun QuickMeasuredConclusions(
     }
 }
 
-/** One automatic book-title match is possible from a still smiling expression.
- *  Other permanent facial morphology labels have no author-supplied numeric
- *  thresholds and cannot be automatically inferred by ML Kit.
+/**
+ * Source-first report. The work can be quoted accurately without assigning
+ * morality, intelligence or trustworthiness to a photographed person.
+ * Book descriptors have no author-defined numeric cutoffs.
  */
 @Composable
 fun QuickBookReading(
@@ -115,11 +117,10 @@ fun QuickBookReading(
     strings: Map<String,String>
 ) {
     val context=LocalContext.current
-    val smile=safeProbability(measurement.smileProbability,measurement.yaw)
-    val isSmileVisible=smile!=null && smile>=0.7f
-    val entry=if(isSmileVisible) {
-        readSmileEntry(context)
-    } else null
+    val hasOnePerson=measurement.facesDetected==1
+    val prob=safeProbability(measurement.smileProbability,measurement.yaw)
+    val smilingInFrame=hasOnePerson && prob!=null && prob>=0.7f
+    val book=remember(context){ readSourceFaceEntries(context) }
 
     Card(
         modifier=Modifier.fillMaxWidth(),
@@ -133,27 +134,51 @@ fun QuickBookReading(
             Text(ui(strings,"quickBookReport"),
                 color=quickDark,style=MaterialTheme.typography.titleLarge,
                 fontWeight=FontWeight.Bold)
-            if(entry!=null) {
-                Text(ui(strings,"quickBookSmilingObserved"),color=quickGray)
-                Text(entry.first+" — "+entry.second,
-                    color=quickDark,fontWeight=FontWeight.SemiBold)
-                Text(ui(strings,"quickBookCitation"),color=quickGray,
-                    style=MaterialTheme.typography.labelMedium)
+
+            if(!hasOnePerson) {
+                Text(ui(strings,"quickNeedsOneFace"),color=quickGray,
+                    style=MaterialTheme.typography.bodyMedium)
+            } else if(smilingInFrame) {
+                Text(ui(strings,"quickSmilePresent"),color=quickDark,
+                    style=MaterialTheme.typography.bodyMedium)
+            } else if(prob!=null && prob<=0.25f) {
+                Text(ui(strings,"quickSmileNotVisible"),color=quickDark,
+                    style=MaterialTheme.typography.bodyMedium)
             } else {
-                Text(ui(strings,"quickBookUnmatched"),color=quickGray,
+                Text(ui(strings,"quickSmileNotClassified"),color=quickGray,
                     style=MaterialTheme.typography.bodyMedium)
             }
-            Text(ui(strings,"quickBookScope"),color=quickGray,
+
+            // The original text is shown as the book's statement, not
+            // as a fact derived about the person's character from their face.
+            Text(ui(strings,"quickBookSourceItems"),color=quickDark,
+                fontWeight=FontWeight.SemiBold,
+                style=MaterialTheme.typography.titleSmall)
+            book.forEach { (trait,meaning) ->
+                Column(verticalArrangement=Arrangement.spacedBy(2.dp)) {
+                    Text(trait,color=quickDark,fontWeight=FontWeight.Medium,
+                        style=MaterialTheme.typography.bodyMedium)
+                    Text(meaning,color=quickGray,
+                        style=MaterialTheme.typography.bodyMedium)
+                }
+            }
+            Text(ui(strings,"quickBookCitation"),color=quickGray,
+                style=MaterialTheme.typography.labelMedium)
+            Text(ui(strings,"quickBookOneLineLimit"),color=quickGray,
                 style=MaterialTheme.typography.labelSmall)
         }
     }
 }
 
-private fun readSmileEntry(context: Context): Pair<String,String>? = runCatching {
-    context.assets.open("history/catalog_4.tsv").bufferedReader().useLines { lines ->
-        lines.filter{it.isNotBlank() && !it.startsWith("#")}
-            .map{it.split('\t')}
-            .firstOrNull { it.size==4 && it[2]=="Tebessümlü yüz" }
-            ?.let { it[2] to it[3] }
-    }
-}.getOrNull()
+private fun readSourceFaceEntries(context: Context): List<Pair<String,String>> =
+    runCatching {
+        val terms=setOf("Tebessümlü yüz","Yuvarlak, güleç yüz",
+            "Güleç yüz ve tatlı söz")
+        context.assets.open("history/catalog_4.tsv")
+            .bufferedReader().useLines { lines ->
+                lines.filter{it.isNotBlank() && !it.startsWith("#")}
+                    .map{it.split('\t')}
+                    .filter{it.size==4 && it[2] in terms}
+                    .map{it[2] to it[3]}.toList()
+            }
+    }.getOrDefault(emptyList())
