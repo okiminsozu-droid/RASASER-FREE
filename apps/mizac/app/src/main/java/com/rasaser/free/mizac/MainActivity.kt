@@ -173,7 +173,8 @@ private fun MizacRoot() {
                     "quran-ethics" -> QuranEthicsQuestionnaire(lang, dict)
                     "geometry" -> FaceGeometryScreen(
                         onBack = { screen = "home" }, lang = lang, strings = dict,
-                        onHistory = { screen = "history" }
+                        onHistory = { screen = "history" },
+                        onEthics = { screen = "quran-ethics" }
                     )
                     "questions" -> OriginalQuestionnaire(
                         lang = lang, dict = dict, questionCount = count,
