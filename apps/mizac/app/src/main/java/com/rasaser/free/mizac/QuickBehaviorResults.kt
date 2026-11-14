@@ -102,11 +102,18 @@ fun QuickSelfReportStrengthsAndGrowth(
                         .sortedWith(compareByDescending<SelfAnswer>{it.score}
                             .thenBy{it.number}).take(5)
                 }
+                val goodSource=remember(context,good) {
+                    readEthicalAnswers(context,"+",good!!)
+                }
                 val negative=remember(context,wrong) {
                     readEthicalAnswers(context,"-",wrong!!)
                 }
-                val advice=remember(context) { readImprovementActions(context) }
-                val concerns=selectSelfReportedConcerns(wrong!!,advice)
+                val concerns=negative.filter {it.score>=4}
+                    .sortedWith(compareByDescending<SelfAnswer>{it.score}
+                        .thenBy{it.number}).take(5)
+                val positiveToDevelop=goodSource.filter{it.score<=2}
+                    .sortedWith(compareBy<SelfAnswer>{it.score}.thenBy{it.number})
+                    .take(5)
                 Text(ui(strings,"quickFromYourAnswers"),color=QuickMuted,
                     style=MaterialTheme.typography.labelMedium)
                 Text(ui(strings,"quickYourStrengths"),
@@ -123,17 +130,24 @@ fun QuickSelfReportStrengthsAndGrowth(
                 if(concerns.isEmpty())
                     Text(ui(strings,"quickNoHighRiskResponses"),color=QuickMuted,
                         style=MaterialTheme.typography.bodyMedium)
-                concerns.forEach { note ->
-                    val original=negative.firstOrNull{it.number==note.itemNo}
-                    if(original!=null) {
-                        Text("•  ${original.trait} — ${note.score}/5",
-                            color=QuickInk,fontWeight=FontWeight.Medium,
-                            style=MaterialTheme.typography.bodyMedium)
-                        Text(note.action,color=QuickMuted,
-                            style=MaterialTheme.typography.bodyMedium)
-                        Text(original.verse,color=QuickMuted,
-                            style=MaterialTheme.typography.labelSmall)
-                    }
+                concerns.forEach {item->
+                    Text("•  ${item.trait} — ${item.score}/5",
+                        color=QuickInk,fontWeight=FontWeight.Medium,
+                        style=MaterialTheme.typography.bodyMedium)
+                    Text(item.verse,color=QuickMuted,
+                        style=MaterialTheme.typography.labelSmall)
+                }
+                Text(ui(strings,"quickPositiveToImprove"),
+                    color=QuickInk,fontWeight=FontWeight.SemiBold)
+                if(positiveToDevelop.isEmpty())
+                    Text(ui(strings,"ethicsNoEntries"),color=QuickMuted,
+                        style=MaterialTheme.typography.bodyMedium)
+                positiveToDevelop.forEach{item->
+                    Text("•  ${item.trait} — ${item.score}/5",
+                        color=QuickInk,
+                        style=MaterialTheme.typography.bodyMedium)
+                    Text(item.verse,color=QuickMuted,
+                        style=MaterialTheme.typography.labelSmall)
                 }
             } else {
                 Text(ui(strings,"quickNeedSelfAnswers"),color=QuickMuted,
