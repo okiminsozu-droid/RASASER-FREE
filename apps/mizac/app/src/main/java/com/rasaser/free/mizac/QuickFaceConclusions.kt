@@ -42,66 +42,61 @@ fun QuickMeasuredConclusions(
     strings: Map<String,String>
 ) {
     val m=measurement
-    val facts=mutableListOf<String>()
-    facts+=ui(strings,if(m.fromVideo)"quickFromMiddleFrame" else "quickFromPhoto")
-    facts+=ui(strings,if(m.facesDetected==1)"quickOneFace" else "quickMoreFaces")
-    facts+=ui(strings,when {
-        abs(m.yaw)<=10f -> "quickFaceFront"
-        abs(m.yaw)<=22f -> "quickFaceSlightAngle"
-        else -> "quickFaceSideAngle"
+    val reliable=m.facesDetected==1 && abs(m.yaw)<=18f
+    val left=if(reliable)safeProbability(m.leftEyeOpenProbability,m.yaw) else null
+    val right=if(reliable)safeProbability(m.rightEyeOpenProbability,m.yaw) else null
+    val smile=if(reliable)safeProbability(m.smileProbability,m.yaw) else null
+    val results=mutableListOf<Pair<String,String>>()
+    results+=ui(strings,"quickFaceDetectedLabel") to
+        ui(strings,if(m.facesDetected==1)"quickOneFace" else "quickMoreFaces")
+    results+=ui(strings,"quickFaceDirectionLabel") to ui(strings,when {
+        abs(m.yaw)<=10f->"quickFaceFront"
+        abs(m.yaw)<=22f->"quickFaceSlightAngle"
+        else->"quickFaceSideAngle"
     })
-    facts+=ui(strings,if(abs(m.roll)<=10f)"quickHeadAligned" else "quickHeadTilted")
-    val eyeL=safeProbability(m.leftEyeOpenProbability,m.yaw)
-    val eyeR=safeProbability(m.rightEyeOpenProbability,m.yaw)
-    if(eyeL!=null && eyeR!=null) {
-        val key=when {
-            eyeL>=0.85f && eyeR>=0.85f -> "quickEyesOpen"
-            eyeL<=0.15f || eyeR<=0.15f -> "quickEyePartClosed"
-            else -> "quickEyesUnclear"
-        }
-        facts+=ui(strings,key)
+    results+=ui(strings,"quickHeadPositionLabel") to
+        ui(strings,if(abs(m.roll)<=10f)"quickHeadAligned" else "quickHeadTilted")
+    if(left!=null&&right!=null) {
+        results+=ui(strings,"quickEyeObservationLabel") to
+            ui(strings,when {
+                left>=0.85f&&right>=0.85f -> "quickEyesOpen"
+                left<=0.15f||right<=0.15f -> "quickEyePartClosed"
+                else -> "quickEyesUnclear"
+            })
     }
-    val smile=safeProbability(m.smileProbability,m.yaw)
-    if(smile!=null) {
-        facts+=ui(strings,when {
-            smile>=0.7f -> "quickSmilePresent"
-            smile<=0.25f -> "quickSmileNotVisible"
-            else -> "quickSmileUncertain"
+    if(smile!=null){
+        results+=ui(strings,"quickSmileObservationLabel") to ui(strings,when{
+            smile>=0.7f->"quickSmilePresent"
+            smile<=0.25f->"quickSmileNotVisible"
+            else->"quickSmileUncertain"
         })
     }
-    if(m.eyeDistanceRatio!=null && m.noseMouthRatio!=null)
-        facts+=ui(strings,"quickLandmarksFound")
-    else facts+=ui(strings,"quickLandmarksMissing")
+    results+=ui(strings,"geometryRatio") to
+        formatLocalNumber(m.width.toFloat()/m.height,lang)
+    if(m.eyeDistanceRatio!=null)
+        results+=ui(strings,"geometryEyes") to formatLocalNumber(m.eyeDistanceRatio,lang)
+    if(m.noseMouthRatio!=null)
+        results+=ui(strings,"geometryNose") to formatLocalNumber(m.noseMouthRatio,lang)
 
     Card(
         modifier=Modifier.fillMaxWidth(),
         colors=CardDefaults.cardColors(containerColor=quickWhite),
         shape=RoundedCornerShape(22.dp)
     ) {
-        Column(
-            modifier=Modifier.padding(16.dp),
-            verticalArrangement=Arrangement.spacedBy(10.dp)
-        ) {
-            Text(ui(strings,"quickMeasuredFacts"),
-                color=quickDark,style=MaterialTheme.typography.titleLarge,
+        Column(Modifier.padding(16.dp),
+            verticalArrangement=Arrangement.spacedBy(9.dp)) {
+            Text(ui(strings,"quickMeasuredFacts"),color=quickDark,
+                style=MaterialTheme.typography.titleLarge,
                 fontWeight=FontWeight.Bold)
-            facts.forEach { line ->
-                Text("•  "+line,color=quickGray,
-                    style=MaterialTheme.typography.bodyMedium)
+            results.forEach{(label,value)->
+                Column(verticalArrangement=Arrangement.spacedBy(2.dp)) {
+                    Text(label,color=quickGray,
+                        style=MaterialTheme.typography.labelMedium)
+                    Text(value,color=quickDark,
+                        style=MaterialTheme.typography.bodyMedium,
+                        fontWeight=FontWeight.SemiBold)
+                }
             }
-            Text(
-                ui(strings,"geometryRatio")+": "+
-                    formatLocalNumber(m.width.toFloat()/m.height.toFloat(),lang),
-                color=quickDark,fontWeight=FontWeight.SemiBold,
-                style=MaterialTheme.typography.bodyMedium
-            )
-            Text(
-                ui(strings,"geometryYaw")+": "+
-                    formatLocalNumber(m.yaw,lang)+"°   •   "+
-                    ui(strings,"geometryRoll")+": "+
-                    formatLocalNumber(m.roll,lang)+"°",
-                color=quickDark,style=MaterialTheme.typography.bodyMedium
-            )
         }
     }
 }
