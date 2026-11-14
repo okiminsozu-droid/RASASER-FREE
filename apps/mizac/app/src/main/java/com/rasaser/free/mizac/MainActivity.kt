@@ -119,6 +119,7 @@ private fun MizacRoot() {
         screen = when(screen) {
             "geometry" -> "home"
             "questions" -> "analysis-setup"
+            "quran-ethics" -> "analysis-setup"
             "history-reflection" -> "history"
             else -> "home"
         }
@@ -166,8 +167,10 @@ private fun MizacRoot() {
                     )
                     "analysis-setup" -> AnalysisSelection(
                         dict = dict,
-                        onQuestions = { number -> count = number; screen = "questions" }
+                        onQuestions = { number -> count = number; screen = "questions" },
+                        onEthics = { screen = "quran-ethics" }
                     )
+                    "quran-ethics" -> QuranEthicsQuestionnaire(lang, dict)
                     "geometry" -> FaceGeometryScreen(
                         onBack = { screen = "home" }, lang = lang, strings = dict,
                         onHistory = { screen = "history" }
@@ -481,7 +484,8 @@ private fun MediaCircle(
 @Composable
 private fun AnalysisSelection(
     dict: Map<String, String>,
-    onQuestions: (Int) -> Unit
+    onQuestions: (Int) -> Unit,
+    onEthics: () -> Unit
 ) {
     val context=LocalContext.current
     val prefs=remember(context) {
@@ -522,6 +526,11 @@ private fun AnalysisSelection(
             prefs.edit().putInt("question_count",count).apply()
             onQuestions(count)
         })
+        TextButton(onClick=onEthics,modifier=Modifier.fillMaxWidth()) {
+            Text(ui(dict,"ethicsEntry"),color=Ink,
+                textAlign=TextAlign.Center,
+                style=MaterialTheme.typography.titleMedium)
+        }
     }
 }
 
