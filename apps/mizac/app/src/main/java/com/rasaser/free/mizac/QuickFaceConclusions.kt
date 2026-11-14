@@ -77,6 +77,16 @@ fun QuickMeasuredConclusions(
         results+=ui(strings,"geometryEyes") to formatLocalNumber(m.eyeDistanceRatio,lang)
     if(m.noseMouthRatio!=null)
         results+=ui(strings,"geometryNose") to formatLocalNumber(m.noseMouthRatio,lang)
+    for((key,value) in listOf(
+        "faceMouthWidth" to m.mouthWidthRatio,
+        "faceNoseWidth" to m.noseWidthRatio,
+        "faceEyeOutline" to m.eyeOutlineRatio,
+        "faceBrowGap" to m.eyebrowGapRatio
+    )) {
+        if(value!=null && value.isFinite()) {
+            results+=ui(strings,key) to formatLocalNumber(value,lang)
+        }
+    }
 
     Card(
         modifier=Modifier.fillMaxWidth(),
