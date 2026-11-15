@@ -2,7 +2,12 @@ package com.rasaser.free.navigasyon
 
 import android.content.Context
 import com.valhalla.valhalla.Valhalla
-import com.valhalla.valhalla.config.ValhallaConfigFactory
+import com.valhalla.valhalla.ValhallaResponse
+import com.valhalla.api.models.RouteRequest
+import com.valhalla.api.models.RouteResponse
+import com.valhalla.config.models.ValhallaConfig
+import com.squareup.moshi.Moshi
+import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import org.json.JSONObject
 import org.json.JSONArray
 import java.io.Closeable
@@ -28,13 +33,21 @@ class OfflineRouteEngine(private val context: Context) : Closeable {
     private var native:Valhalla?=null
     private val extract:File get()=File(context.filesDir,"routing/valhalla_tiles.tar")
     private val marker:File get()=File(context.filesDir,"routing/valhalla.manifest.json")
+    private val configFile:File get()=File(context.filesDir,"routing/valhalla.json")
+    private val moshi=Moshi.Builder().add(KotlinJsonAdapterFactory()).build()
 
-    fun installed(): Boolean = extract.isFile && marker.isFile && extract.length()>20*1024*1024
+    fun installed(): Boolean = extract.isFile && marker.isFile && configFile.isFile && extract.length()>20*1024*1024
 
     fun route(origin:NavPoint,destination:NavPoint,lang:NavLanguage): RoutePlan? = synchronized(lock) {
         if(!installed()) return@synchronized null
         val instance=native ?: try {
-            val config=ValhallaConfigFactory.usingTileExtract(extract.absolutePath)
+            val json=JSONObject(configFile.readText())
+            val mjolnir=json.optJSONObject("mjolnir") ?: return@synchronized null
+            mjolnir.put("tile_extract",extract.absolutePath)
+            mjolnir.put("tile_dir",File(context.filesDir,"routing/valhalla_tiles").absolutePath)
+            mjolnir.remove("tile_url")  // Never contact a routing server.
+            val config=moshi.adapter(ValhallaConfig::class.java).fromJson(json.toString())
+                ?: return@synchronized null
             Valhalla(context,config).also { native=it }
         } catch (_:Exception) {return@synchronized null}
         try {
@@ -46,7 +59,13 @@ class OfflineRouteEngine(private val context: Context) : Closeable {
                 .put("directions_options",JSONObject()
                     .put("units","kilometers")
                     .put("language",valhallaLanguage(lang)))
-            val response=JSONObject(instance.routeRaw(req.toString()))
+            val parsed=moshi.adapter(RouteRequest::class.java).fromJson(req.toString())
+                ?: return@synchronized null
+            val responseObject=when (val output=instance.route(parsed)) {
+                is ValhallaResponse.Json ->output.jsonResponse
+                else->return@synchronized null
+            }
+            val response=JSONObject(moshi.adapter(RouteResponse::class.java).toJson(responseObject))
             val trip=response.optJSONObject("trip") ?: return@synchronized null
             val legs=trip.optJSONArray("legs") ?: return@synchronized null
             val points=mutableListOf<NavPoint>()
