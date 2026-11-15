@@ -20,10 +20,15 @@ import org.maplibre.android.geometry.LatLng
 import org.maplibre.android.maps.MapLibreMap
 import org.maplibre.android.maps.MapView
 import org.maplibre.android.maps.Style
+import org.maplibre.android.style.sources.GeoJsonSource
+import org.maplibre.android.style.layers.LineLayer
+import org.maplibre.android.style.layers.PropertyFactory
+import org.maplibre.geojson.Point
+import org.maplibre.geojson.LineString
 import java.io.File
 
 /** Entire map is read from private-device MBTiles; no external map service. */
-class MapScene(private val context: Context, onPlace: (String, String)->Unit) : AutoCloseable {
+class MapScene(private val context: Context, onPlace: (String, String, NavPoint)->Unit) : AutoCloseable {
     private val tileServer=LocalTileServer(context.applicationContext, File(context.filesDir,"maps/turkey.mbtiles"))
     private val mapView: MapView
     private var map: MapLibreMap? = null
@@ -31,6 +36,7 @@ class MapScene(private val context: Context, onPlace: (String, String)->Unit) : 
     private var heading = 0.0
     private var closed=false
     private var night=false
+    private var routePoints:List<NavPoint> = emptyList()
 
     init {
         MapLibre.getInstance(context.applicationContext)
@@ -48,9 +54,14 @@ class MapScene(private val context: Context, onPlace: (String, String)->Unit) : 
                         if (feature.hasProperty(name))
                             feature.getStringProperty(name) ?: "" else ""
                     onPlace(property("name"), listOf("amenity","shop","tourism","leisure","historic","man_made")
-                        .map(::property).firstOrNull { it.isNotBlank() } ?: "")
+                        .map(::property).firstOrNull { it.isNotBlank() } ?: "",
+                        NavPoint(position.latitude, position.longitude))
                     true
                 } else false
+            }
+            ready.addOnMapLongClickListener { location ->
+                onPlace("", "selected", NavPoint(location.latitude, location.longitude))
+                true
             }
             loadStyle()
         }
@@ -74,6 +85,7 @@ class MapScene(private val context: Context, onPlace: (String, String)->Unit) : 
             .replace("127.0.0.1:8765","127.0.0.1:${tileServer.port}")
         map?.setStyle(Style.Builder().fromJson(style)) {
             lastFix?.let(::follow)
+            renderRoute()
         }
     }
     fun setNightMode(value:Boolean) {
@@ -91,6 +103,35 @@ class MapScene(private val context: Context, onPlace: (String, String)->Unit) : 
             .zoom(17.3).tilt(60.0).bearing(heading).build()
         map?.animateCamera(CameraUpdateFactory.newCameraPosition(camera), 750)
     }
+
+    fun setRoute(points:List<NavPoint>) {
+        routePoints=points
+        renderRoute()
+    }
+    private fun renderRoute() {
+        val ready=map ?:return
+        val positions=routePoints
+        if(positions.size<2)return
+        ready.getStyle { style ->
+            if(closed)return@getStyle
+            val line=LineString.fromLngLats(positions.map { Point.fromLngLat(it.lon,it.lat) })
+            val source:GeoJsonSource?=style.getSourceAs("rasaser-route")
+            if(source!=null) {
+                source.setGeoJson(line)
+            } else {
+                style.addSource(GeoJsonSource("rasaser-route",line))
+                style.addLayer(LineLayer("rasaser-route-line","rasaser-route")
+                    .withProperties(
+                        PropertyFactory.lineColor("#138CFA"),
+                        PropertyFactory.lineWidth(8f),
+                        PropertyFactory.lineOpacity(0.96f),
+                        PropertyFactory.lineCap("round"),
+                        PropertyFactory.lineJoin("round")
+                    ))
+            }
+        }
+    }
+
     override fun close() {
         if(closed) return
         closed=true
@@ -101,11 +142,11 @@ class MapScene(private val context: Context, onPlace: (String, String)->Unit) : 
 }
 
 @Composable
-fun OfflineDrivingMap(fix: Location?, onPlace: (String,String)->Unit) {
+fun OfflineDrivingMap(fix: Location?, route:List<NavPoint>?, onPlace: (String,String,NavPoint)->Unit) {
     val owner=LocalLifecycleOwner.current
     val context=androidx.compose.ui.platform.LocalContext.current
     val currentCallback=androidx.compose.runtime.rememberUpdatedState(onPlace)
-    val scene=remember(context) { MapScene(context){name,category-> currentCallback.value(name,category)} }
+    val scene=remember(context) { MapScene(context){name,category,point-> currentCallback.value(name,category,point)} }
     AndroidView(factory={scene.view}, modifier=Modifier.fillMaxSize())
     DisposableEffect(owner,scene) {
         val observer=LifecycleEventObserver { _,event->scene.onLifecycle(event) }
@@ -119,6 +160,7 @@ fun OfflineDrivingMap(fix: Location?, onPlace: (String,String)->Unit) {
         }
     }
     LaunchedEffect(fix?.time,fix?.latitude,fix?.longitude) { if(fix!=null) scene.follow(fix) }
+    LaunchedEffect(route) { scene.setRoute(route.orEmpty()) }
     // Day/night mode remains fully offline and uses the device's local clock.
     LaunchedEffect(scene) {
         while(true) {

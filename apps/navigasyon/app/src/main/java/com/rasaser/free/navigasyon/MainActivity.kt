@@ -104,10 +104,13 @@ class MainActivity: ComponentActivity() {
     private var statusKey by mutableStateOf<TextKey?>(null)
     private var statusExtra by mutableStateOf<String?>(null)
     private var selectedPlace by mutableStateOf<String?>(null)
+    private var routePlan by mutableStateOf<RoutePlan?>(null)
+    private var routeInfo by mutableStateOf<DriveInfo?>(null)
     private lateinit var network: DefaultNetworkMonitor
     private lateinit var gps: GpsTracker
     private lateinit var voice: VoiceController
     private lateinit var installer: TurkeyMapInstaller
+    private lateinit var router:OfflineRouteEngine
 
     override fun onCreate(savedInstanceState:Bundle?) {
         super.onCreate(savedInstanceState)
@@ -125,6 +128,7 @@ class MainActivity: ComponentActivity() {
             statusExtra=extra
         }.also { it.init(); it.setEnabled(voiceEnabled); it.setLanguage(language) }
         installer=TurkeyMapInstaller(this)
+        router=OfflineRouteEngine(this)
 
         setContent {
             MaterialTheme {
@@ -200,9 +204,32 @@ class MainActivity: ComponentActivity() {
 
                 if(screen==NavScreen.DRIVE && mapReady) {
                     Box(Modifier.fillMaxSize().background(Color(0xFFEEEDE8))) {
-                        OfflineDrivingMap(gpsFix) { name, _ ->
-                            selectedPlace=name.ifBlank {t(TextKey.POI_UNKNOWN)}
-                            if(voiceEnabled) voice.speak(selectedPlace.orEmpty())
+                        OfflineDrivingMap(gpsFix, routePlan?.shape) { name, _,destination ->
+                            selectedPlace=name.ifBlank {DriveWords.get(language,DriveInfo.TARGET_SELECTED)}
+                            routePlan=null
+                            val origin=gpsFix
+                            if(origin==null) {
+                                routeInfo=DriveInfo.NEEDS_GPS
+                            } else if(!router.installed()) {
+                                routeInfo=DriveInfo.NEEDS_ROUTING_DATA
+                            } else {
+                                routeInfo=DriveInfo.WORKING
+                                val activeLanguage=language
+                                Thread {
+                                    val planned=router.route(
+                                        NavPoint(origin.latitude,origin.longitude),
+                                        destination,activeLanguage)
+                                    runOnUiThread {
+                                        if(screen==NavScreen.DRIVE) {
+                                            routePlan=planned
+                                            routeInfo=if(planned!=null) DriveInfo.ROUTE_FOUND
+                                                else DriveInfo.NO_ROUTE
+                                            if(planned!=null && voiceEnabled)
+                                                planned.maneuverInstructions.firstOrNull()?.let(voice::speak)
+                                        }
+                                    }
+                                }.start()
+                            }
                         }
                         // The camera is at the GPS location; an arrow is displayed only
                         // when a valid GPS fix exists.
@@ -228,7 +255,14 @@ class MainActivity: ComponentActivity() {
                         if(selectedPlace!=null) {
                             Card(Modifier.align(Alignment.BottomCenter).padding(bottom=94.dp, start=12.dp,end=12.dp),
                                 colors=CardDefaults.cardColors(containerColor=Panel)) {
-                                Text(selectedPlace.orEmpty(),Modifier.padding(15.dp),color=Ink)
+                                Column(Modifier.padding(15.dp),verticalArrangement=Arrangement.spacedBy(6.dp)) {
+                                    Text(selectedPlace.orEmpty(),color=Ink,fontWeight=FontWeight.Bold)
+                                    routeInfo?.let { Text(DriveWords.get(language,it),color=Ink,fontSize=12.sp) }
+                                    routePlan?.let {
+                                        Text("${"%.1f".format(it.meters/1000.0)} km · ${(it.seconds/60.0).toInt()} min",
+                                            color=Ink,fontSize=13.sp)
+                                    }
+                                }
                             }
                         }
                         Row(
@@ -447,6 +481,7 @@ class MainActivity: ComponentActivity() {
         super.onStop()
     }
     override fun onDestroy() {
+        Thread {router.close()}.start()
         voice.close()
         super.onDestroy()
     }
