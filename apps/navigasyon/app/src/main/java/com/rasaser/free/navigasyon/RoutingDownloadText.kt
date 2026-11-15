@@ -3,7 +3,7 @@ package com.rasaser.free.navigasyon
 enum class RoutingDownloadStatus { BUTTON, EXPLANATION, WIFI_ONLY, DOWNLOADING, VERIFYING, READY, ERROR }
 
 object RoutingDownloadText {
-    private val lang:Map<NavLanguage,List<String>>=mapOf(
+    private val lang: Map<NavLanguage, List<String>> = mapOf(
         NavLanguage.TR to listOf("Türkiye rota verisini indir (1,15 GB)",
           "Hedef seçerek yol tarifi için ayrıca çevrimdışı rota paketi gerekir. İndirme yalnız Wi-Fi ile başlatılır.",
           "Rota verisini indirmek için Wi-Fi bağlantısı gerekiyor.",
