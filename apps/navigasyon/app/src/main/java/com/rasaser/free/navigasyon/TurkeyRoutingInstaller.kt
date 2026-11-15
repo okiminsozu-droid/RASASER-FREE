@@ -22,6 +22,8 @@ class TurkeyRoutingInstaller(private val context:Context) {
         private const val RELEASE_BASE =
             "https://github.com/okiminsozu-droid/RASASER-FREE/releases/download/rasaser-turkiye-routing-v0.1/"
         private const val DATA_NAME = "rasaser-turkiye-routing-v01.tar"
+        const val GRAPH_BYTES = 1148661760L
+        const val GRAPH_SHA = "764ecd092a5ef594b4364396f4fef3b560842a03b004338b29910aa3e20f9a9c"
     }
     private val manager:DownloadManager
         get()=context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
@@ -59,8 +61,8 @@ class TurkeyRoutingInstaller(private val context:Context) {
         val config=fetchJson(RELEASE_BASE+"valhalla.json") ?:return false
         val expectedSha=metadata.optString("graph_sha256","").lowercase()
         val expectedBytes=metadata.optLong("file_size",0)
-        if(!expectedSha.matches(Regex("[0-9a-f]{64}")))return false
-        if(expectedBytes !in 20_000_000L..1_900_000_000L)return false
+        if(expectedSha!=GRAPH_SHA)return false
+        if(expectedBytes != GRAPH_BYTES)return false
         if(!source.isFile || source.length()!=expectedBytes)return false
         val digest=MessageDigest.getInstance("SHA-256")
         source.inputStream().buffered().use {stream ->
