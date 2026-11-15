@@ -65,3 +65,14 @@ Bağımsız `com.rasaser.free.navigasyon` Android 15 hedefli geliştirici uygula
 - **Henüz tamamlanmayanlar:** Android offline rota/Valhalla, sesli dönüş yönlendirmeleri, doğrulanmış hız sınırları, canlı trafik/radar, ülke çapı sürüş testleri ve harita yazıları için offline font glyph paketi.
 
 Bu geliştirme aşamasıdır; gerçek yol testleri tamamlanmadan yayınlanmamalıdır.
+
+## Çevrimdışı Türkiye sürüş ve rota geliştirmesi v0.4 (2026-11-15)
+
+- Açık lisanslı Noto Sans fontu GitHub Android build sırasında tüm 256 PBF glyph aralığı olarak paketlenir; MapLibre'nin sokak, bölge, POI ve toplu taşıma durak adları internet olmadan okunabilir. Verinin hiç içermediği işletme adları oluşturulmaz.
+- Harita stilleri seçilen TR/EN/DE/AR/ES/JA diline göre varsa OSM `name_<dil>` ad alanını tercih eder, yoksa özgün yer adını kullanır; dünya çapında tüm özel isimlerin çevrildiği iddia edilmez.
+- Cihazda çalışan Valhalla Mobile (MIT, 0.6.1) rota motoru eklendi, haritaya dokunma/uzun basarak hedef seçme ve yalnız gerçek grafikten hesaplanan yol varsa mavi güzergâh çizimi. Güzergâh doğrudan çizgiyle uydurulmaz.
+- Valhalla Türkiye yolu ham Geofabrik OSM verisinden oluşturulur: `valhalla_tiles.tar` 1.148.661.760 bayt. Başlangıç Release manifesti graph SHA256 `764ecd092a5ef594b4364396f4fef3b560842a03b004338b29910aa3e20f9a9c`. Route installer bu özeti sabit olarak doğrular; en az 3 GB disk alanı ve Wi‑Fi gerektirir.
+- Rota grafiği, ilk 606 MB harita paketinden **ayrıdır** ve ayarlardan kullanıcı tarafından indirilir. Grafik ayrıca `valhalla.json` gerektirir; sürümde bu dosya olmadan uygulama güvenli biçimde 'rota verisi yok' mesajı gösterir.
+- İlk manevranın sesli okunması desteklenir ancak GPS üzerinden sürekli doğru dönüş/yeniden rota yönlendirmesi ve dinamik hız limitleri **tamamlanmış değildir**.
+- Android cihaz/araç üzerinde GPS saha testi **yapılmadı**; app bir geliştirme sürümüdür. Play Console için release imzası yoktur. Test sonuçlarını `05-navigasyon-android-ci.yml` üzerinde kontrol edin.
+- Dışarıdan ücretli harita/routing/voice API'si yoktur. Cloudflare R2 zorunlu değildir. İlerideki veri paketleri sürümlü ve SHA256 doğrulanmış olmalıdır.

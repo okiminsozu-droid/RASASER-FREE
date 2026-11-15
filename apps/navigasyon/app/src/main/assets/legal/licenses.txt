@@ -16,3 +16,10 @@ verileri henüz entegre edilmemiştir. Hiçbir veri uydurulmaz.
 Noto Sans Regular MapLibre glyph PBFs - SIL Open Font License 1.1.
 Supplied with the app as offline assets, original license included.
 https://github.com/UNDP-Data/fonts/tree/main/docs/fonts/Noto%20Sans%20Regular
+
+Valhalla Mobile 0.6.1, © contributors — MIT License.
+https://github.com/Rallista/valhalla-mobile
+Valhalla routing engine, © Valhalla contributors — MIT License.
+https://github.com/valhalla/valhalla
+Valhalla model libraries — inspect their individual license notices before publishing.
+All OpenStreetMap-derived routing data remains ODbL 1.0 with original attribution.
