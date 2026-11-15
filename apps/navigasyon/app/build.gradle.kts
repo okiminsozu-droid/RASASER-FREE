@@ -41,5 +41,10 @@ dependencies {
     implementation("androidx.compose.material:material-icons-extended")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.7")
     implementation("org.maplibre.gl:android-sdk-opengl:13.7.1")
+    // MIT licensed, embedded Android Valhalla routing engine.
+    implementation("io.github.rallista:valhalla-mobile:0.6.1")
+    implementation("io.github.rallista:valhalla-models:0.5.2")
+    implementation("io.github.rallista:valhalla-models-config:0.5.2")
+    implementation("com.stadiamaps:osrm-openapi:0.0.10")
     testImplementation("junit:junit:4.13.2")
 }
