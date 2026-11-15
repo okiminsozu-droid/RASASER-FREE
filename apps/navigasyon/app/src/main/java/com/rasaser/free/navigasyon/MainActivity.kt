@@ -422,9 +422,10 @@ class MainActivity: ComponentActivity() {
         Thread {
             val installed=runCatching {operation()}.getOrDefault(false)
             val ready=installed && LocalMapVerifier.turkeyMapReady(this)
+            val existing=if(ready) true else LocalMapVerifier.turkeyMapReady(this)
             runOnUiThread {
                 installing=false
-                mapReady=ready || LocalMapVerifier.turkeyMapReady(this)
+                mapReady=existing
                 statusKey=if(ready) TextKey.MAP_INSTALLED else TextKey.MAP_ERROR
                 statusExtra=null
             }
