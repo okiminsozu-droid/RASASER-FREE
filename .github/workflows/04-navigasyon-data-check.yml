@@ -1,0 +1,26 @@
+name: Navigasyon Veri Fabrikasi - Ucretsiz QA
+on:
+  pull_request:
+    paths:
+      - 'apps/navigasyon/**'
+      - '.github/workflows/04-navigasyon-data-check.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  offline-checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - name: Kodu oku
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Betik ve lisans dosyalari kontrolleri
+        run: |
+          python3 tools/check_repo.py
+          bash -n apps/navigasyon/data/build-turkey.sh
+          python3 -m json.tool apps/navigasyon/styles/rasaser-day.json >/dev/null
+          python3 -m json.tool apps/navigasyon/styles/rasaser-night.json >/dev/null
+      - name: MBTiles negatif ve pozitif testleri (internetsiz)
+        run: python3 -m unittest discover -v -s apps/navigasyon/data/tests -p 'test_*.py'

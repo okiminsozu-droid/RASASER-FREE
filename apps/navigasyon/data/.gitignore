@@ -1,0 +1,9 @@
+work/
+*.osm.pbf
+*.mbtiles
+*.pmtiles
+*.zip
+*.sha256
+*.download
+*.incomplete
+__pycache__/
