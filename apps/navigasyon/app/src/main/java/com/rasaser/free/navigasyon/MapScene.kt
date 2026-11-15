@@ -45,8 +45,8 @@ class MapScene(private val context: Context, onPlace: (String, String)->Unit) : 
                 val feature=touches.firstOrNull()
                 if (feature != null) {
                     fun property(name:String):String =
-                        if (feature.hasProperty(name) && !feature.get(name).isJsonNull)
-                            feature.get(name).asString else ""
+                        if (feature.hasProperty(name))
+                            feature.getStringProperty(name) ?: "" else ""
                     onPlace(property("name"), listOf("amenity","shop","tourism","leisure","historic","man_made")
                         .map(::property).firstOrNull { it.isNotBlank() } ?: "")
                     true
