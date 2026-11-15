@@ -46,3 +46,8 @@ Beklenen yerel çıktılar (Git'e gönderilmez):
 Kamera, radar, sabit hız sınırı, gerçek zamanlı trafik gibi bilgilerin kapsama/doğruluğu **ayrıca değerlendirilmelidir**. Ücretli veya izinsiz veri çekimi yapılmayacaktır.
 
 Referanslar: https://download.geofabrik.de/europe/turkey.html · https://github.com/systemed/tilemaker · https://github.com/maplibre/maplibre-native · https://github.com/valhalla/valhalla · https://www.openstreetmap.org/copyright
+
+
+## Android hibrit bağlantı prototipi v0.2 (15 Kasım 2026)
+
+Bağımsız `com.rasaser.free.navigasyon` Android 15 hedefli geliştirici uygulaması eklendi: internetin otomatik algılanması, `VALIDATED` internet / ölçülü bağlantı ayrımı, çevrimdışı navigasyon önceliği, interneti kapat/aç kullanıcı tercihi, cihazda Türkiye paketinin SHA-256 kontrolü. **Bu henüz harita gösteren veya rota çizen bir APK değildir.** Veri ve rota indirme sistemleri, MapLibre/Valhalla mobil entegrasyonu yapılmadı. Bkz. `docs/HYBRID-OFFLINE-ONLINE.md`. Özel imzalama yapılmaz.
