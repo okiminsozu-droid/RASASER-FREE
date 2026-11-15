@@ -100,7 +100,7 @@ class MainActivity: ComponentActivity() {
     private var connection by mutableStateOf(Connection.OFFLINE)
     private var gpsFix by mutableStateOf<Location?>(null)
     private var downloadId by mutableLongStateOf(-1L)
-    private var progress by mutableIntStateOf(0)
+    private var downloadPercent by mutableIntStateOf(0)
     private var statusKey by mutableStateOf<TextKey?>(null)
     private var statusExtra by mutableStateOf<String?>(null)
     private var selectedPlace by mutableStateOf<String?>(null)
@@ -146,7 +146,7 @@ class MainActivity: ComponentActivity() {
                     if(id>=0L) {
                         while(downloadId==id) {
                             val transfer=installer.transfer(id)
-                            if(transfer.total>0L) progress=(100L*transfer.downloaded/transfer.total)
+                            if(transfer.total>0L) downloadPercent=(100L*transfer.downloaded/transfer.total)
                                 .toInt().coerceIn(0,100)
                             if(transfer.status==DownloadManager.STATUS_SUCCESSFUL) {
                                 prefs.edit().remove("map_download_id").apply()
@@ -170,7 +170,7 @@ class MainActivity: ComponentActivity() {
                     try {
                         downloadId=installer.download(wifiOnly)
                         prefs.edit().putLong("map_download_id",downloadId).apply()
-                        progress=0
+                        downloadPercent=0
                         statusKey=TextKey.MAP_DOWNLOADING
                     } catch (_:Exception) {
                         statusKey=TextKey.STORAGE_REQUIRED
@@ -289,7 +289,7 @@ class MainActivity: ComponentActivity() {
                                 HomeAction(Icons.Default.PlayArrow,t(TextKey.START),enabled=mapReady){startDrive()}
                                 val detail=when {
                                     installing -> t(TextKey.MAP_VERIFYING)
-                                    downloadId>=0L -> t(TextKey.MAP_DOWNLOADING)+" • $progress%"
+                                    downloadId>=0L -> t(TextKey.MAP_DOWNLOADING)+" • $downloadPercent%"
                                     checkingMap -> t(TextKey.MAP_VERIFYING)
                                     mapReady -> t(TextKey.MAP_READY)
                                     else -> t(TextKey.NO_MAP)
@@ -322,7 +322,7 @@ class MainActivity: ComponentActivity() {
                                         HomeAction(Icons.Default.PlayArrow,t(TextKey.START),enabled=mapReady){startDrive()}
                                         Text(when{
                                             installing ->t(TextKey.MAP_VERIFYING)
-                                            downloadId>=0 ->t(TextKey.MAP_DOWNLOADING)+" $progress%"
+                                            downloadId>=0 ->t(TextKey.MAP_DOWNLOADING)+" $downloadPercent%"
                                             mapReady ->t(TextKey.MAP_READY)
                                             else ->t(TextKey.NO_MAP)
                                         },fontSize=11.sp,color=Ink)
