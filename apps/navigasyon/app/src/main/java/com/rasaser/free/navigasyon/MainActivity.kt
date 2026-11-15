@@ -14,6 +14,8 @@ import androidx.activity.compose.setContent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -101,6 +103,9 @@ class MainActivity: ComponentActivity() {
     private var gpsFix by mutableStateOf<Location?>(null)
     private var downloadId by mutableLongStateOf(-1L)
     private var downloadPercent by mutableIntStateOf(0)
+    private var routingDownloadId by mutableLongStateOf(-1L)
+    private var routingInstallActive by mutableStateOf(false)
+    private var routingMessage by mutableStateOf<RoutingDownloadStatus?>(null)
     private var statusKey by mutableStateOf<TextKey?>(null)
     private var statusExtra by mutableStateOf<String?>(null)
     private var selectedPlace by mutableStateOf<String?>(null)
@@ -110,6 +115,7 @@ class MainActivity: ComponentActivity() {
     private lateinit var gps: GpsTracker
     private lateinit var voice: VoiceController
     private lateinit var installer: TurkeyMapInstaller
+    private lateinit var routingInstaller: TurkeyRoutingInstaller
     private lateinit var router:OfflineRouteEngine
 
     override fun onCreate(savedInstanceState:Bundle?) {
@@ -121,6 +127,7 @@ class MainActivity: ComponentActivity() {
         autoDrive=prefs.getBoolean("auto_drive",true)
         voiceEnabled=prefs.getBoolean("voice_enabled",true)
         downloadId=prefs.getLong("map_download_id",-1L)
+        routingDownloadId=prefs.getLong("routing_download_id",-1L)
         network=DefaultNetworkMonitor(this){ connection=it }
         gps=GpsTracker(this){ gpsFix=it }
         voice=VoiceController(this){ key,extra ->
@@ -128,6 +135,7 @@ class MainActivity: ComponentActivity() {
             statusExtra=extra
         }.also { it.init(); it.setEnabled(voiceEnabled); it.setLanguage(language) }
         installer=TurkeyMapInstaller(this)
+        routingInstaller=TurkeyRoutingInstaller(this)
         router=OfflineRouteEngine(this)
 
         setContent {
@@ -165,6 +173,38 @@ class MainActivity: ComponentActivity() {
                                 break
                             }
                             delay(1400)
+                        }
+                    }
+                }
+                LaunchedEffect(routingDownloadId) {
+                    val current=routingDownloadId
+                    if(current>=0L) {
+                        while(routingDownloadId==current) {
+                            when(routingInstaller.transferStatus(current)) {
+                                DownloadManager.STATUS_SUCCESSFUL -> {
+                                    prefs.edit().remove("routing_download_id").apply()
+                                    routingDownloadId=-1L
+                                    routingInstallActive=true
+                                    routingMessage=RoutingDownloadStatus.VERIFYING
+                                    Thread {
+                                        val ok=routingInstaller.installDownloaded()
+                                        runOnUiThread {
+                                            routingInstallActive=false
+                                            routingMessage=if(ok)RoutingDownloadStatus.READY
+                                                else RoutingDownloadStatus.ERROR
+                                        }
+                                    }.start()
+                                    break
+                                }
+                                DownloadManager.STATUS_FAILED -> {
+                                    prefs.edit().remove("routing_download_id").apply()
+                                    routingDownloadId=-1L
+                                    routingMessage=RoutingDownloadStatus.ERROR
+                                    break
+                                }
+                                else -> { }
+                            }
+                            delay(1800)
                         }
                     }
                 }
@@ -406,7 +446,38 @@ class MainActivity: ComponentActivity() {
                 )
                 if(showSettings) AlertDialog(onDismissRequest={showSettings=false},
                     title={Text(t(TextKey.SETTINGS))},
-                    text={Column(verticalArrangement=Arrangement.spacedBy(8.dp)){
+                    text={Column(
+                        modifier=Modifier.verticalScroll(rememberScrollState()),
+                        verticalArrangement=Arrangement.spacedBy(8.dp)
+                    ){
+                        Text(RoutingDownloadText.get(language,RoutingDownloadStatus.EXPLANATION),fontSize=12.sp)
+                        if(router.installed()){
+                            Text(RoutingDownloadText.get(language,RoutingDownloadStatus.READY),
+                                color=Color(0xFF266443),fontSize=12.sp)
+                        } else {
+                            OutlinedButton(
+                                enabled=routingDownloadId<0L && !routingInstallActive &&
+                                    connection==Connection.UNMETERED && onlineAllowed,
+                                onClick={
+                                    try {
+                                        routingDownloadId=routingInstaller.beginWifiDownload()
+                                        prefs.edit().putLong("routing_download_id",routingDownloadId).apply()
+                                        routingMessage=RoutingDownloadStatus.DOWNLOADING
+                                    } catch (_:Exception) {
+                                        routingMessage=RoutingDownloadStatus.ERROR
+                                    }
+                                }
+                            ) {
+                                Text(RoutingDownloadText.get(language,RoutingDownloadStatus.BUTTON))
+                            }
+                            if(connection!=Connection.UNMETERED){
+                                Text(RoutingDownloadText.get(language,RoutingDownloadStatus.WIFI_ONLY),
+                                    fontSize=12.sp)
+                            }
+                        }
+                        routingMessage?.let {
+                            Text(RoutingDownloadText.get(language,it),fontSize=12.sp)
+                        }
                         SettingSwitch(t(TextKey.INTERNET_AUTO),onlineAllowed){
                             onlineAllowed=it; prefs.edit().putBoolean("online_allowed",it).apply()
                         }
