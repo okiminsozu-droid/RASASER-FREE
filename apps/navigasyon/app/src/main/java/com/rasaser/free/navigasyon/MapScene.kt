@@ -1,0 +1,122 @@
+package com.rasaser.free.navigasyon
+
+import android.content.Context
+import android.location.Location
+import android.os.Bundle
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import org.maplibre.android.MapLibre
+import org.maplibre.android.camera.CameraPosition
+import org.maplibre.android.camera.CameraUpdateFactory
+import org.maplibre.android.geometry.LatLng
+import org.maplibre.android.maps.MapLibreMap
+import org.maplibre.android.maps.MapView
+import org.maplibre.android.maps.Style
+import java.io.File
+
+/** Entire map is read from private-device MBTiles; no external map service. */
+class MapScene(private val context: Context, onPlace: (String, String)->Unit) : AutoCloseable {
+    private val tileServer=LocalTileServer(File(context.filesDir,"maps/turkey.mbtiles"))
+    private val mapView: MapView
+    private var map: MapLibreMap? = null
+    private var lastFix: Location?=null
+    private var heading = 0.0
+    private var closed=false
+    private var night=false
+
+    init {
+        MapLibre.getInstance(context.applicationContext)
+        mapView=MapView(context)
+        mapView.onCreate(null)
+        mapView.getMapAsync { ready ->
+            map=ready
+            ready.cameraPosition=CameraPosition.Builder()
+                .target(LatLng(39.0,34.65)).zoom(5.2).tilt(50.0).build()
+            ready.addOnMapClickListener { position ->
+                val touches=ready.queryRenderedFeatures(ready.projection.toScreenLocation(position),"pois")
+                val feature=touches.firstOrNull()
+                if (feature != null) {
+                    fun property(name:String):String =
+                        if (feature.hasProperty(name) && !feature.get(name).isJsonNull)
+                            feature.get(name).asString else ""
+                    onPlace(property("name"), listOf("amenity","shop","tourism","leisure","historic","man_made")
+                        .map(::property).firstOrNull { it.isNotBlank() } ?: "")
+                    true
+                } else false
+            }
+            loadStyle()
+        }
+    }
+
+    val view:MapView get()=mapView
+    fun onLifecycle(event: Lifecycle.Event) {
+        if (closed) return
+        when(event) {
+            Lifecycle.Event.ON_START->mapView.onStart()
+            Lifecycle.Event.ON_RESUME->mapView.onResume()
+            Lifecycle.Event.ON_PAUSE->mapView.onPause()
+            Lifecycle.Event.ON_STOP->mapView.onStop()
+            Lifecycle.Event.ON_DESTROY->close()
+            else -> Unit
+        }
+    }
+    private fun loadStyle() {
+        val file=if(night) "rasaser-shortbread-night.json" else "rasaser-shortbread-day.json"
+        val style=context.assets.open("maps/$file").bufferedReader().use { it.readText() }
+            .replace("127.0.0.1:8765","127.0.0.1:${tileServer.port}")
+        map?.setStyle(Style.Builder().fromJson(style)) {
+            lastFix?.let(::follow)
+        }
+    }
+    fun setNightMode(value:Boolean) {
+        if(night==value) return
+        night=value
+        if(map!=null) loadStyle()
+    }
+    fun follow(location:Location) {
+        if(closed || !location.isValidNavigationFix()) return
+        lastFix=location
+        if (location.hasBearing() && location.hasSpeed() && location.speed>=1.5f)
+            heading=location.bearing.toDouble()
+        val camera=CameraPosition.Builder()
+            .target(LatLng(location.latitude,location.longitude))
+            .zoom(17.3).tilt(60.0).bearing(heading).build()
+        map?.animateCamera(CameraUpdateFactory.newCameraPosition(camera), 750)
+    }
+    override fun close() {
+        if(closed) return
+        closed=true
+        map=null
+        runCatching { mapView.onDestroy() }
+        tileServer.close()
+    }
+}
+
+@Composable
+fun OfflineDrivingMap(fix: Location?, onPlace: (String,String)->Unit) {
+    val owner=LocalLifecycleOwner.current
+    val context=androidx.compose.ui.platform.LocalContext.current
+    val currentCallback=androidx.compose.runtime.rememberUpdatedState(onPlace)
+    val scene=remember(context) { MapScene(context){name,category-> currentCallback.value(name,category)} }
+    AndroidView(factory={scene.view}, modifier=Modifier.fillMaxSize())
+    DisposableEffect(owner,scene) {
+        val observer=LifecycleEventObserver { _,event->scene.onLifecycle(event) }
+        owner.lifecycle.addObserver(observer)
+        // A map added after Activity reaches STARTED needs lifecycle catch-up.
+        if(owner.lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) scene.onLifecycle(Lifecycle.Event.ON_START)
+        if(owner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) scene.onLifecycle(Lifecycle.Event.ON_RESUME)
+        onDispose {
+            owner.lifecycle.removeObserver(observer)
+            scene.close()
+        }
+    }
+    LaunchedEffect(fix?.time,fix?.latitude,fix?.longitude) { if(fix!=null) scene.follow(fix) }
+}
