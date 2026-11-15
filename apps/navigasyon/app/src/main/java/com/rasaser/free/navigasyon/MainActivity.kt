@@ -244,7 +244,7 @@ class MainActivity: ComponentActivity() {
 
                 if(screen==NavScreen.DRIVE && mapReady) {
                     Box(Modifier.fillMaxSize().background(Color(0xFFEEEDE8))) {
-                        OfflineDrivingMap(gpsFix, routePlan?.shape) { name, _,destination ->
+                        OfflineDrivingMap(gpsFix, routePlan?.shape,language) { name, _,destination ->
                             selectedPlace=name.ifBlank {DriveWords.get(language,DriveInfo.TARGET_SELECTED)}
                             routePlan=null
                             val origin=gpsFix

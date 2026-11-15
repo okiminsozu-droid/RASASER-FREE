@@ -26,6 +26,8 @@ import org.maplibre.android.style.layers.PropertyFactory
 import org.maplibre.geojson.Point
 import org.maplibre.geojson.LineString
 import java.io.File
+import org.json.JSONArray
+import org.json.JSONObject
 
 /** Entire map is read from private-device MBTiles; no external map service. */
 class MapScene(private val context: Context, onPlace: (String, String, NavPoint)->Unit) : AutoCloseable {
@@ -36,6 +38,7 @@ class MapScene(private val context: Context, onPlace: (String, String, NavPoint)
     private var heading = 0.0
     private var closed=false
     private var night=false
+    private var language=NavLanguage.TR
     private var routePoints:List<NavPoint> = emptyList()
 
     init {
@@ -81,12 +84,32 @@ class MapScene(private val context: Context, onPlace: (String, String, NavPoint)
     }
     private fun loadStyle() {
         val file=if(night) "rasaser-shortbread-night.json" else "rasaser-shortbread-day.json"
-        val style=context.assets.open("maps/$file").bufferedReader().use { it.readText() }
+        val raw=context.assets.open("maps/$file").bufferedReader().use { it.readText() }
             .replace("127.0.0.1:8765","127.0.0.1:${tileServer.port}")
+        val json=JSONObject(raw)
+        val layers=json.getJSONArray("layers")
+        for(i in 0 until layers.length()) {
+            val layer=layers.optJSONObject(i) ?:continue
+            if(layer.optString("type")!="symbol")continue
+            val layout=layer.optJSONObject("layout") ?:continue
+            val langs=JSONArray().put("coalesce")
+            // Multilingual place names only where OSM contributors supplied them.
+            langs.put(JSONArray().put("get").put("name_"+language.tag))
+            langs.put(JSONArray().put("get").put("name"))
+            langs.put(JSONArray().put("get").put("name_en"))
+            langs.put("")
+            layout.put("text-field",langs)
+        }
+        val style=json.toString()
         map?.setStyle(Style.Builder().fromJson(style)) {
             lastFix?.let(::follow)
             renderRoute()
         }
+    }
+    fun setLanguage(value:NavLanguage) {
+        if(language==value)return
+        language=value
+        if(map!=null)loadStyle()
     }
     fun setNightMode(value:Boolean) {
         if(night==value) return
@@ -142,7 +165,8 @@ class MapScene(private val context: Context, onPlace: (String, String, NavPoint)
 }
 
 @Composable
-fun OfflineDrivingMap(fix: Location?, route:List<NavPoint>?, onPlace: (String,String,NavPoint)->Unit) {
+fun OfflineDrivingMap(fix: Location?, route:List<NavPoint>?, language:NavLanguage,
+                      onPlace: (String,String,NavPoint)->Unit) {
     val owner=LocalLifecycleOwner.current
     val context=androidx.compose.ui.platform.LocalContext.current
     val currentCallback=androidx.compose.runtime.rememberUpdatedState(onPlace)
@@ -161,6 +185,7 @@ fun OfflineDrivingMap(fix: Location?, route:List<NavPoint>?, onPlace: (String,St
     }
     LaunchedEffect(fix?.time,fix?.latitude,fix?.longitude) { if(fix!=null) scene.follow(fix) }
     LaunchedEffect(route) { scene.setRoute(route.orEmpty()) }
+    LaunchedEffect(language) { scene.setLanguage(language) }
     // Day/night mode remains fully offline and uses the device's local clock.
     LaunchedEffect(scene) {
         while(true) {
