@@ -23,12 +23,12 @@ jobs:
           java-version: '17'
       - name: Android SDK
         uses: android-actions/setup-android@v4
-      - name: Android API 35
-        run: sdkmanager --install "platforms;android-35" "build-tools;35.0.0"
-      - name: Gradle 8.9
+      - name: Android API 36
+        run: sdkmanager --install "platforms;android-36" "build-tools;35.0.0"
+      - name: Gradle 8.11.1
         uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: '8.9'
+          gradle-version: '8.11.1'
       - name: App kimligi ve gizlilik kontrolu
         run: |
           python3 tools/check_repo.py

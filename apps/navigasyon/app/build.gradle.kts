@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace = "com.rasaser.free.navigasyon"
-    compileSdk = 35
+    compileSdk = 36
     defaultConfig {
         applicationId = "com.rasaser.free.navigasyon"
         minSdk = 26
