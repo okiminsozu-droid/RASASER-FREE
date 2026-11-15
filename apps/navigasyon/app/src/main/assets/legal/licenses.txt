@@ -1,0 +1,4 @@
+Data © OpenStreetMap contributors; ODbL 1.0 https://www.openstreetmap.org/copyright
+Planned dependencies (not yet bundled): MapLibre https://github.com/maplibre/maplibre-native ; Valhalla https://github.com/valhalla/valhalla
+Tilemaker https://github.com/systemed/tilemaker
+Development build only; complete license notices before publication.
