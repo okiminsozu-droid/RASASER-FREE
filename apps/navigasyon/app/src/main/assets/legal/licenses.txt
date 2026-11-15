@@ -12,3 +12,7 @@ Yayın öncesi üçüncü taraf tüm bildiriler uygulamaya eklenecek.
 
 ÖNEMLİ: Çevrimdışı yol tarifi, gerçek zamanlı trafik, kamera ve hız sınırı
 verileri henüz entegre edilmemiştir. Hiçbir veri uydurulmaz.
+
+Noto Sans Regular MapLibre glyph PBFs - SIL Open Font License 1.1.
+Supplied with the app as offline assets, original license included.
+https://github.com/UNDP-Data/fonts/tree/main/docs/fonts/Noto%20Sans%20Regular

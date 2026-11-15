@@ -33,6 +33,8 @@ jobs:
         run: |
           python3 tools/check_repo.py
           python3 tools/validate_app.py navigasyon false
+      - name: Cevrimdisi yer adlari icin lisansli glyph kaynaklarini paketle
+        run: python3 apps/navigasyon/tools/prepare_offline_glyphs.py --target "apps/navigasyon/app/src/main/assets/fonts/Noto Sans Regular"
       - name: Kotlin unit tests ve Android APK derleme
         run: gradle --no-daemon --project-dir apps/navigasyon :app:testDebugUnitTest :app:assembleDebug
       # Public debug APK is intentionally not uploaded; release keys PRIVATE only.

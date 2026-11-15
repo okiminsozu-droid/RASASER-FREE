@@ -24,7 +24,7 @@ import java.io.File
 
 /** Entire map is read from private-device MBTiles; no external map service. */
 class MapScene(private val context: Context, onPlace: (String, String)->Unit) : AutoCloseable {
-    private val tileServer=LocalTileServer(File(context.filesDir,"maps/turkey.mbtiles"))
+    private val tileServer=LocalTileServer(context.applicationContext, File(context.filesDir,"maps/turkey.mbtiles"))
     private val mapView: MapView
     private var map: MapLibreMap? = null
     private var lastFix: Location?=null
@@ -119,4 +119,12 @@ fun OfflineDrivingMap(fix: Location?, onPlace: (String,String)->Unit) {
         }
     }
     LaunchedEffect(fix?.time,fix?.latitude,fix?.longitude) { if(fix!=null) scene.follow(fix) }
+    // Day/night mode remains fully offline and uses the device's local clock.
+    LaunchedEffect(scene) {
+        while(true) {
+            val hour=java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
+            scene.setNightMode(hour < 7 || hour >= 19)
+            kotlinx.coroutines.delay(60_000L)
+        }
+    }
 }

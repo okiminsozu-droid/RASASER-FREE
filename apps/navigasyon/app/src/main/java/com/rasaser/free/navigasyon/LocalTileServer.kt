@@ -1,5 +1,6 @@
 package com.rasaser.free.navigasyon
 
+import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import java.io.BufferedInputStream
 import java.io.BufferedOutputStream
@@ -16,7 +17,7 @@ import java.util.concurrent.atomic.AtomicBoolean
  * Loopback-only, no remote interface, no network services or API keys.
  * MBTiles TMS row -> XYZ row is converted here.
  */
-class LocalTileServer(mapFile: File) : AutoCloseable {
+class LocalTileServer(private val context: Context, mapFile: File) : AutoCloseable {
     private val db = SQLiteDatabase.openDatabase(mapFile.absolutePath, null,
         SQLiteDatabase.OPEN_READONLY or SQLiteDatabase.NO_LOCALIZED_COLLATORS)
     private val socket = ServerSocket(0, 12, InetAddress.getByName("127.0.0.1"))
@@ -51,6 +52,24 @@ class LocalTileServer(mapFile: File) : AutoCloseable {
                 val request = lineBuffer.toString().split(' ')
                 if (request.size < 2 || request[0] != "GET") {
                     send(conn, 405, "text/plain", "Method not allowed".toByteArray())
+                    return
+                }
+                val font = Regex("^/fonts/Noto(?:%20| )Sans(?:%20| )Regular/(\\\\d{1,5})-(\\\\d{1,5})\\\\.pbf$")
+                    .matchEntire(request[1])
+                if (font!=null) {
+                    val first=font.groupValues[1].toInt()
+                    val last=font.groupValues[2].toInt()
+                    if(first in 0..65280 && first%256==0 && last==first+255) {
+                        val path="fonts/Noto Sans Regular/$first-$last.pbf"
+                        val payload=runCatching {
+                            context.assets.open(path).use { it.readBytes() }
+                        }.getOrNull()
+                        if(payload!=null && payload.isNotEmpty()) {
+                            send(conn,200,"application/x-protobuf",payload)
+                            return
+                        }
+                    }
+                    send(conn,404,"text/plain",byteArrayOf())
                     return
                 }
                 val matched = Regex("^/tiles/(\\d{1,2})/(\\d{1,8})/(\\d{1,8})\\.pbf$").matchEntire(request[1])
