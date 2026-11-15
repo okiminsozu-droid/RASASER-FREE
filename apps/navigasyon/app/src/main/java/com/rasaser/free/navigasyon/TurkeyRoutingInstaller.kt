@@ -95,17 +95,32 @@ class TurkeyRoutingInstaller(private val context:Context) {
         finally { pending.delete();pendingManifest.delete();pendingConfig.delete() }
     }
 
-    private fun fetchJson(url:String):JSONObject?=try {
-        val conn=(URL(url).openConnection() as HttpURLConnection).apply {
-            connectTimeout=12000;readTimeout=20000;instanceFollowRedirects=true
-            setRequestProperty("Accept","application/json")
-        }
-        try {
-            if(conn.responseCode!=200)return null
-            if(conn.url.protocol!="https")return null
-            val data=conn.inputStream.use { it.readNBytes(100_001) }
-            if(data.size>100_000)return null
-            JSONObject(data.toString(Charsets.UTF_8))
-        } finally { conn.disconnect() }
-    } catch (_:Exception){null}
+    private fun fetchJson(url:String):JSONObject? {
+        return try {
+            val conn=(URL(url).openConnection() as HttpURLConnection).apply {
+                connectTimeout=12000
+                readTimeout=20000
+                instanceFollowRedirects=true
+                setRequestProperty("Accept","application/json")
+            }
+            try {
+                if(conn.responseCode!=200 || conn.url.protocol!="https") null
+                else {
+                    val bytes=java.io.ByteArrayOutputStream()
+                    conn.inputStream.use { input ->
+                        val buffer=ByteArray(8192)
+                        while(bytes.size()<=100_000) {
+                            val n=input.read(buffer)
+                            if(n<0)break
+                            bytes.write(buffer,0,n)
+                        }
+                    }
+                    if(bytes.size()>100_000) null
+                    else JSONObject(bytes.toString("UTF-8"))
+                }
+            } finally {
+                conn.disconnect()
+            }
+        } catch (_:Exception) {null}
+    }
 }
