@@ -1,0 +1,358 @@
+{
+  "version": 8,
+  "name": "RaSaSeR Türkiye • Shortbread • Gece",
+  "center": [
+    34.65,
+    39
+  ],
+  "zoom": 5,
+  "pitch": 55,
+  "bearing": 0,
+  "sources": {
+    "turkiye": {
+      "type": "vector",
+      "tiles": [
+        "http://127.0.0.1:8765/tiles/{z}/{x}/{y}.pbf"
+      ],
+      "minzoom": 0,
+      "maxzoom": 14,
+      "scheme": "xyz",
+      "attribution": "© <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap contributors</a> | BBBike.org"
+    }
+  },
+  "glyphs": "http://127.0.0.1:8765/fonts/{fontstack}/{range}.pbf",
+  "layers": [
+    {
+      "id": "background",
+      "type": "background",
+      "paint": {
+        "background-color": "#0B131D"
+      }
+    },
+    {
+      "id": "land",
+      "type": "fill",
+      "source": "turkiye",
+      "source-layer": "land",
+      "paint": {
+        "fill-color": "#131D26"
+      }
+    },
+    {
+      "id": "sites",
+      "type": "fill",
+      "source": "turkiye",
+      "source-layer": "sites",
+      "paint": {
+        "fill-color": "#1E4437",
+        "fill-opacity": 0.65
+      }
+    },
+    {
+      "id": "water-polygons",
+      "type": "fill",
+      "source": "turkiye",
+      "source-layer": "water_polygons",
+      "paint": {
+        "fill-color": "#14384D"
+      }
+    },
+    {
+      "id": "ocean",
+      "type": "fill",
+      "source": "turkiye",
+      "source-layer": "ocean",
+      "paint": {
+        "fill-color": "#14384D"
+      }
+    },
+    {
+      "id": "water-lines",
+      "type": "line",
+      "source": "turkiye",
+      "source-layer": "water_lines",
+      "paint": {
+        "line-color": "#14384D",
+        "line-width": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          4,
+          0.4,
+          14,
+          2
+        ]
+      }
+    },
+    {
+      "id": "boundary",
+      "type": "line",
+      "source": "turkiye",
+      "source-layer": "boundaries",
+      "paint": {
+        "line-color": "#66707B",
+        "line-opacity": 0.6,
+        "line-width": 0.8
+      }
+    },
+    {
+      "id": "streets-all",
+      "type": "line",
+      "source": "turkiye",
+      "source-layer": "streets",
+      "layout": {
+        "line-cap": "round",
+        "line-join": "round"
+      },
+      "paint": {
+        "line-color": "#536475",
+        "line-width": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          5,
+          0.5,
+          12,
+          1.2,
+          17,
+          7
+        ]
+      }
+    },
+    {
+      "id": "streets-major",
+      "type": "line",
+      "source": "turkiye",
+      "source-layer": "streets",
+      "filter": [
+        "in",
+        [
+          "get",
+          "kind"
+        ],
+        [
+          "literal",
+          [
+            "trunk",
+            "primary",
+            "secondary"
+          ]
+        ]
+      ],
+      "layout": {
+        "line-cap": "round",
+        "line-join": "round"
+      },
+      "paint": {
+        "line-color": "#BE9E67",
+        "line-width": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          6,
+          0.8,
+          12,
+          2,
+          17,
+          8
+        ]
+      }
+    },
+    {
+      "id": "streets-motorway",
+      "type": "line",
+      "source": "turkiye",
+      "source-layer": "streets",
+      "filter": [
+        "==",
+        [
+          "get",
+          "kind"
+        ],
+        "motorway"
+      ],
+      "layout": {
+        "line-cap": "round",
+        "line-join": "round"
+      },
+      "paint": {
+        "line-color": "#DAAD71",
+        "line-width": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          6,
+          1.2,
+          12,
+          3.5,
+          17,
+          11
+        ]
+      }
+    },
+    {
+      "id": "buildings-flat",
+      "type": "fill",
+      "source": "turkiye",
+      "source-layer": "buildings",
+      "minzoom": 14,
+      "maxzoom": 15,
+      "paint": {
+        "fill-color": "#38434E",
+        "fill-opacity": 0.88
+      }
+    },
+    {
+      "id": "buildings-perspective",
+      "type": "fill-extrusion",
+      "source": "turkiye",
+      "source-layer": "buildings",
+      "minzoom": 15,
+      "paint": {
+        "fill-extrusion-color": "#38434E",
+        "fill-extrusion-height": [
+          "coalesce",
+          [
+            "get",
+            "height"
+          ],
+          8
+        ],
+        "fill-extrusion-base": [
+          "coalesce",
+          [
+            "get",
+            "min_height"
+          ],
+          0
+        ],
+        "fill-extrusion-opacity": 0.85
+      }
+    },
+    {
+      "id": "place-labels",
+      "type": "symbol",
+      "source": "turkiye",
+      "source-layer": "place_labels",
+      "minzoom": 4,
+      "layout": {
+        "text-field": [
+          "coalesce",
+          [
+            "get",
+            "name"
+          ],
+          [
+            "get",
+            "name_en"
+          ],
+          ""
+        ],
+        "text-font": [
+          "Open Sans Regular"
+        ],
+        "text-size": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          5,
+          12,
+          15,
+          17
+        ],
+        "text-allow-overlap": false
+      },
+      "paint": {
+        "text-color": "#E0E4E6",
+        "text-halo-color": "#17232E",
+        "text-halo-width": 1.5
+      }
+    },
+    {
+      "id": "street-labels",
+      "type": "symbol",
+      "source": "turkiye",
+      "source-layer": "street_labels",
+      "minzoom": 13,
+      "layout": {
+        "symbol-placement": "line",
+        "text-field": [
+          "coalesce",
+          [
+            "get",
+            "name"
+          ],
+          ""
+        ],
+        "text-font": [
+          "Open Sans Regular"
+        ],
+        "text-size": 11
+      },
+      "paint": {
+        "text-color": "#E0E4E6",
+        "text-halo-color": "#17232E",
+        "text-halo-width": 1
+      }
+    },
+    {
+      "id": "pois",
+      "type": "circle",
+      "source": "turkiye",
+      "source-layer": "pois",
+      "minzoom": 14,
+      "paint": {
+        "circle-radius": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          2.5,
+          18,
+          6
+        ],
+        "circle-color": [
+          "case",
+          [
+            "has",
+            "shop"
+          ],
+          "#B97F3F",
+          [
+            "has",
+            "amenity"
+          ],
+          "#287D80",
+          "#9872A4"
+        ],
+        "circle-stroke-color": "#FFFFFF",
+        "circle-stroke-width": 1.1,
+        "circle-opacity": 0.93
+      }
+    }
+  ]
+}

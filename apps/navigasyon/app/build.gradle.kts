@@ -11,8 +11,8 @@ android {
         applicationId = "com.rasaser.free.navigasyon"
         minSdk = 26
         targetSdk = 35
-        versionCode = 2
-        versionName = "0.2.0-dev"
+        versionCode = 3
+        versionName = "0.3.0-dev"
     }
     buildTypes {
         release {
@@ -38,5 +38,8 @@ dependencies {
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.foundation:foundation")
     implementation("androidx.compose.material3:material3")
+    implementation("androidx.compose.material:material-icons-extended")
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.7")
+    implementation("org.maplibre.gl:android-sdk-opengl:13.7.1")
     testImplementation("junit:junit:4.13.2")
 }

@@ -1,4 +1,14 @@
-Data © OpenStreetMap contributors; ODbL 1.0 https://www.openstreetmap.org/copyright
-Planned dependencies (not yet bundled): MapLibre https://github.com/maplibre/maplibre-native ; Valhalla https://github.com/valhalla/valhalla
-Tilemaker https://github.com/systemed/tilemaker
-Development build only; complete license notices before publication.
+RaSaSeR Navigasyon Türkiye - Geliştirici önizlemesi
+
+© OpenStreetMap contributors, ODbL 1.0
+https://www.openstreetmap.org/copyright
+Veri dağıtımı: BBBike.org (Shortbread MBTiles)
+
+MapLibre Native Android 13.7.1 (OpenGL ES) - BSD-2-Clause
+https://github.com/maplibre/maplibre-native
+
+AndroidX / Kotlin / Jetpack Compose: ilgili Apache-2.0 ve diğer bağımlılık bildirimleri.
+Yayın öncesi üçüncü taraf tüm bildiriler uygulamaya eklenecek.
+
+ÖNEMLİ: Çevrimdışı yol tarifi, gerçek zamanlı trafik, kamera ve hız sınırı
+verileri henüz entegre edilmemiştir. Hiçbir veri uydurulmaz.
