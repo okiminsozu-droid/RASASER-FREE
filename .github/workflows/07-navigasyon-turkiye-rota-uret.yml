@@ -74,9 +74,16 @@ jobs:
             echo "Grafik Release tek dosya sinirini asiyor; veri silinmedi. Paket parcalama gerekli."
             exit 2
           fi
-          gh release create "rasaser-turkiye-routing-v0.1" \
-            "$FILE" "$ROOT/valhalla.json" "$ROOT/valhalla-turkiye-manifest.json" "$ROOT/README.md" \
-            --repo "$GITHUB_REPOSITORY" --target "main" \
-            --title "RaSaSeR Türkiye Offline Rota Grafiği v0.1" \
-            --notes "Deneysel Valhalla offline rota grafiği, Türkiye OSM verilerinden üretildi. Android cihaz testi yapılmadan sürüşte kullanılmamalıdır." \
-            --prerelease
+          if gh release view "rasaser-turkiye-routing-v0.1" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Mevcut grafigi koruyorum; eksik config ve manifest dosyalarini ekliyorum."
+            gh release upload "rasaser-turkiye-routing-v0.1" \
+              "$ROOT/valhalla.json" "$ROOT/valhalla-turkiye-manifest.json" \
+              --repo "$GITHUB_REPOSITORY" --clobber
+          else
+            gh release create "rasaser-turkiye-routing-v0.1" \
+              "$FILE" "$ROOT/valhalla.json" "$ROOT/valhalla-turkiye-manifest.json" "$ROOT/README.md" \
+              --repo "$GITHUB_REPOSITORY" --target "main" \
+              --title "RaSaSeR Türkiye Offline Rota Grafiği v0.1" \
+              --notes "Deneysel Valhalla offline rota grafiği, Türkiye OSM verilerinden üretildi. Android cihaz testi yapılmadan sürüşte kullanılmamalıdır." \
+              --prerelease
+          fi
