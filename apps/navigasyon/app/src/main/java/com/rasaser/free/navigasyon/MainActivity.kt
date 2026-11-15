@@ -411,7 +411,7 @@ class MainActivity: ComponentActivity() {
             runOnUiThread {
                 mapReady=ready
                 checkingMap=false
-                if (ready && autoDrive && prefs.getBoolean("drive_started",false)) screen=NavScreen.DRIVE
+                if (ready && ((autoDrive && prefs.getBoolean("drive_started",false)) || intent?.action == "com.rasaser.free.navigasyon.OPEN_DRIVE")) screen=NavScreen.DRIVE
             }
         }.start()
     }
@@ -430,6 +430,12 @@ class MainActivity: ComponentActivity() {
                 statusExtra=null
             }
         }.start()
+    }
+
+    override fun onNewIntent(intent:Intent) {
+        super.onNewIntent(intent)
+        if(intent.action == "com.rasaser.free.navigasyon.OPEN_DRIVE" && mapReady)
+            screen=NavScreen.DRIVE
     }
 
     override fun onStart() {
