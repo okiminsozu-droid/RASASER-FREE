@@ -54,7 +54,7 @@ class LocalTileServer(private val context: Context, mapFile: File) : AutoCloseab
                     send(conn, 405, "text/plain", "Method not allowed".toByteArray())
                     return
                 }
-                val font = Regex("^/fonts/Noto(?:%20| )Sans(?:%20| )Regular/(\\\\d{1,5})-(\\\\d{1,5})\\\\.pbf$")
+                val font = Regex("^/fonts/Noto(?:%20| )Sans(?:%20| )Regular/(\\d{1,5})-(\\d{1,5})\\.pbf$")
                     .matchEntire(request[1])
                 if (font!=null) {
                     val first=font.groupValues[1].toInt()
