@@ -265,7 +265,7 @@
           ""
         ],
         "text-font": [
-          "Open Sans Regular"
+          "Noto Sans Regular"
         ],
         "text-size": [
           "interpolate",
@@ -305,7 +305,7 @@
           ""
         ],
         "text-font": [
-          "Open Sans Regular"
+          "Noto Sans Regular"
         ],
         "text-size": 11
       },
@@ -313,6 +313,105 @@
         "text-color": "#E0E4E6",
         "text-halo-color": "#17232E",
         "text-halo-width": 1
+      }
+    },
+    {
+      "id": "bus-stops",
+      "type": "circle",
+      "source": "turkiye",
+      "source-layer": "public_transport",
+      "minzoom": 13,
+      "paint": {
+        "circle-radius": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          13,
+          2.5,
+          17,
+          5.5
+        ],
+        "circle-color": "#2F8C8C",
+        "circle-stroke-width": 1,
+        "circle-stroke-color": "#FFFFFF"
+      }
+    },
+    {
+      "id": "bus-stop-labels",
+      "type": "symbol",
+      "source": "turkiye",
+      "source-layer": "public_transport",
+      "minzoom": 15,
+      "layout": {
+        "text-field": [
+          "coalesce",
+          [
+            "get",
+            "name"
+          ],
+          [
+            "get",
+            "name_en"
+          ],
+          ""
+        ],
+        "text-font": [
+          "Noto Sans Regular"
+        ],
+        "text-size": 11,
+        "text-anchor": "top",
+        "text-offset": [
+          0,
+          1
+        ],
+        "text-max-width": 11,
+        "text-optional": true
+      },
+      "paint": {
+        "text-color": "#F4E1BF",
+        "text-halo-color": "#192230",
+        "text-halo-width": 1.2
+      }
+    },
+    {
+      "id": "poi-text-labels",
+      "type": "symbol",
+      "source": "turkiye",
+      "source-layer": "pois",
+      "minzoom": 15,
+      "layout": {
+        "text-field": [
+          "coalesce",
+          [
+            "get",
+            "name"
+          ],
+          [
+            "get",
+            "name_en"
+          ],
+          ""
+        ],
+        "text-font": [
+          "Noto Sans Regular"
+        ],
+        "text-size": 11,
+        "text-anchor": "top",
+        "text-offset": [
+          0,
+          0.8
+        ],
+        "text-max-width": 11,
+        "text-optional": true
+      },
+      "paint": {
+        "text-color": "#F4E1BF",
+        "text-halo-color": "#192230",
+        "text-halo-width": 1.1
       }
     }
   ]
