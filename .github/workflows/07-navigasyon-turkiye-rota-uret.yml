@@ -76,7 +76,7 @@ jobs:
           fi
           gh release create "rasaser-turkiye-routing-v0.1" \
             "$FILE" "$ROOT/valhalla-turkiye-manifest.json" "$ROOT/README.md" \
-            --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+            --repo "$GITHUB_REPOSITORY" --target "main" \
             --title "RaSaSeR Türkiye Offline Rota Grafiği v0.1" \
             --notes "Deneysel Valhalla offline rota grafiği, Türkiye OSM verilerinden üretildi. Android cihaz testi yapılmadan sürüşte kullanılmamalıdır." \
             --prerelease
