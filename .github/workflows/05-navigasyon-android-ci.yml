@@ -45,5 +45,5 @@ jobs:
             "https://raw.githubusercontent.com/notofonts/noto-fonts/ffebf8c1ee449e544955a7e813c54f9b73848eac/hinted/ttf/NotoSansArabic/NotoSansArabic-Regular.ttf"
           test "$(stat -c %s "$FONT")" -eq 240456
       - name: Kotlin unit tests ve Android APK derleme
-        run: gradle --no-daemon --project-dir apps/navigasyon :app:testDebugUnitTest :app:assembleDebug
+        run: gradle --no-daemon --project-dir apps/navigasyon :app:testDebugUnitTest :app:assembleDebug :app:assembleRelease
       # Public debug APK is intentionally not uploaded; release keys PRIVATE only.

@@ -78,3 +78,19 @@ Bu geliştirme aşamasıdır; gerçek yol testleri tamamlanmadan yayınlanmamal�
 - Dışarıdan ücretli harita/routing/voice API'si yoktur. Cloudflare R2 zorunlu değildir. İlerideki veri paketleri sürümlü ve SHA256 doğrulanmış olmalıdır.
 
 Release SHA256'in GitHub tarafından bildirilen gerçek varlık özeti esas alınır (`bdfd9a67d8fdd0d5856013e889c6e48cd8a14560934cc5d2b6f3c16a8f6a554f`). Grafiğin her yeni üretiminde TAR SHA256 değişebilir, yayımlanmış graph varlığının digest'iyle eşleşmeyen manifest kullanılmaz.
+
+## Sürüş güvenlik motoru / v0.5 geliştirme (16 Kasım 2026)
+
+- Valhalla güzergâhındaki `begin_shape_index` ile gerçek dönüş noktaları işlenir; sürüş boyunca yaklaşma ve son dönüş konuşmaları yalnız birer kez üretilir. GPS konum doğruluğu kullanılarak en yakın rota kesiti hesaplanır.
+- Rotadan sapma uyarısı tek bir ölçümle tetiklenmez: arka arkaya üç güvenilir GPS ölçümü, minimum yol dışı mesafe ve 45 saniyelik tekrar sınırı bulunur. Rota yalnız **cihaz içindeki** Valhalla grafiğiyle yeniden hesaplanır.
+- Hedefe yaklaşınca varış algılanır. Mavi güzergâh yalnız gerçek hesaplanan rota varsa çizilir, rota iptal edildiğinde eski çizgi temizlenir.
+- **Hedef belirtmeden sürüş** devam eder; kısa GPS izi cihaz içindeki `trace_attributes` ile eşleştirilir. İlgili yol kenarında OSM'den aktarılmış `speed_limit` varsa gösterilir. Bilgi yoksa **hız sınırı bilinmiyor** yazılır, asla yol tipinden hız sınırı tahmin edilmez.
+- Sesli hız uyarısı ancak eşleşmiş hız limiti, 3 art arda iyi hız ölçümü, limiti en az 8 km/sa aşma ve 90 saniyelik uyarı aralığı ile etkin olur. GPS doğruluğu düşük veya veri eskiyse uyarı verilmez.
+- Altı dilin sürüş metinleri ve trafik uyarılarının arayüzü yerelleştirildi. TTS yalnız cihazda yüklü **çevrimdışı ses** kullanır; eksik dil sesini internetten çağırmaz.
+- Harita stili Arapça yer adlarını gösterebilmek için yerel Noto Sans Arabic (SIL OFL) fontunu destekler. CJK/Japonca harita etiketlerinde MapLibre'nin cihaz üzerindeki ideografik font mekanizmasına güvenilir; gerçek cihaz testi gerekli.
+- Sürüş ekranı açıkken Android ekranının uykuya geçmesini engelleme ve yatay/dikey döndürmede kayıtlı hedefi tekrar yükleme eklendi.
+- Mevcut Türkiye MBTiles ve Valhalla paketleri ve tüm eski RaSaSeR uygulamaları aynen korunur. Yeni ücretli API/abonelik yok.
+
+**Yayıma hazır değildir:** Gerçek yol sürüş testi, kamera/radar/yol kapanışı canlı veri sağlayıcısı, özel yetkili cihazlarda otomatik araç ekranı açılma testi, yayına imzalı optimize APK/AAB gereklidir. Doğrulanmış bir canlı veri kaynağı olmadan kamera/radar/yoğunluk bilgileri gösterilmez.
+
+GitHub QA, Kotlin birim testleri, debug derleme ve **unsigned optimize release derleme kontrolü** için `05-navigasyon-android-ci.yml` kullanılır. İmzalama anahtarları PUBLIC repoya konmaz.
