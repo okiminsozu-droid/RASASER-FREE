@@ -58,8 +58,9 @@ jobs:
             echo "ERROR: 150MB search index must not be inside APK" >&2
             exit 1
           fi
+          echo "APK exact bytes: $(stat -c %s "$APK")"
           test "$(stat -c %s "$APK")" -lt 100000000
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | grep "name=\u0027com.rasaser.free.navigasyon.fieldtest11\u0027"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | grep -F "name='com.rasaser.free.navigasyon.fieldtest11'"
           mkdir -p "apps/navigasyon/field-test"
           cp "$APK" "apps/navigasyon/field-test/RaSaSeR-Navigasyon-v0.11-99fix-TEST.apk"
           (
