@@ -10,3 +10,7 @@
 -keep class com.valhalla.api.models.** { *; }
 -keep class com.valhalla.config.models.** { *; }
 -keep class com.osrm.api.models.** { *; }
+
+# Java compiler-only annotation type referenced by AndroidX instrumentation
+# when the test APK is minified. It is not a runtime Android class.
+-dontwarn javax.lang.model.element.Modifier
