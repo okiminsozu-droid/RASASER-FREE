@@ -66,18 +66,4 @@ jobs:
           disk-size: 9G
           emulator-boot-timeout: 600
           disable-animations: true
-          script: |
-            set -Eeuo pipefail
-            gradle --no-daemon --project-dir apps/navigasyon :app:assembleDebug :app:assembleDebugAndroidTest
-            adb install -r apps/navigasyon/app/build/outputs/apk/debug/app-debug.apk
-            adb install -r apps/navigasyon/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
-            TEST_DIR="/sdcard/Android/data/com.rasaser.free.navigasyon/files/valhalla-fixture"
-            adb shell mkdir -p "$TEST_DIR"
-            adb push "$RUNNER_TEMP/nav-route-graph/valhalla_tiles.tar" "$TEST_DIR/valhalla_tiles.tar"
-            adb push "$RUNNER_TEMP/nav-route-graph/valhalla.json" "$TEST_DIR/valhalla.json"
-            adb push "$RUNNER_TEMP/nav-route-graph/valhalla-turkiye-manifest.json" "$TEST_DIR/valhalla-turkiye-manifest.json"
-            adb shell am instrument -w -r \
-              -e class com.rasaser.free.navigasyon.OfflineRouteEngineDeviceTest \
-              com.rasaser.free.navigasyon.test/androidx.test.runner.AndroidJUnitRunner \
-              | tee "$RUNNER_TEMP/route-test-output.txt"
-            grep -F "OK (1 test)" "$RUNNER_TEMP/route-test-output.txt"
+          script: NAV_ROUTE_TEST_MINIFIED=0 bash apps/navigasyon/tools/run_android_route_test.sh
