@@ -134,6 +134,11 @@ class MainActivity: ComponentActivity() {
     private var roadScanRunning=false
     private lateinit var placeSearch:OfflinePlaceSearch
     private lateinit var searchInstaller:TurkeySearchInstaller
+    private lateinit var completeBundle:CompleteOfflineBundleInstaller
+    private var bundledAll by mutableStateOf(false)
+    private var bundledInstalling by mutableStateOf(false)
+    private var bundledProgress by mutableStateOf("")
+    private var bundledError by mutableStateOf<String?>(null)
     private var searchDownloadId by mutableLongStateOf(-1L)
     private var searchInstalling by mutableStateOf(false)
     private var searchReady by mutableStateOf(false)
@@ -187,9 +192,11 @@ class MainActivity: ComponentActivity() {
         router=OfflineRouteEngine(this)
         placeSearch=OfflinePlaceSearch(this)
         searchInstaller=TurkeySearchInstaller(this)
+        completeBundle=CompleteOfflineBundleInstaller(this)
+        bundledAll=completeBundle.available()
         searchReady=placeSearch.installed()
         // Reuse the already-downloaded archive after a background interruption.
-        if(!searchReady &&
+        if(!bundledAll && !searchReady &&
             (searchInstaller.bundledAvailable() || searchInstaller.cachedZipExists())){
             searchInstalling=true
             Thread {
@@ -814,13 +821,46 @@ class MainActivity: ComponentActivity() {
                 )
             }
         }
-        Thread {
+        if(bundledAll) installCompleteBundleAsync()
+        else Thread {
             val ready=LocalMapVerifier.turkeyMapReady(this)
             runOnUiThread {
                 mapReady=ready
                 checkingMap=false
                 if (ready && (autoDrive || intent?.action == "com.rasaser.free.navigasyon.OPEN_DRIVE"))
                     screen=NavScreen.DRIVE
+            }
+        }.start()
+    }
+
+    private fun installCompleteBundleAsync() {
+        if(bundledInstalling || !bundledAll)return
+        bundledInstalling=true
+        checkingMap=true
+        bundledError=null
+        bundledProgress="Türkiye çevrimdışı verileri doğrulanıyor"
+        Thread {
+            val result=runCatching {
+                completeBundle.install { step -> runOnUiThread { bundledProgress=step } }
+            }.getOrElse { error ->
+                CompleteOfflineBundleInstaller.Result(false,false,false,
+                    "Kurulum hatası: " + (error.message ?: error.javaClass.simpleName))
+            }
+            runOnUiThread {
+                bundledInstalling=false
+                checkingMap=false
+                searchReady=result.searchReady
+                searchFailureCode=if(result.searchReady)null else result.error
+                bundledError=result.error
+                // In the complete test variant, never enable driving with missing data.
+                mapReady=result.complete
+                if(result.complete) {
+                    searchNotice=null
+                    routingMessage=RoutingDownloadStatus.READY
+                    if(autoDrive || intent?.action=="com.rasaser.free.navigasyon.OPEN_DRIVE")
+                        screen=NavScreen.DRIVE
+                    if(routeDestination!=null)resumeSavedRoute=true
+                }
             }
         }.start()
     }
