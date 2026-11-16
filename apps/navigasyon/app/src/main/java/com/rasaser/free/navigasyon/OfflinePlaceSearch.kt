@@ -22,19 +22,35 @@ class OfflinePlaceSearch(private val context:Context) {
             catch (_:Exception) { return emptyList() }
         try {
             val found=LinkedHashMap<String,OfflinePlace>()
+            val desired=PlaceQuery.normalize(words)
+            // Prefer exact named destinations country-wide before broad fuzzy
+            // matching; never select a local shop called "Ankara" over Ankara.
+            val regions:List<Double?> = if(origin==null) listOf(null)
+                else listOf(25.0,150.0,null)
             for(variant in variants) {
                 val matching=variant.joinToString(" ") { it+"*" }
-                db.rawQuery(
-                    "SELECT places.name,places.kind,places.lat,places.lon,places.normalized "+
-                    "FROM places INNER JOIN places_fts ON places.id=places_fts.docid "+
-                    "WHERE places_fts MATCH ? LIMIT 350", arrayOf(matching)).use {c->
+                for(radius in regions) {
+                    val clause=if(radius!=null && origin!=null)
+                        " AND places.lat BETWEEN ? AND ? AND places.lon BETWEEN ? AND ? "
+                        else " "
+                    val params=if(radius!=null && origin!=null) {
+                        val latSpan=radius/111.0
+                        val lonSpan=radius/(111.0*cos(Math.toRadians(origin.lat)).coerceAtLeast(0.25))
+                        arrayOf(matching,(origin.lat-latSpan).toString(),
+                            (origin.lat+latSpan).toString(),
+                            (origin.lon-lonSpan).toString(),(origin.lon+lonSpan).toString())
+                    } else arrayOf(matching)
+                    db.rawQuery(
+                        "SELECT places.name,places.kind,places.lat,places.lon,places.normalized "+
+                        "FROM places INNER JOIN places_fts ON places.id=places_fts.docid "+
+                        "WHERE places_fts MATCH ?"+clause+"LIMIT 350",params).use {c->
                     while(c.moveToNext()){
                         val name=c.getString(0) ?:continue
                         val kind=c.getString(1) ?: "place"
                         val lat=c.getDouble(2);val lon=c.getDouble(3)
                         if(lat !in 35.0..43.5 || lon !in 25.0..46.0)continue
                         val normalized=c.getString(4) ?:continue
-                        val exact=PlaceQuery.normalize(words)
+                        val exact=desired
                         val match=when {
                             normalized==exact->500.0
                             normalized.startsWith(exact)->370.0
@@ -49,6 +65,8 @@ class OfflinePlaceSearch(private val context:Context) {
                         val place=OfflinePlace(name,kind,lat,lon,score)
                         if(found[key]==null || found[key]!!.score<score)found[key]=place
                     }
+                }
+                if(found.isNotEmpty())break
                 }
                 if(found.isNotEmpty())break
             }

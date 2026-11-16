@@ -5,6 +5,8 @@ class DestinationSpeechTest {
     @Test fun spokenDestinationsAreNotMistakenForAppCommands() {
         assertEquals("Banaz Devlet Hastanesine",
             DestinationSpeech.destination(NavLanguage.TR,"Banaz Devlet Hastanesine git"))
+        assertEquals("Banaz Devlet Hastanesine",
+            DestinationSpeech.destination(NavLanguage.TR,"Beni Banaz Devlet Hastanesine götür"))
         assertEquals("Ağaoğlu Eczanesine",
             DestinationSpeech.destination(NavLanguage.TR,"Ağaoğlu Eczanesine götür"))
         assertEquals("Banaz State Hospital",
