@@ -3,7 +3,7 @@ package com.rasaser.free.navigasyon
 /** Extracts a spoken destination name. No remote NLP service is ever used. */
 object DestinationSpeech {
     private val prefix:Map<NavLanguage,List<Regex>> = mapOf(
-        NavLanguage.TR to listOf("^(?:beni\\s+)?(?:götür\\s+|navigasyon\\s+|yol\\s+tarifi\\s+|hedef\\s+)"),
+        NavLanguage.TR to listOf("^(?:beni\\s+)","^(?:götür\\s+|navigasyon\\s+|yol\\s+tarifi\\s+|hedef\\s+)"),
         NavLanguage.EN to listOf("^(?:take\\s+me\\s+to|navigate\\s+to|go\\s+to|directions\\s+to)\\s+"),
         NavLanguage.DE to listOf("^(?:navigiere\\s+zu|fahre\\s+zu|bringe\\s+mich\\s+zu)\\s+"),
         NavLanguage.AR to listOf("^(?:اذهب\\s+إلى|اذهب\\s+الى|خذني\\s+إلى|خذني\\s+الى)\\s*"),
@@ -11,7 +11,7 @@ object DestinationSpeech {
         NavLanguage.JA to emptyList()
     ).mapValues { (_,patterns)->patterns.map{Regex(it,RegexOption.IGNORE_CASE)} }
     private val suffix:Map<NavLanguage,List<Regex>> = mapOf(
-        NavLanguage.TR to listOf("\\s+(?:git|götür|gidelim|rota\\s+oluştur)(?:\\s+lütfen)?$"),
+        NavLanguage.TR to listOf("\\s+(?:git|götür|gidelim|rota\\s+oluştur|nasıl\\s+giderim)(?:\\s+lütfen)?$"),
         NavLanguage.EN to listOf("\\s+(?:please|now)$"),
         NavLanguage.DE to listOf("\\s+(?:bitte|jetzt)$"),
         NavLanguage.AR to emptyList(),
