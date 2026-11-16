@@ -398,21 +398,12 @@ class MainActivity: ComponentActivity() {
                                     Text(if(speed==null) "— km/h" else "$speed km/h",
                                         color=Ink,fontWeight=FontWeight.Bold,fontSize=22.sp)
                                     val currentLimit=postedSpeedLimit
-                                    Text(if(currentLimit!=null)
+                                    if(currentLimit!=null) Text(
                                         GuidanceWords.text(language,GuidanceLabel.SPEED_LIMIT)+": "+
-                                            currentLimit.kmh+" km/h"
-                                        else t(TextKey.SPEED_LIMIT_UNKNOWN),
+                                            currentLimit.kmh+" km/h",
                                         color=Color.DarkGray,fontSize=11.sp)
                                 }
                             }
-                            if(gpsFix==null)
-                                InfoPill(when{
-                                    !gps.hasPrecisePermission() ->
-                                        DriveLocationText.get(language,DriveLocationWord.GRANT_GPS)
-                                    !gps.providersEnabled() ->
-                                        DriveLocationText.get(language,DriveLocationWord.GPS_DISABLED)
-                                    else ->t(TextKey.GPS_WAITING)
-                                })
                             routeSnapshot?.let { guidance ->
                                 if(guidance.hazards.isNotEmpty()) {
                                     Card(colors=CardDefaults.cardColors(containerColor=Panel),
@@ -621,7 +612,6 @@ class MainActivity: ComponentActivity() {
                             label={Text(SearchWords.text(language,SearchNotice.ENTER_PLACE))},
                             singleLine=true,modifier=Modifier.fillMaxWidth()
                         )
-                        searchNotice?.let {Text(SearchWords.text(language,it),fontSize=12.sp)}
                     }},
                     confirmButton={TextButton(onClick={
                         showSearchDialog=false
@@ -635,8 +625,10 @@ class MainActivity: ComponentActivity() {
                     text={Column(modifier=Modifier.verticalScroll(rememberScrollState()),
                         verticalArrangement=Arrangement.spacedBy(8.dp)){
                         if(!searchReady) {
-                            Text(SearchWords.text(language,SearchNotice.MISSING))
-                            OutlinedButton(onClick={startPlaceSearchDownload()},
+                            OutlinedButton(onClick={
+                                searchAutoAttempted=false
+                                startPlaceSearchDownload()
+                            },
                                 enabled=connection==Connection.UNMETERED && onlineAllowed &&
                                     searchDownloadId<0 && !searchInstalling) {
                                 Text(SearchWords.text(language,SearchNotice.DOWNLOAD))
@@ -718,18 +710,13 @@ class MainActivity: ComponentActivity() {
                         modifier=Modifier.verticalScroll(rememberScrollState()),
                         verticalArrangement=Arrangement.spacedBy(8.dp)
                     ){
-                        Text(SearchWords.text(language,SearchNotice.EXPLANATION),fontSize=12.sp)
-                        if(searchReady) {
-                            Text(SearchWords.text(language,SearchNotice.READY),fontSize=12.sp)
-                        } else {
+                        if(!searchReady) {
                             OutlinedButton(
                                 enabled=connection==Connection.UNMETERED && onlineAllowed &&
                                     searchDownloadId<0 && !searchInstalling,
                                 onClick={startPlaceSearchDownload()}
                             ){Text(SearchWords.text(language,SearchNotice.DOWNLOAD))}
                         }
-                        searchNotice?.let {Text(SearchWords.text(language,it),fontSize=12.sp)}
-                        Text(RoutingDownloadText.get(language,RoutingDownloadStatus.EXPLANATION),fontSize=12.sp)
                         if(router.installed()){
                             Text(RoutingDownloadText.get(language,RoutingDownloadStatus.READY),
                                 color=Color(0xFF266443),fontSize=12.sp)
@@ -754,9 +741,6 @@ class MainActivity: ComponentActivity() {
                                     fontSize=12.sp)
                             }
                         }
-                        routingMessage?.let {
-                            Text(RoutingDownloadText.get(language,it),fontSize=12.sp)
-                        }
                         SettingSwitch(t(TextKey.INTERNET_AUTO),onlineAllowed){
                             onlineAllowed=it; prefs.edit().putBoolean("online_allowed",it).apply()
                         }
@@ -778,8 +762,6 @@ class MainActivity: ComponentActivity() {
                                 Text(GuidanceWords.text(language,GuidanceLabel.CLEAR_TARGET))
                             }
                         }
-                        Text(t(TextKey.AUTO_START_NOTE),fontSize=12.sp)
-                        Text(t(TextKey.MAP_SOURCE),fontSize=11.sp)
                     }},
                     confirmButton={TextButton(onClick={showSettings=false}){Text(t(TextKey.BACK))}},
                     dismissButton={TextButton(onClick={showSettings=false;screen=NavScreen.HOME}){
@@ -789,13 +771,9 @@ class MainActivity: ComponentActivity() {
                 if(showAlerts) AlertDialog(onDismissRequest={showAlerts=false},
                     title={Text(t(TextKey.ALERTS))},
                     text={Column(verticalArrangement=Arrangement.spacedBy(9.dp)){
-                        Text(t(TextKey.WARNINGS_INFO))
                         routeSnapshot?.hazards?.forEach { hazard ->
                             Text(HazardWords.text(language,hazard),fontSize=13.sp)
                         }
-                        Text(t(TextKey.SPEED_WARNING_UNAVAILABLE))
-                        Text(t(TextKey.LIVE_WARNINGS_UNAVAILABLE))
-                        Text(t(TextKey.NO_DESTINATION),fontSize=12.sp)
                     }},
                     confirmButton={TextButton(onClick={showAlerts=false}){Text(t(TextKey.BACK))}}
                 )
