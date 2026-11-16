@@ -587,7 +587,8 @@ class MainActivity: ComponentActivity() {
                             }){
                                 Column(horizontalAlignment=Alignment.Start){
                                     Text(place.name,fontSize=13.sp)
-                                    Text(place.kind,fontSize=10.sp)
+                                    Text("${"%.4f".format(place.lat)}° · ${"%.4f".format(place.lon)}°",
+                                    fontSize=10.sp)
                                 }
                             }
                         }

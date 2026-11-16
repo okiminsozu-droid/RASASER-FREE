@@ -103,3 +103,13 @@ GitHub QA, Kotlin birim testleri, debug derleme ve **unsigned optimize release d
 - GitHub PR Android CI testi başarılı olursa **5 gün saklanan test APK ZIP artifact'i** oluşur. APK yanında SHA256SUMS ve README. Test paketi kendi kaynak haritasını taşımaz; Türkiye haritası ve rota verisi uygulama içinden Wi-Fi ile ilk kez indirilir.
 - GitHub Actions'ın rastgele debug anahtarı her yeni derlemede değişebilir; önceki test APK'sı aynı paket üzerine güncellenmeyebilir, önce kaldırılması gerekebilir. Play Store'a kesinlikle gönderilmez.
 - QA Android 15 telefon ve yerel Android 15 araç ekranında yükleme/GPS/MBTiles/rota/TTS/uyarı/ekran döndürme koşulları gerçek cihazda tek tek denenmeden **kullanıma hazır/yayınlanabilir** denmez.
+
+## v0.7 GPS + sesli hedef arama (test önizlemesi)
+
+- Sağ alt **Konumum** düğmesi gerçek GPS konumunu ister; konum izni veya cihazda konum servisi kapalıysa Android izin/konum ekranına ulaşılır.
+- GPS sabitlenmeden ekranda uydurma araç konumu gösterilmez. Konum hazırsa gerçek mavi konum noktası harita koordinatına çizilir ve otomatik 17.3 yakınlık / 60° 3D kamera takibi devam eder. Hedef belirtilmeden sürüş ekranı açık kalır.
+- Türkiye'nin aynı OSM vektör haritasından 1.017.806 isimli yer aranabilir, 66.4MB ZIP / 150.1MB SQLite FTS4, ayrı lisanslı GitHub v0.1 paketi. Uygulama Wi-Fi'de veri paketini otomatik indirir, SHA256 doğrular, önceki verileri silmeden yerel depoya kurar.
+- Mikrofon yalnız cihazda desteklenen çevrimdışı tanımayı kullanır; konuşulan hedef adını altı dilde yer arama motoruna aktarır. Birden fazla olası hedef bulunduğunda yanlış bir konuma otomatik rota çizmek yerine seçim ekranı açılır.
+- Ses tanıma cihazda yoksa kullanıcı yazıyla hedef arayabilir; rota hesaplaması Türkiye Valhalla grafiği kurulmuşsa çevrimdışı yapılır. GPS yoksa hedef saklanır, gerçek konum geldiğinde rota hesaplanır.
+- **v0.7 TEST paket adı** com.rasaser.free.navigasyon.fieldtest07; v0.6 test paketinin yanına kurulur ve daha önce yüklenmiş v0.6 dosyaları / haritaları **değiştirmez**. Ayrı test imzası ve paket, Google Play üretimine yönelik değildir.
+- Türkiye MBTiles 606MB, offline rota 1.15GB ve ad arama paketi 66MB birbirinden bağımsızdır; canlı trafik/radar verilmiş gibi gösterilmez.
