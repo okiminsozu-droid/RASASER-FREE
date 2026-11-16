@@ -19,7 +19,8 @@ import java.util.Locale
  */
 class VoiceController(
     private val context: Context,
-    private val onMessage: (TextKey, String?) -> Unit
+    private val onMessage: (TextKey, String?) -> Unit,
+    private val onRecognized: (String) -> Unit = {}
 ) {
     private var tts: TextToSpeech? = null
     private var speech: SpeechRecognizer? = null
@@ -74,6 +75,7 @@ class VoiceController(
             override fun onResults(results: Bundle?) {
                 val first = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull()
                 onMessage(if (first.isNullOrBlank()) TextKey.VOICE_ERROR else TextKey.RECOGNIZED, first)
+                if(!first.isNullOrBlank())onRecognized(first)
             }
             override fun onPartialResults(partialResults: Bundle?) {}
             override fun onEvent(eventType: Int, params: Bundle?) {}

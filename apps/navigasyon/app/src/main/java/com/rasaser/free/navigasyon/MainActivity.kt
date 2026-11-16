@@ -153,10 +153,11 @@ class MainActivity: ComponentActivity() {
         routingDownloadId=prefs.getLong("routing_download_id",-1L)
         network=DefaultNetworkMonitor(this){ connection=it }
         gps=GpsTracker(this){ onGpsPosition(it) }
-        voice=VoiceController(this){ key,extra ->
+        voice=VoiceController(this, { key,extra ->
             statusKey=key
             statusExtra=extra
-        }.also { it.init(); it.setEnabled(voiceEnabled); it.setLanguage(language) }
+        }, { phrase -> handleVoiceNavigation(phrase) })
+            .also { it.init(); it.setEnabled(voiceEnabled); it.setLanguage(language) }
         installer=TurkeyMapInstaller(this)
         routingInstaller=TurkeyRoutingInstaller(this)
         router=OfflineRouteEngine(this)
@@ -560,20 +561,7 @@ class MainActivity: ComponentActivity() {
                         }
                         if(routeDestination!=null) {
                             OutlinedButton(onClick={
-                                routeRequestGeneration++
-                                routeRequestRunning=false
-                                activeGuidance=null
-                                routePlan=null
-                                routeSnapshot=null
-                                routeDestination=null
-                                resumeSavedRoute=false
-                                selectedPlace=null
-                                routeInfo=null
-                                prefs.edit()
-                                    .remove("saved_destination_lat")
-                                    .remove("saved_destination_lon")
-                                    .remove("saved_destination_name")
-                                    .apply()
+                                clearCurrentDestination()
                                 showSettings=false
                             }) {
                                 Text(GuidanceWords.text(language,GuidanceLabel.CLEAR_TARGET))
@@ -634,6 +622,49 @@ class MainActivity: ComponentActivity() {
             screen=NavScreen.DRIVE
     }
 
+
+    private fun clearCurrentDestination() {
+        routeRequestGeneration++
+        routeRequestRunning=false
+        activeGuidance=null
+        routePlan=null
+        routeSnapshot=null
+        routeDestination=null
+        resumeSavedRoute=false
+        selectedPlace=null
+        routeInfo=null
+        arrivalAnnounced=false
+        getSharedPreferences("offline_first_settings",MODE_PRIVATE)
+            .edit().remove("saved_destination_lat")
+            .remove("saved_destination_lon")
+            .remove("saved_destination_name").apply()
+    }
+
+    private fun handleVoiceNavigation(spoken:String) {
+        when(VoiceNavigationCommands.match(language,spoken)) {
+            VoiceNavigationCommand.SETTINGS -> showSettings=true
+            VoiceNavigationCommand.ALERTS -> showAlerts=true
+            VoiceNavigationCommand.HOME -> {
+                showSettings=false
+                showAlerts=false
+                screen=NavScreen.HOME
+            }
+            VoiceNavigationCommand.MUTE -> {
+                voiceEnabled=false
+                voice.setEnabled(false)
+                getSharedPreferences("offline_first_settings",MODE_PRIVATE)
+                    .edit().putBoolean("voice_enabled",false).apply()
+            }
+            VoiceNavigationCommand.UNMUTE -> {
+                voiceEnabled=true
+                voice.setEnabled(true)
+                getSharedPreferences("offline_first_settings",MODE_PRIVATE)
+                    .edit().putBoolean("voice_enabled",true).apply()
+            }
+            VoiceNavigationCommand.CLEAR_DESTINATION ->clearCurrentDestination()
+            null -> Unit // Never guess a navigation target from a partial transcript.
+        }
+    }
 
     private fun calculateRoute(origin:NavPoint,destination:NavPoint) {
         if(routeRequestRunning) return
