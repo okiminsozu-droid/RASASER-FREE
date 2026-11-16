@@ -20,7 +20,8 @@ data class RoutePlan(
     val shape: List<NavPoint>,
     val meters: Double,
     val seconds: Double,
-    val maneuverInstructions: List<String>
+    val maneuverInstructions: List<String>,
+    val maneuvers: List<RouteManeuver> = emptyList()
 )
 
 /**
@@ -70,15 +71,27 @@ class OfflineRouteEngine(private val context: Context) : Closeable {
             val legs=trip.optJSONArray("legs") ?: return@synchronized null
             val points=mutableListOf<NavPoint>()
             val instructions=mutableListOf<String>()
+            val turns=mutableListOf<RouteManeuver>()
             for(i in 0 until legs.length()) {
                 val leg=legs.optJSONObject(i) ?:continue
                 val geometry=decodePolyline6(leg.optString("shape",""))
-                if(points.isNotEmpty() && geometry.isNotEmpty() && points.last()==geometry.first())
-                    points.addAll(geometry.drop(1)) else points.addAll(geometry)
-                val maneuvers=leg.optJSONArray("maneuvers")
-                if(maneuvers!=null) for(j in 0 until maneuvers.length()) {
-                    val text=maneuvers.optJSONObject(j)?.optString("instruction","") ?: ""
-                    if(text.isNotBlank())instructions+=text
+                if(geometry.isEmpty())return@synchronized null
+                val overlap=if(points.isNotEmpty() && geometry.first()==points.last()) 1 else 0
+                val offset=points.size-overlap
+                points.addAll(geometry.drop(overlap))
+                val legsManeuvers=leg.optJSONArray("maneuvers")
+                if(legsManeuvers!=null)for(j in 0 until legsManeuvers.length()) {
+                    val maneuver=legsManeuvers.optJSONObject(j) ?:continue
+                    val text=maneuver.optString("instruction","").trim()
+                    if(text.isBlank())continue
+                    val localIndex=maneuver.optInt("begin_shape_index",-1)
+                    if(localIndex !in geometry.indices) continue
+                    val index=offset+localIndex
+                    if(index !in points.indices)continue
+                    instructions+=text
+                    turns+=RouteManeuver(index,text,
+                        maneuver.optString("verbal_transition_alert_instruction","").trim(),
+                        maneuver.optString("verbal_pre_transition_instruction","").trim())
                 }
             }
             if(points.size<2)return@synchronized null
@@ -86,7 +99,7 @@ class OfflineRouteEngine(private val context: Context) : Closeable {
             val distance=summary.optDouble("length",Double.NaN)*1000.0
             val duration=summary.optDouble("time",Double.NaN)
             if(!distance.isFinite() || !duration.isFinite() || distance<=0.0)return@synchronized null
-            RoutePlan(points,distance,duration,instructions)
+            RoutePlan(points,distance,duration,instructions,turns)
         } catch (_: Exception) { null }
     }
 
