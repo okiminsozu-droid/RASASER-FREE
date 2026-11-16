@@ -261,14 +261,27 @@ class MainActivity: ComponentActivity() {
                         .collectLatest { states ->
                             val info=states.firstOrNull { !it.state.isFinished }
                                 ?: states.lastOrNull() ?: return@collectLatest
-                            bundleStep=info.progress.getInt(TurkeyCountryPackWorker.STAGE,0)
-                            bundlePercent=info.progress.getInt(TurkeyCountryPackWorker.PERCENT,0)
+                            val payload=if(info.state.isFinished)
+                                info.outputData else info.progress
+                            val stage=payload.getInt(TurkeyCountryPackWorker.STAGE,-1)
+                            if(stage>=0) {
+                                bundleStep=stage
+                                // Short RETRY transitions must not look like lost data.
+                                bundlePercent=maxOf(bundlePercent,
+                                    payload.getInt(TurkeyCountryPackWorker.PERCENT,0))
+                            }
                             bundleWaiting=info.state==WorkInfo.State.ENQUEUED ||
                                 info.state==WorkInfo.State.BLOCKED
                             allPackagesRequested=bundleWaiting || info.state==WorkInfo.State.RUNNING
                             bundleFailure=if(info.state==WorkInfo.State.FAILED)
-                                info.outputData.getString(TurkeyCountryPackWorker.ERROR) ?: "download"
+                                payload.getString(TurkeyCountryPackWorker.ERROR) ?: "download"
                                 else null
+                            // Start driving as soon as installed map verification succeeds,
+                            // even while route and search installers continue.
+                            if(payload.getBoolean(TurkeyCountryPackWorker.MAP_READY,false))
+                                mapReady=true
+                            if(payload.getBoolean(TurkeyCountryPackWorker.SEARCH_READY,false))
+                                searchReady=true
                             if(info.state==WorkInfo.State.SUCCEEDED && !bundleRefreshStarted) {
                                 bundleRefreshStarted=true
                                 bundleStep=TurkeyCountryPackWorker.STAGE_DONE
@@ -627,7 +640,8 @@ class MainActivity: ComponentActivity() {
 
                                 Spacer(Modifier.height(8.dp))
                                 HomeAction(Icons.Default.Map,
-                                    TurkeyPackageUi.button(language,mapReady && router.installed() && searchReady),
+                                    TurkeyPackageUi.button(language,mapReady && router.installed() && searchReady,
+                                        bundleFailure!=null),
                                     enabled=!allPackagesRequested && !installing && downloadId<0L &&
                                         routingDownloadId<0L && searchDownloadId<0L &&
                                         !(mapReady && router.installed() && searchReady)
@@ -635,10 +649,14 @@ class MainActivity: ComponentActivity() {
                                 if(allPackagesRequested)
                                     Text(TurkeyPackageUi.workerStatus(language,bundleStep,bundlePercent,bundleWaiting),
                                         color=Ink,fontSize=12.sp,textAlign=TextAlign.Center)
-                                if(allPackagesRequested) LinearProgressIndicator(
-                                    progress={bundlePercent/100f},modifier=Modifier.fillMaxWidth())
-                                bundleFailure?.let {
-                                    Text(TurkeyPackageUi.error(language),
+                                if(allPackagesRequested) {
+                                    if(bundleStep==TurkeyCountryPackWorker.STAGE_SEARCH_VERIFY)
+                                        LinearProgressIndicator(modifier=Modifier.fillMaxWidth())
+                                    else LinearProgressIndicator(
+                                        progress={bundlePercent/100f},modifier=Modifier.fillMaxWidth())
+                                }
+                                bundleFailure?.let { code ->
+                                    Text(TurkeyPackageUi.error(language,code),
                                         color=Color(0xFF9A3F35),fontSize=12.sp)
                                 }
                                 HomeAction(Icons.Default.LocationOn,t(TextKey.GRANT_PERMISSIONS)){askPermissions()}
@@ -673,7 +691,8 @@ class MainActivity: ComponentActivity() {
                                     Column(horizontalAlignment=Alignment.CenterHorizontally,
                                         verticalArrangement=Arrangement.spacedBy(10.dp)) {
                                         HomeAction(Icons.Default.Map,
-                                            TurkeyPackageUi.button(language,mapReady && router.installed() && searchReady),
+                                            TurkeyPackageUi.button(language,mapReady && router.installed() && searchReady,
+                                        bundleFailure!=null),
                                             enabled=!allPackagesRequested && !installing && downloadId<0L &&
                                                 routingDownloadId<0L && searchDownloadId<0L &&
                                                 !(mapReady && router.installed() && searchReady)
@@ -681,10 +700,14 @@ class MainActivity: ComponentActivity() {
                                         if(allPackagesRequested)
                                             Text(TurkeyPackageUi.workerStatus(language,bundleStep,bundlePercent,bundleWaiting),
                                                 fontSize=11.sp,color=Ink)
-                                        if(allPackagesRequested) LinearProgressIndicator(
-                                            progress={bundlePercent/100f},modifier=Modifier.fillMaxWidth())
-                                        bundleFailure?.let {
-                                            Text(TurkeyPackageUi.error(language),
+                                        if(allPackagesRequested) {
+                                            if(bundleStep==TurkeyCountryPackWorker.STAGE_SEARCH_VERIFY)
+                                                LinearProgressIndicator(modifier=Modifier.fillMaxWidth())
+                                            else LinearProgressIndicator(
+                                                progress={bundlePercent/100f},modifier=Modifier.fillMaxWidth())
+                                        }
+                                        bundleFailure?.let { code ->
+                                            Text(TurkeyPackageUi.error(language,code),
                                                 color=Color(0xFF9A3F35),fontSize=11.sp)
                                         }
                                         HomeAction(Icons.Default.LocationOn,t(TextKey.GRANT_PERMISSIONS)){askPermissions()}
