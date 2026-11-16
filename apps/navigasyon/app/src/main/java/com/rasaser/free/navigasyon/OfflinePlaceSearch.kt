@@ -25,21 +25,28 @@ class OfflinePlaceSearch(private val context:Context) {
             val desired=PlaceQuery.normalize(words)
             // Prefer exact named destinations country-wide before broad fuzzy
             // matching; never select a local shop called "Ankara" over Ankara.
-            val regions:List<Double?> = if(origin==null) listOf(null)
-                else listOf(25.0,150.0,null)
+            val regions:List<Double?> = if(origin==null) listOf(-1.0,null)
+                else listOf(-1.0,25.0,150.0,null)
             for(variant in variants) {
                 val matching=variant.joinToString(" ") { it+"*" }
                 for(radius in regions) {
-                    val clause=if(radius!=null && origin!=null)
-                        " AND places.lat BETWEEN ? AND ? AND places.lon BETWEEN ? AND ? "
-                        else " "
-                    val params=if(radius!=null && origin!=null) {
-                        val latSpan=radius/111.0
-                        val lonSpan=radius/(111.0*cos(Math.toRadians(origin.lat)).coerceAtLeast(0.25))
-                        arrayOf(matching,(origin.lat-latSpan).toString(),
-                            (origin.lat+latSpan).toString(),
-                            (origin.lon-lonSpan).toString(),(origin.lon+lonSpan).toString())
-                    } else arrayOf(matching)
+                    val clause=when {
+                        radius==-1.0 ->" AND places.normalized=? "
+                        radius!=null && origin!=null ->
+                            " AND places.lat BETWEEN ? AND ? AND places.lon BETWEEN ? AND ? "
+                        else ->" "
+                    }
+                    val params=when {
+                        radius==-1.0 ->arrayOf(matching,desired)
+                        radius!=null && origin!=null ->{
+                            val latSpan=radius/111.0
+                            val lonSpan=radius/(111.0*cos(Math.toRadians(origin.lat)).coerceAtLeast(0.25))
+                            arrayOf(matching,(origin.lat-latSpan).toString(),
+                                (origin.lat+latSpan).toString(),
+                                (origin.lon-lonSpan).toString(),(origin.lon+lonSpan).toString())
+                        }
+                        else ->arrayOf(matching)
+                    }
                     db.rawQuery(
                         "SELECT places.name,places.kind,places.lat,places.lon,places.normalized "+
                         "FROM places INNER JOIN places_fts ON places.id=places_fts.docid "+
