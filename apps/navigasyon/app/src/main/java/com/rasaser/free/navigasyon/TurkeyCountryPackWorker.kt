@@ -135,12 +135,20 @@ class TurkeyCountryPackWorker(context: Context, params: WorkerParameters):
 
             fun get(asset:TurkeyAsset, stage:Int, installReserve:Long=0L):File {
                 val partial=File(root,"rasaser-turkiye-resumable-v1/" + asset.name + ".part")
-                val missing=(asset.size-partial.length().coerceIn(0,asset.size)).coerceAtLeast(0)
-                checkStorage(missing + installReserve + 80_000_000L)
+                // A completed, checksum-verified ZIP already occupies storage.
+                // Counting it as "missing" is what can repeatedly block 99%.
+                val networkNeeded=transfer.requiresNetwork(asset)
+                val missing=if(networkNeeded)
+                    (asset.size-partial.length().coerceIn(0,asset.size)).coerceAtLeast(0)
+                    else 0L
+                val finalSearch=asset.name==TurkeyAssets.search.name
+                val reserve=if(finalSearch) 260_000_000L else installReserve
+                val overhead=if(finalSearch) 0L else 80_000_000L
+                checkStorage(missing + reserve + overhead)
                 // Fully checksum-verified cached files can be installed offline.
                 // Partials require an allowed connection; never spend mobile
                 // data on a user-selected Wi-Fi-only transfer.
-                if(transfer.requiresNetwork(asset) && !allowedNetwork())
+                if(networkNeeded && !allowedNetwork())
                     throw WaitingForNetworkException()
                 var lastNetworkCheck=0L
                 val file = transfer.download(asset, {
