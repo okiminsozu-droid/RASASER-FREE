@@ -1,0 +1,1 @@
+Turkey-wide offline FTS4 name index extracted from the same Shortbread MBTiles already downloaded in RaSaSeR Navigasyon. Only actual OSM names and vector geometries are indexed. Source ODbL 1.0 © OpenStreetMap contributors. Missing shops / addresses cannot be inferred.
