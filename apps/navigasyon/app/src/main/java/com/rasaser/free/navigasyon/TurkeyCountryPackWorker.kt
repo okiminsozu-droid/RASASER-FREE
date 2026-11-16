@@ -47,6 +47,10 @@ class TurkeyCountryPackWorker(context: Context, params: WorkerParameters):
         const val STAGE_ROUTE = 2
         const val STAGE_SEARCH = 3
         const val STAGE_DONE = 4
+        const val STAGE_SEARCH_VERIFY = 5
+        const val MAP_READY = "map_verified"
+        const val ROUTE_READY = "route_verified"
+        const val SEARCH_READY = "search_verified"
         const val WIFI_ONLY = "wifi_only"
         private const val NOTIFICATION_ID = 9154
         private const val CHANNEL_ID = "rasaser_turkiye_transfer"
@@ -68,6 +72,13 @@ class TurkeyCountryPackWorker(context: Context, params: WorkerParameters):
     private var currentStage = STAGE_WAIT
     private var bytesComplete = 0L
     private var lastProgress = -1
+    private var lastPublishedStage = -1
+    private var lastMapReady = false
+    private var lastRouteReady = false
+    private var lastSearchReady = false
+    private var mapVerified = false
+    private var routeVerified = false
+    private var searchVerified = false
     private var lastNotificationAt = 0L
 
     override suspend fun getForegroundInfo(): ForegroundInfo =
@@ -84,11 +95,19 @@ class TurkeyCountryPackWorker(context: Context, params: WorkerParameters):
                 currentStage=stage
                 val complete = (bytesComplete+current).coerceAtMost(TurkeyAssets.totalBytes)
                 val percent = ((complete*100L)/TurkeyAssets.totalBytes).toInt().coerceIn(0,99)
-                if(percent != lastProgress || System.currentTimeMillis()-lastNotificationAt>4_000L) {
+                if(percent != lastProgress || stage != lastPublishedStage ||
+                    mapVerified != lastMapReady || routeVerified != lastRouteReady ||
+                    searchVerified != lastSearchReady ||
+                    System.currentTimeMillis()-lastNotificationAt>4_000L) {
                     lastProgress=percent
+                    lastPublishedStage=stage
+                    lastMapReady=mapVerified
+                    lastRouteReady=routeVerified
+                    lastSearchReady=searchVerified
                     setProgressAsync(workDataOf(
                         PERCENT to percent,STAGE to stage,BYTES to complete,
-                        TOTAL to TurkeyAssets.totalBytes))
+                        TOTAL to TurkeyAssets.totalBytes,MAP_READY to mapVerified,
+                        ROUTE_READY to routeVerified,SEARCH_READY to searchVerified))
                     if(System.currentTimeMillis()-lastNotificationAt>8_000L) {
                         setForegroundAsync(foreground(stageText(stage),percent))
                         lastNotificationAt=System.currentTimeMillis()
@@ -123,8 +142,11 @@ class TurkeyCountryPackWorker(context: Context, params: WorkerParameters):
                 archive.delete()
             } else {
                 bytesComplete += TurkeyAssets.map.size
-                progress(STAGE_MAP,0L)
             }
+            // The map has been SHA-256 verified. Driving may start now, even
+            // while the optional route/place packs are being installed.
+            mapVerified=true
+            progress(STAGE_MAP,0L)
 
             val routeManifest=get(TurkeyAssets.routeManifest,STAGE_ROUTE)
             val routeConfig=get(TurkeyAssets.routeConfig,STAGE_ROUTE)
@@ -142,14 +164,19 @@ class TurkeyCountryPackWorker(context: Context, params: WorkerParameters):
                 archive.delete()
             } else {
                 bytesComplete += TurkeyAssets.route.size
-                progress(STAGE_ROUTE,0L)
             }
+            routeVerified=true
+            progress(STAGE_ROUTE,0L)
 
             get(TurkeyAssets.searchManifest,STAGE_SEARCH)
             val searchInstaller=TurkeySearchInstaller(context)
             if(!searchInstaller.installed()) {
                 val archive=get(TurkeyAssets.search,STAGE_SEARCH,280_000_000L)
-                setForegroundAsync(foreground("Türkiye yer arama doğrulanıyor",
+                // Download progress is deliberately capped at 99% until the
+                // 150MB SQLite index is unpacked and integrity-checked.
+                // Publish an explicit verification stage; do not look stalled.
+                progress(STAGE_SEARCH_VERIFY,0L)
+                setForegroundAsync(foreground("Yer arama kuruluyor ve doğrulanıyor",
                     lastProgress.coerceAtLeast(0)))
                 val result=searchInstaller.installWithResult(sourceArchive=archive)
                 if(!result.installed || !searchInstaller.installed())
@@ -157,13 +184,16 @@ class TurkeyCountryPackWorker(context: Context, params: WorkerParameters):
                 archive.delete()
             } else {
                 bytesComplete += TurkeyAssets.search.size
-                progress(STAGE_SEARCH,0L)
             }
+            searchVerified=true
+            progress(STAGE_DONE,0L)
 
             setProgressAsync(workDataOf(PERCENT to 100,STAGE to STAGE_DONE,
-                BYTES to TurkeyAssets.totalBytes,TOTAL to TurkeyAssets.totalBytes))
+                BYTES to TurkeyAssets.totalBytes,TOTAL to TurkeyAssets.totalBytes,
+                MAP_READY to true,ROUTE_READY to true,SEARCH_READY to true))
             setForegroundAsync(foreground("Türkiye çevrimdışı verileri hazır",100))
-            Result.success(workDataOf(PERCENT to 100,STAGE to STAGE_DONE))
+            Result.success(workDataOf(PERCENT to 100,STAGE to STAGE_DONE,
+                MAP_READY to true,ROUTE_READY to true,SEARCH_READY to true))
         } catch (_: InsufficientStorageException) {
             fail("storage")
         } catch (_: IOException) {
@@ -178,12 +208,15 @@ class TurkeyCountryPackWorker(context: Context, params: WorkerParameters):
 
     private fun fail(code:String):Result =
         Result.failure(workDataOf(ERROR to code, STAGE to currentStage,
-            PERCENT to lastProgress.coerceAtLeast(0)))
+            PERCENT to lastProgress.coerceAtLeast(0),
+            MAP_READY to mapVerified,ROUTE_READY to routeVerified,
+            SEARCH_READY to searchVerified))
 
     private fun stageText(stage:Int):String = when(stage) {
         STAGE_MAP -> "Türkiye haritası indiriliyor"
         STAGE_ROUTE -> "Çevrimdışı rota verisi indiriliyor"
         STAGE_SEARCH -> "Çevrimdışı yer arama indiriliyor"
+        STAGE_SEARCH_VERIFY -> "Yer arama kuruluyor ve doğrulanıyor"
         else -> "Wi-Fi bağlantısı bekleniyor"
     }
 
