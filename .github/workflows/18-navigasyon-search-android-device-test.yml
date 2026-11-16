@@ -1,0 +1,63 @@
+name: Navigasyon Android 15 Gercek Yer Arama Testi
+on:
+  pull_request:
+    paths:
+      - 'apps/navigasyon/**'
+      - '.github/workflows/18-navigasyon-search-android-device-test.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  android-sqlite-fts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Kaynak kodu al
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Android SDK
+        uses: android-actions/setup-android@v4
+      - name: Gradle 8.11.1
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
+      - name: Lisansli harita yazi fontlarini test uygulamasina koy
+        run: |
+          set -Eeuo pipefail
+          python3 apps/navigasyon/tools/prepare_offline_glyphs.py --target "apps/navigasyon/app/src/main/assets/fonts/Noto Sans Regular"
+          FONT="apps/navigasyon/app/src/main/assets/fonts/NotoSansArabic-Regular.ttf"
+          mkdir -p "$(dirname "$FONT")"
+          curl --proto '=https' --tlsv1.2 -fL --retry 4 --output "$FONT" \
+            "https://raw.githubusercontent.com/notofonts/noto-fonts/ffebf8c1ee449e544955a7e813c54f9b73848eac/hinted/ttf/NotoSansArabic/NotoSansArabic-Regular.ttf"
+          test "$(stat -c %s "$FONT")" -eq 240456
+      - name: Gercek 66MB Cloudflare arama ZIP'i ve SHA256 test varligi
+        run: |
+          set -Eeuo pipefail
+          TARGET="apps/navigasyon/app/src/androidTest/assets/turkey-places.zip"
+          mkdir -p "$(dirname "$TARGET")"
+          curl --proto '=https' --tlsv1.2 -fL --retry 4 --retry-delay 5 \
+            --connect-timeout 25 --output "$TARGET" \
+            "https://rasaser-turkiye-map-download.okiminsozu.workers.dev/v1/turkey-places.zip"
+          test "$(stat -c %s "$TARGET")" -eq 66446365
+          echo "048f474b1ff427ac2310b5201a283d027d87ec769ca7e808254ffbbdf6b603f0  $TARGET" | sha256sum -c -
+      - name: Linux uzerinde Android emulator KVM yetkileri
+        run: |
+          if test -e /dev/kvm; then sudo chmod 666 /dev/kvm; fi
+      - name: Android 15 uzerinde gercek SQLite arama kurulum testi
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          target: default
+          profile: pixel_6
+          ram-size: 3072M
+          disk-size: 6G
+          disable-animations: true
+          emulator-boot-timeout: 600
+          script: gradle --no-daemon --project-dir apps/navigasyon :app:connectedDebugAndroidTest --stacktrace
