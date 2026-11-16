@@ -1,0 +1,160 @@
+name: Navigasyon v0.9 Tam Cevrimdisi APK
+on:
+  pull_request:
+    paths:
+      - 'apps/navigasyon/**'
+      - '.github/workflows/12-navigasyon-complete-apk.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+
+jobs:
+  full-offline-apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Kod
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Android SDK
+        uses: android-actions/setup-android@v4
+      - name: Android API 36
+        run: sdkmanager --install "platforms;android-36" "build-tools;35.0.0"
+      - name: Gradle 8.11.1
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
+      - name: Repo gizlilik ve paket kontrolleri
+        run: |
+          python3 tools/check_repo.py
+          python3 tools/validate_app.py navigasyon false
+      - name: Harita fontlari ve SIL OFL
+        run: |
+          set -Eeuo pipefail
+          python3 apps/navigasyon/tools/prepare_offline_glyphs.py --target "apps/navigasyon/app/src/main/assets/fonts/Noto Sans Regular"
+          FONT="apps/navigasyon/app/src/main/assets/fonts/NotoSansArabic-Regular.ttf"
+          mkdir -p "$(dirname "$FONT")"
+          curl --proto '=https' --tlsv1.2 -fL --retry 4 --connect-timeout 25 \
+            --output "$FONT" \
+            "https://raw.githubusercontent.com/notofonts/noto-fonts/ffebf8c1ee449e544955a7e813c54f9b73848eac/hinted/ttf/NotoSansArabic/NotoSansArabic-Regular.ttf"
+          test "$(stat -c %s "$FONT")" -eq 240456
+      - name: Türkiye yer arama SQLite paketini indir ve SHA256 dogrula
+        run: |
+          set -Eeuo pipefail
+          ZIP="$RUNNER_TEMP/turkey-places.zip"
+          curl --proto '=https' --tlsv1.2 -fL --retry 5 --retry-delay 8 \
+            -o "$ZIP" \
+            "https://github.com/okiminsozu-droid/RASASER-FREE/releases/download/rasaser-turkiye-search-v0.1/turkey-places.zip"
+          echo "048f474b1ff427ac2310b5201a283d027d87ec769ca7e808254ffbbdf6b603f0  $ZIP" | sha256sum -c -
+          TARGET="apps/navigasyon/app/src/fieldTest/assets/search/turkey-places.sqlite"
+          mkdir -p "$(dirname "$TARGET")"
+          unzip -p "$ZIP" turkey-places.sqlite > "$TARGET"
+          test "$(stat -c %s "$TARGET")" -eq 150110208
+          echo "8ce8f9592e223a4d310c4e4b12151334e50dc13fa5054f44ec3ff525adce038f  $TARGET" | sha256sum -c -
+          rm "$ZIP"
+      - name: Türkiye harita MBTiles paketini indir ve SHA256 dogrula
+        run: |
+          set -Eeuo pipefail
+          ZIP="$RUNNER_TEMP/turkey-map.zip"
+          curl --proto '=https' --tlsv1.2 -fL --retry 5 --retry-delay 8 \
+            -o "$ZIP" \
+            "https://github.com/okiminsozu-droid/RASASER-FREE/releases/download/rasaser-turkiye-maps-v0.1/rasaser-turkiye-shortbread.zip"
+          test "$(stat -c %s "$ZIP")" -eq 605992151
+          echo "c7d8b277a916ffd4ec7839c7c0420104c19b88fcfcea456be7078346003bacfc  $ZIP" | sha256sum -c -
+          TARGET="apps/navigasyon/app/src/fieldTest/assets/maps/turkey.mbtiles"
+          mkdir -p "$(dirname "$TARGET")"
+          python3 - "$ZIP" "$TARGET" <<'PY'
+          import hashlib, sys, zipfile
+          source, target = sys.argv[1:]
+          with zipfile.ZipFile(source) as z:
+              members = [x for x in z.infolist() if not x.is_dir() and x.filename.lower().endswith(".mbtiles")]
+              assert len(members) == 1, "Expected exactly one MBTiles file"
+              h = hashlib.sha256()
+              size = 0
+              with z.open(members[0]) as src, open(target, "wb") as out:
+                  while True:
+                      b = src.read(524288)
+                      if not b: break
+                      size += len(b)
+                      assert size <= 669908992, "Oversize MBTiles"
+                      h.update(b)
+                      out.write(b)
+              assert size == 669908992, f"Unexpected size {size}"
+              assert h.hexdigest() == "54a9ab9739133e037add2cb1b7e41912374a070f0b386744f7da24c81e7a4e30", "Wrong MBTiles checksum"
+          PY
+          rm "$ZIP"
+      - name: Türkiye 1.15GB Valhalla rota verisini ve manifestini paketle
+        run: |
+          set -Eeuo pipefail
+          BASE="https://github.com/okiminsozu-droid/RASASER-FREE/releases/download/rasaser-turkiye-routing-v0.1"
+          TARGET_DIR="apps/navigasyon/app/src/fieldTest/assets/routing"
+          mkdir -p "$TARGET_DIR"
+          curl --proto '=https' --tlsv1.2 -fL --retry 5 --retry-delay 8 \
+            -o "$TARGET_DIR/valhalla_tiles.tar" "$BASE/valhalla_tiles.tar"
+          test "$(stat -c %s "$TARGET_DIR/valhalla_tiles.tar")" -eq 1148661760
+          echo "bdfd9a67d8fdd0d5856013e889c6e48cd8a14560934cc5d2b6f3c16a8f6a554f  $TARGET_DIR/valhalla_tiles.tar" | sha256sum -c -
+          curl --proto '=https' --tlsv1.2 -fL --retry 5 --retry-delay 8 \
+            -o "$TARGET_DIR/valhalla.json" "$BASE/valhalla.json"
+          curl --proto '=https' --tlsv1.2 -fL --retry 5 --retry-delay 8 \
+            -o "$TARGET_DIR/valhalla-turkiye-manifest.json" "$BASE/valhalla-turkiye-manifest.json"
+          python3 - "$TARGET_DIR" <<'PY'
+          import json, pathlib, sys
+          path = pathlib.Path(sys.argv[1])
+          manifest = json.loads((path / "valhalla-turkiye-manifest.json").read_text())
+          config = json.loads((path / "valhalla.json").read_text())
+          assert manifest.get("file_size") == 1148661760
+          assert manifest.get("graph_sha256") == "bdfd9a67d8fdd0d5856013e889c6e48cd8a14560934cc5d2b6f3c16a8f6a554f"
+          assert isinstance(config.get("mjolnir"), dict)
+          print("Complete Valhalla tar and offline configuration pinned")
+          PY
+          df -h .
+      - name: Kotlin tests ve tek dosya tam icerikli imzali saha APK
+        run: |
+          gradle --no-daemon --project-dir apps/navigasyon :app:testDebugUnitTest :app:assembleFieldTest
+      - name: Son APK icinde uc asil veri dosyasini dogrula
+        run: |
+          set -Eeuo pipefail
+          APK="apps/navigasyon/app/build/outputs/apk/fieldTest/app-fieldTest.apk"
+          test -s "$APK"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$APK"
+          for spec in \
+            "assets/search/turkey-places.sqlite:8ce8f9592e223a4d310c4e4b12151334e50dc13fa5054f44ec3ff525adce038f" \
+            "assets/maps/turkey.mbtiles:54a9ab9739133e037add2cb1b7e41912374a070f0b386744f7da24c81e7a4e30" \
+            "assets/routing/valhalla_tiles.tar:bdfd9a67d8fdd0d5856013e889c6e48cd8a14560934cc5d2b6f3c16a8f6a554f"; do
+              PATH_IN_APK="${spec%%:*}"
+              SHA="${spec#*:}"
+              COUNT="$(unzip -Z -1 "$APK" | grep -Fx -c "$PATH_IN_APK" || true)"
+              test "$COUNT" -eq 1
+              ACTUAL="$(unzip -p "$APK" "$PATH_IN_APK" | sha256sum | cut -d ' ' -f 1)"
+              test "$ACTUAL" = "$SHA"
+          done
+          unzip -Z -1 "$APK" | grep -Fx "assets/routing/valhalla.json"
+          unzip -Z -1 "$APK" | grep -Fx "assets/routing/valhalla-turkiye-manifest.json"
+          mkdir -p apps/navigasyon/complete-test
+          cp "$APK" "apps/navigasyon/complete-test/RaSaSeR-Navigasyon-v0.9-TAM-TEST.apk"
+          (cd apps/navigasyon/complete-test && sha256sum RaSaSeR-Navigasyon-v0.9-TAM-TEST.apk > SHA256SUMS.txt)
+          printf '%s\n' \
+            "v0.9 Android device test: entire 670MB map, 150MB search and 1.15GB route graph embedded and checksum-verified." \
+            "The application copies and verifies all assets into private storage on first launch, then enables driving." \
+            "Requires several GB of free internal storage beyond APK download and install." \
+            "Not Google Play AAB; do not use until real-device routing tests are complete." \
+            "Field-test debug signing identity is ephemeral; installs as com.rasaser.free.navigasyon.fieldtest09." \
+            > apps/navigasyon/complete-test/README.txt
+          du -h apps/navigasyon/complete-test/*
+      - name: Tam saha APK arsivi
+        uses: actions/upload-artifact@v4
+        with:
+          name: rasaser-navigasyon-v09-COMPLETE-${{ github.run_number }}
+          path: |
+            apps/navigasyon/complete-test/RaSaSeR-Navigasyon-v0.9-TAM-TEST.apk
+            apps/navigasyon/complete-test/SHA256SUMS.txt
+            apps/navigasyon/complete-test/README.txt
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 5

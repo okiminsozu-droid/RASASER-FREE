@@ -1,0 +1,53 @@
+name: Navigasyon v0.9 Dogrudan APK Indirme
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/14-navigasyon-public-test-apk.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  verified-test-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Github CLI ve kaynak kontrolu
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -Eeuo pipefail
+          gh --version
+          gh run view 43833670411 --repo okiminsozu-droid/RASASER-FREE --json conclusion --jq '.conclusion' | grep -Fx 'success'
+      - name: Tam APK yi dogrulanmis CI kaynagindan getir
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -Eeuo pipefail
+          mkdir -p "$RUNNER_TEMP/nav09"
+          gh run download 43833670411 --repo okiminsozu-droid/RASASER-FREE --name rasaser-navigasyon-v09-COMPLETE-1 --dir "$RUNNER_TEMP/nav09"
+          APK="$RUNNER_TEMP/nav09/RaSaSeR-Navigasyon-v0.9-TAM-TEST.apk"
+          test -s "$APK"
+          (cd "$RUNNER_TEMP/nav09" && sha256sum --check SHA256SUMS.txt)
+          test "$(stat -c %s "$APK")" -eq 2067075527
+          echo "fc3f362149dcf107b2ab2e3aa80e6ef05a1b5c0b091a1913ed00f681682f40cc  $APK" | sha256sum -c -
+          test "$(stat -c %s "$APK")" -lt 2147483648
+          echo "VERIFIED_APK=$APK" >> "$GITHUB_ENV"
+      - name: GitHub Releases'e on surum olarak yayimla
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -Eeuo pipefail
+          REPO="okiminsozu-droid/RASASER-FREE"
+          TAG="rasaser-nav-v0.9-full-offline-test"
+          if ! gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1; then
+            gh release create "$TAG" --repo "$REPO" \
+              --target "feature/rasaser-nav-complete-offline-v09" \
+              --title "RaSaSeR Navigasyon v0.9 — Tam Türkiye Çevrimdışı Test APK" \
+              --notes "Test sürümü (Google Play yayını değildir). Tek APK yaklaşık 2.07 GB; Türkiye MBTiles harita (670 MB), Türkiye yer arama SQLite (150 MB) ve Valhalla çevrimdışı rota grafiği (1.15 GB) içerir. Dosyalar APK içinde SHA256 ile doğrulandı. İlk çalıştırmada verilerin cihaz içi kurulum ve doğrulaması yapılır, bu yüzden telefonda en az 6 GB boş alan tavsiye edilir. Gerçek trafik ve rota yönlendirme testi bitmeden gerçek sürüş için güvenmeyin. © OpenStreetMap contributors, ODbL 1.0; BBBike.org ve üçüncü taraf lisansları uygulama içinde yer alır." \
+              --prerelease
+          fi
+          gh release upload "$TAG" "$VERIFIED_APK#RaSaSeR-Navigasyon-v0.9-TAM-TEST.apk" \
+            --repo "$REPO" --clobber
+          gh release view "$TAG" --repo "$REPO" --json url,assets --jq '{url:.url,files:[.assets[]|{name:.name,size:.size,url:.url}]}'

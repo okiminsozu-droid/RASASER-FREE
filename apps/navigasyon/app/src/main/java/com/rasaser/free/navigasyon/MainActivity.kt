@@ -134,6 +134,11 @@ class MainActivity: ComponentActivity() {
     private var roadScanRunning=false
     private lateinit var placeSearch:OfflinePlaceSearch
     private lateinit var searchInstaller:TurkeySearchInstaller
+    private lateinit var completeBundle:CompleteOfflineBundleInstaller
+    private var bundledAll by mutableStateOf(false)
+    private var bundledInstalling by mutableStateOf(false)
+    private var bundledProgress by mutableStateOf("")
+    private var bundledError by mutableStateOf<String?>(null)
     private var searchDownloadId by mutableLongStateOf(-1L)
     private var searchInstalling by mutableStateOf(false)
     private var searchReady by mutableStateOf(false)
@@ -187,9 +192,11 @@ class MainActivity: ComponentActivity() {
         router=OfflineRouteEngine(this)
         placeSearch=OfflinePlaceSearch(this)
         searchInstaller=TurkeySearchInstaller(this)
+        completeBundle=CompleteOfflineBundleInstaller(this)
+        bundledAll=completeBundle.available()
         searchReady=placeSearch.installed()
         // Reuse the already-downloaded archive after a background interruption.
-        if(!searchReady &&
+        if(!bundledAll && !searchReady &&
             (searchInstaller.bundledAvailable() || searchInstaller.cachedZipExists())){
             searchInstalling=true
             Thread {
@@ -549,7 +556,7 @@ class MainActivity: ComponentActivity() {
                                 Spacer(Modifier.height(8.dp))
                                 HomeAction(Icons.Default.Map,
                                     if(mapReady)t(TextKey.MAP_IMPORTED) else t(TextKey.MAP_DOWNLOAD),
-                                    enabled=!installing && downloadId<0L && !mapReady) {loadMap()}
+                                    enabled=!bundledAll && !installing && downloadId<0L && !mapReady) {loadMap()}
                                 HomeAction(Icons.Default.LocationOn,t(TextKey.GRANT_PERMISSIONS)){askPermissions()}
                                 HomeAction(Icons.Default.PlayArrow,t(TextKey.START),enabled=mapReady){startDrive()}
                                 val detail=when {
@@ -559,7 +566,15 @@ class MainActivity: ComponentActivity() {
                                     mapReady -> t(TextKey.MAP_READY)
                                     else -> t(TextKey.NO_MAP)
                                 }
-                                if(installing || downloadId>=0L || checkingMap)
+                                if(bundledInstalling)
+                                     Text(bundledProgress,color=Ink,fontSize=13.sp,textAlign=TextAlign.Center)
+                                 else if(bundledError!=null) {
+                                     Text(bundledError.orEmpty(),color=Color(0xFF97472E),fontSize=13.sp,
+                                         textAlign=TextAlign.Center)
+                                     HomeAction(Icons.Default.Map,"Paketi yeniden doğrula") {
+                                         installCompleteBundleAsync()
+                                     }
+                                 } else if(installing || downloadId>=0L || checkingMap)
                                      Text(detail,color=Ink,fontSize=13.sp,textAlign=TextAlign.Center)
                                 statusKey?.let {
                                     Text(t(it)+(statusExtra?.let{suffix->": $suffix"} ?: ""),
@@ -583,10 +598,16 @@ class MainActivity: ComponentActivity() {
                                         verticalArrangement=Arrangement.spacedBy(10.dp)) {
                                         HomeAction(Icons.Default.Map,
                                             if(mapReady)t(TextKey.MAP_IMPORTED) else t(TextKey.MAP_DOWNLOAD),
-                                            enabled=!installing && downloadId<0L && !mapReady){loadMap()}
+                                            enabled=!bundledAll && !installing && downloadId<0L && !mapReady){loadMap()}
                                         HomeAction(Icons.Default.LocationOn,t(TextKey.GRANT_PERMISSIONS)){askPermissions()}
                                         HomeAction(Icons.Default.PlayArrow,t(TextKey.START),enabled=mapReady){startDrive()}
-                                        if(installing || downloadId>=0L || checkingMap)
+                                        if(bundledInstalling)
+                                             Text(bundledProgress,color=Ink,fontSize=12.sp)
+                                         else if(bundledError!=null)
+                                             HomeAction(Icons.Default.Map,"Paketi yeniden doğrula") {
+                                                 installCompleteBundleAsync()
+                                             }
+                                         if(!bundledAll && (installing || downloadId>=0L || checkingMap))
                                              Text(when{
                                                  installing || checkingMap ->t(TextKey.MAP_VERIFYING)
                                                  else ->t(TextKey.MAP_DOWNLOADING)+" $downloadPercent%"
@@ -745,17 +766,23 @@ class MainActivity: ComponentActivity() {
                         modifier=Modifier.verticalScroll(rememberScrollState()),
                         verticalArrangement=Arrangement.spacedBy(8.dp)
                     ){
-                        if(!searchReady) {
+                        if(!searchReady && !bundledAll) {
                             OutlinedButton(
                                 enabled=connection==Connection.UNMETERED && onlineAllowed &&
                                     searchDownloadId<0 && !searchInstalling,
                                 onClick={startPlaceSearchDownload()}
                             ){Text(SearchWords.text(language,SearchNotice.DOWNLOAD))}
                         }
+                        if(bundledAll && bundledError!=null) {
+                            Text(bundledError.orEmpty(),color=Color(0xFF97472E),fontSize=12.sp)
+                            OutlinedButton(onClick={installCompleteBundleAsync()},enabled=!bundledInstalling) {
+                                Text("Tam paketi yeniden doğrula")
+                            }
+                        }
                         if(router.installed()){
                             Text(RoutingDownloadText.get(language,RoutingDownloadStatus.READY),
                                 color=Color(0xFF266443),fontSize=12.sp)
-                        } else {
+                        } else if(!bundledAll) {
                             OutlinedButton(
                                 enabled=routingDownloadId<0L && !routingInstallActive &&
                                     connection==Connection.UNMETERED && onlineAllowed,
@@ -814,13 +841,46 @@ class MainActivity: ComponentActivity() {
                 )
             }
         }
-        Thread {
+        if(bundledAll) installCompleteBundleAsync()
+        else Thread {
             val ready=LocalMapVerifier.turkeyMapReady(this)
             runOnUiThread {
                 mapReady=ready
                 checkingMap=false
                 if (ready && (autoDrive || intent?.action == "com.rasaser.free.navigasyon.OPEN_DRIVE"))
                     screen=NavScreen.DRIVE
+            }
+        }.start()
+    }
+
+    private fun installCompleteBundleAsync() {
+        if(bundledInstalling || !bundledAll)return
+        bundledInstalling=true
+        checkingMap=true
+        bundledError=null
+        bundledProgress="Türkiye çevrimdışı verileri doğrulanıyor"
+        Thread {
+            val result=runCatching {
+                completeBundle.install { step -> runOnUiThread { bundledProgress=step } }
+            }.getOrElse { error ->
+                CompleteOfflineBundleInstaller.Result(false,false,false,
+                    "Kurulum hatası: " + (error.message ?: error.javaClass.simpleName))
+            }
+            runOnUiThread {
+                bundledInstalling=false
+                checkingMap=false
+                searchReady=result.searchReady
+                searchFailureCode=if(result.searchReady)null else result.error
+                bundledError=result.error
+                // In the complete test variant, never enable driving with missing data.
+                mapReady=result.complete
+                if(result.complete) {
+                    searchNotice=null
+                    routingMessage=RoutingDownloadStatus.READY
+                    if(autoDrive || intent?.action=="com.rasaser.free.navigasyon.OPEN_DRIVE")
+                        screen=NavScreen.DRIVE
+                    if(routeDestination!=null)resumeSavedRoute=true
+                }
             }
         }.start()
     }
