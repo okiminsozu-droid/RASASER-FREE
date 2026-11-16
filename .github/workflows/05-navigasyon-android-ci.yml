@@ -44,6 +44,20 @@ jobs:
             --output "$FONT" \
             "https://raw.githubusercontent.com/notofonts/noto-fonts/ffebf8c1ee449e544955a7e813c54f9b73848eac/hinted/ttf/NotoSansArabic/NotoSansArabic-Regular.ttf"
           test "$(stat -c %s "$FONT")" -eq 240456
+      - name: Cihaz testi için Türkiye çevrimdışı yer indeksini APK içine ekle
+        run: |
+          set -Eeuo pipefail
+          ZIP="$RUNNER_TEMP/rasaser-turkey-places.zip"
+          curl --proto '=https' --tlsv1.2 -fL --retry 5 --retry-delay 7 \
+            -o "$ZIP" \
+            "https://github.com/okiminsozu-droid/RASASER-FREE/releases/download/rasaser-turkiye-search-v0.1/turkey-places.zip"
+          echo "048f474b1ff427ac2310b5201a283d027d87ec769ca7e808254ffbbdf6b603f0  $ZIP" | sha256sum -c -
+          TARGET="apps/navigasyon/app/src/fieldTest/assets/search/turkey-places.sqlite"
+          mkdir -p "$(dirname "$TARGET")"
+          unzip -p "$ZIP" turkey-places.sqlite > "$TARGET"
+          test "$(stat -c %s "$TARGET")" -eq 150110208
+          echo "8ce8f9592e223a4d310c4e4b12151334e50dc13fa5054f44ec3ff525adce038f  $TARGET" | sha256sum -c -
+          echo "Verified ODbL Türkiye name index embedded in FIELD TEST only"
       - name: Kotlin unit tests ve Android APK derleme
         run: gradle --no-daemon --project-dir apps/navigasyon :app:testDebugUnitTest :app:assembleDebug :app:assembleRelease :app:assembleFieldTest
       - name: Installable optimized field test APK verify
