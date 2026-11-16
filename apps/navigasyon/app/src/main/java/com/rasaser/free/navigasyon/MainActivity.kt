@@ -189,14 +189,17 @@ class MainActivity: ComponentActivity() {
         searchInstaller=TurkeySearchInstaller(this)
         searchReady=placeSearch.installed()
         // Reuse the already-downloaded archive after a background interruption.
-        if(!searchReady && searchInstaller.cachedZipExists()){
+        if(!searchReady &&
+            (searchInstaller.bundledAvailable() || searchInstaller.cachedZipExists())){
             searchInstalling=true
             Thread {
-                val result=searchInstaller.installWithResult()
+                val ok=if(searchInstaller.bundledAvailable())
+                    searchInstaller.installBundled()
+                else searchInstaller.installWithResult().installed
                 runOnUiThread {
                     searchInstalling=false
-                    searchReady=result.installed || placeSearch.installed()
-                    searchFailureCode=if(searchReady)null else result.stage.name
+                    searchReady=ok || placeSearch.installed()
+                    searchFailureCode=if(searchReady)null else searchInstaller.lastFailure().name
                     searchNotice=if(searchReady)null else SearchNotice.DOWNLOAD_ERROR
                     if(searchReady)pendingSearchSpeech?.let { phrase->
                         pendingSearchSpeech=null
