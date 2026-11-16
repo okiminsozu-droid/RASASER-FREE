@@ -65,18 +65,18 @@ jobs:
           cp "$APK" "apps/navigasyon/field-test/RaSaSeR-Navigasyon-v0.12-99fix-TEST.apk"
           (
             cd "apps/navigasyon/field-test"
-            sha256sum "RaSaSeR-Navigasyon-v0.11-99fix-TEST.apk" > SHA256SUMS.txt
+            sha256sum "RaSaSeR-Navigasyon-v0.12-99fix-TEST.apk" > SHA256SUMS.txt
           )
           echo "DEVELOPMENT TEST ONLY. The 606MB map, 1.15GB routing and 66MB search packs must be downloaded in-app; no map data is embedded. Not for public road use." > "apps/navigasyon/field-test/README.txt"
-          echo "Safe parallel package: fieldtest11 installs alongside fieldtest10. DO NOT uninstall the older app with installed map data. The test signing key changes on GitHub runners; existing private map files are not automatically shared." >> "apps/navigasyon/field-test/README.txt"
-          du -h "apps/navigasyon/field-test/RaSaSeR-Navigasyon-v0.11-99fix-TEST.apk"
+          echo "Safe parallel package: fieldtest12 installs alongside fieldtest10 and fieldtest11. DO NOT uninstall the older app with installed map data. The test signing key changes on GitHub runners; existing private map files are not automatically shared." >> "apps/navigasyon/field-test/README.txt"
+          du -h "apps/navigasyon/field-test/RaSaSeR-Navigasyon-v0.12-99fix-TEST.apk"
       - name: Downloadable short-lived device test APK
         if: ${{ github.event_name == 'pull_request' && (github.head_ref == 'feature/rasaser-nav-turkiye-data-v1' || github.head_ref == 'feature/rasaser-nav-99percent-safe-fix-v012') }}
         uses: actions/upload-artifact@v4
         with:
           name: rasaser-navigasyon-v012-99fix-test-${{ github.run_number }}
           path: |
-            apps/navigasyon/field-test/RaSaSeR-Navigasyon-v0.11-99fix-TEST.apk
+            apps/navigasyon/field-test/RaSaSeR-Navigasyon-v0.12-99fix-TEST.apk
             apps/navigasyon/field-test/SHA256SUMS.txt
             apps/navigasyon/field-test/README.txt
           if-no-files-found: error
