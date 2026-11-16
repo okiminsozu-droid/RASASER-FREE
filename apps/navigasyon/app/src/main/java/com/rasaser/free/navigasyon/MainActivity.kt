@@ -113,6 +113,7 @@ class MainActivity: ComponentActivity() {
     private var routingDownloadId by mutableLongStateOf(-1L)
     private var routingInstallActive by mutableStateOf(false)
     private var routingMessage by mutableStateOf<RoutingDownloadStatus?>(null)
+    private var showRoutingPrompt by mutableStateOf(false)
     private var statusKey by mutableStateOf<TextKey?>(null)
     private var statusExtra by mutableStateOf<String?>(null)
     private var selectedPlace by mutableStateOf<String?>(null)
@@ -174,6 +175,8 @@ class MainActivity: ComponentActivity() {
         voice=VoiceController(this, { key,extra ->
             statusKey=key
             statusExtra=extra
+            if(key==TextKey.VOICE_ERROR || key==TextKey.VOICE_UNAVAILABLE)
+                showSearchDialog=true
         }, { phrase -> handleVoiceNavigation(phrase) })
             .also { it.init(); it.setEnabled(voiceEnabled); it.setLanguage(language) }
         installer=TurkeyMapInstaller(this)
@@ -243,6 +246,13 @@ class MainActivity: ComponentActivity() {
                                             routingInstallActive=false
                                             routingMessage=if(ok)RoutingDownloadStatus.READY
                                                 else RoutingDownloadStatus.ERROR
+                                            if(ok && routeDestination!=null){
+                                                val destination=routeDestination!!
+                                                val now=gpsFix
+                                                if(now!=null && !routeRequestRunning)
+                                                    calculateRoute(NavPoint(now.latitude,now.longitude),destination)
+                                                else resumeSavedRoute=true
+                                            }
                                         }
                                     }.start()
                                     break
@@ -548,6 +558,29 @@ class MainActivity: ComponentActivity() {
                     }
                 }
 
+                if(showRoutingPrompt) AlertDialog(
+                    onDismissRequest={showRoutingPrompt=false},
+                    title={Text(RoutingDownloadText.get(language,RoutingDownloadStatus.BUTTON))},
+                    text={Text(RoutingDownloadText.get(language,RoutingDownloadStatus.EXPLANATION))},
+                    confirmButton={TextButton(
+                        enabled=connection==Connection.UNMETERED && onlineAllowed &&
+                            routingDownloadId<0 && !routingInstallActive,
+                        onClick={
+                            showRoutingPrompt=false
+                            try{
+                                routingDownloadId=routingInstaller.beginWifiDownload()
+                                prefs.edit().putLong("routing_download_id",routingDownloadId).apply()
+                                routingMessage=RoutingDownloadStatus.DOWNLOADING
+                            }catch (_:Exception){
+                                routingMessage=RoutingDownloadStatus.ERROR
+                                showSettings=true
+                            }
+                        }
+                    ){Text(RoutingDownloadText.get(language,RoutingDownloadStatus.BUTTON))}},
+                    dismissButton={TextButton(onClick={showRoutingPrompt=false}){
+                        Text(t(TextKey.BACK))
+                    }}
+                )
                 if(showSearchDialog) AlertDialog(
                     onDismissRequest={showSearchDialog=false},
                     title={Text(SearchWords.text(language,SearchNotice.TITLE))},
@@ -866,6 +899,7 @@ class MainActivity: ComponentActivity() {
             gps.locateNow()
         } else if(!router.installed()) {
             routeInfo=DriveInfo.NEEDS_ROUTING_DATA
+            showRoutingPrompt=true
         } else calculateRoute(NavPoint(current.latitude,current.longitude),destination)
     }
 
