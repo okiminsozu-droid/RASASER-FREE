@@ -12,6 +12,8 @@ android {
         minSdk = 26
         targetSdk = 35
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        // Apply the Java annotation suppression to AndroidTest R8, not only the app.
+        testProguardFiles("proguard-android-test-rules.pro")
         versionCode = 14
         versionName = "0.14.0-dev"
     }
