@@ -5,6 +5,7 @@ on:
       - feature/rasaser-nav-turkiye-data-v1
     paths:
       - '.github/workflows/13-navigasyon-r2-oidc-transfer.yml'
+      - 'apps/navigasyon/cloudflare/upload_r2_oidc.py'
 
 permissions:
   contents: read
