@@ -41,7 +41,6 @@ class MapScene(private val context: Context, onPlace: (String, String, NavPoint)
     private var night=false
     private var language=NavLanguage.TR
     private var routePoints:List<NavPoint> = emptyList()
-    private var lastAvailableFix:Location?=null
 
     init {
         MapLibre.getInstance(context.applicationContext)
@@ -49,9 +48,13 @@ class MapScene(private val context: Context, onPlace: (String, String, NavPoint)
         mapView.onCreate(null)
         mapView.getMapAsync { ready ->
             map=ready
+            // The map remains in a true close 3D driving perspective even
+            // without a destination; GPS updates re-center it automatically.
+            ready.setMinPitchPreference(55.0)
+            ready.setMaxPitchPreference(75.0)
             val focus=initialMapFocus()
             ready.cameraPosition=CameraPosition.Builder()
-                .target(focus).zoom(if(lastFix==null) 15.7 else 17.4).tilt(60.0).build()
+                .target(focus).zoom(18.0).tilt(70.0).bearing(heading).build()
             ready.addOnMapClickListener { position ->
                 val touches=ready.queryRenderedFeatures(ready.projection.toScreenLocation(position),"pois")
                 val feature=touches.firstOrNull()
@@ -172,13 +175,12 @@ class MapScene(private val context: Context, onPlace: (String, String, NavPoint)
     fun follow(location:Location) {
         if(closed || !location.isValidNavigationFix()) return
         lastFix=location
-        lastAvailableFix=location
         drawGpsDot(location)
         if (location.hasBearing() && location.hasSpeed() && location.speed>=1.5f)
             heading=location.bearing.toDouble()
         val camera=CameraPosition.Builder()
             .target(LatLng(location.latitude,location.longitude))
-            .zoom(17.3).tilt(60.0).bearing(heading).build()
+            .zoom(18.3).tilt(70.0).bearing(heading).build()
         map?.animateCamera(CameraUpdateFactory.newCameraPosition(camera), 750)
         // Camera area persists locally only, never sent over the internet.
         context.getSharedPreferences("map_camera",Context.MODE_PRIVATE).edit()
