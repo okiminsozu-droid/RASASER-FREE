@@ -39,8 +39,19 @@ APP_UID="$(adb shell stat -c '%u' "/data/user/0/$TARGET_PACKAGE" | tr -d '\r')"
 adb shell chown -R "$APP_UID:$APP_UID" "$TARGET_DIR"
 adb shell ls -lh "$TARGET_DIR"
 
+adb logcat -c || true
+set +e
 adb shell am instrument -w -r \
   -e class com.rasaser.free.navigasyon.OfflineRouteEngineDeviceTest \
   "$TARGET_PACKAGE.test/androidx.test.runner.AndroidJUnitRunner" \
   | tee "$TEST_OUTPUT"
-grep -F "OK (1 test)" "$TEST_OUTPUT"
+INSTRUMENT_STATUS="${PIPESTATUS[0]}"
+set -e
+adb logcat -d -v threadtime -t 7000 > "$RUNNER_TEMP/nav-route-logcat.txt" || true
+if ! grep -Fq "OK (1 test)" "$TEST_OUTPUT"; then
+  echo "==== Last Android runtime errors (no GPS coordinates) ===="
+  grep -E 'FATAL EXCEPTION|Fatal signal|SIGSEGV|AndroidRuntime|UnsatisfiedLinkError|OutOfMemoryError|Process.*crash|com.valhalla|E libvalhalla|ClassNotFoundException|NoSuchMethodError|VerifyError|LinkageError|am_crash' \
+    "$RUNNER_TEMP/nav-route-logcat.txt" | tail -100 || true
+  exit 1
+fi
+test "$INSTRUMENT_STATUS" -eq 0
