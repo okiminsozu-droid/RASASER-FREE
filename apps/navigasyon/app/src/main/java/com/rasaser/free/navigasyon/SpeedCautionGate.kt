@@ -26,9 +26,12 @@ class SpeedCautionGate {
             aboveCount=0
             return false
         }
+        if(lastSpokenAt!=null && nowMs-lastSpokenAt!!<90_000L) {
+            aboveCount=0
+            return false
+        }
         aboveCount++
         if(aboveCount<3) return false
-        if(lastSpokenAt!=null && nowMs-lastSpokenAt!!<90_000L)return false
         lastSpokenAt=nowMs
         aboveCount=0
         return true

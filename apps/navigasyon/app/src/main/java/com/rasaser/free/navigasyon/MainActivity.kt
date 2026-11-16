@@ -118,6 +118,12 @@ class MainActivity: ComponentActivity() {
     private var routeRequestGeneration=0
     private var routeRequestRunning=false
     private var arrivalAnnounced=false
+    private var postedSpeedLimit by mutableStateOf<RoadSpeedLimit?>(null)
+    private var roadLimitUpdatedAtMs=0L
+    private val speedCaution=SpeedCautionGate()
+    private val tracePoints=ArrayDeque<NavPoint>()
+    private var lastRoadScanAtMs=0L
+    private var roadScanRunning=false
     private lateinit var network: DefaultNetworkMonitor
     private lateinit var gps: GpsTracker
     private lateinit var voice: VoiceController
@@ -215,6 +221,16 @@ class MainActivity: ComponentActivity() {
                         }
                     }
                 }
+                LaunchedEffect(screen) {
+                    while(screen==NavScreen.DRIVE) {
+                        val now=SystemClock.elapsedRealtime()
+                        if(postedSpeedLimit!=null && now-roadLimitUpdatedAtMs>25_000L)
+                            postedSpeedLimit=null
+                        if(gpsFix!=null && !gpsFix!!.isValidNavigationFix(30_000L))
+                            gpsFix=null
+                        delay(5_000L)
+                    }
+                }
                 val currentDecision=OfflineFirstPolicy.decide(mapReady,connection,onlineAllowed)
                 val t:(TextKey)->String={L10n.get(language,it)}
                 fun beginDownload() {
@@ -284,7 +300,12 @@ class MainActivity: ComponentActivity() {
                                     val speed=gpsFix?.reliableSpeedKmh()
                                     Text(if(speed==null) "— km/h" else "$speed km/h",
                                         color=Ink,fontWeight=FontWeight.Bold,fontSize=22.sp)
-                                    Text(t(TextKey.SPEED_LIMIT_UNKNOWN),color=Color.DarkGray,fontSize=11.sp)
+                                    val currentLimit=postedSpeedLimit
+                                    Text(if(currentLimit!=null)
+                                        GuidanceWords.text(language,GuidanceLabel.SPEED_LIMIT)+": "+
+                                            currentLimit.kmh+" km/h"
+                                        else t(TextKey.SPEED_LIMIT_UNKNOWN),
+                                        color=Color.DarkGray,fontSize=11.sp)
                                 }
                             }
                             if(gpsFix==null)
@@ -581,9 +602,53 @@ class MainActivity: ComponentActivity() {
         }.start()
     }
 
+
+    /**
+     * Optional OSM speed limits, even without a destination.
+     * Low-accuracy fixes, missing speed tags, stale matches and online requests
+     * NEVER cause warnings. Work runs on a background thread.
+     */
+    private fun checkPostedSpeedLimit(location:Location) {
+        val now=SystemClock.elapsedRealtime()
+        if(postedSpeedLimit!=null && now-roadLimitUpdatedAtMs>25_000L)
+            postedSpeedLimit=null
+
+        val speed=location.reliableSpeedKmh()
+        if(speedCaution.evaluate(postedSpeedLimit?.kmh,speed,location.accuracy,
+                now-roadLimitUpdatedAtMs,now) &&
+            voiceEnabled && (routeSnapshot?.nextTurnMeters ?: 10000.0)>150.0) {
+            voice.speak(GuidanceWords.text(language,GuidanceLabel.SPEED_CAUTION)+
+                ". "+GuidanceWords.text(language,GuidanceLabel.SPEED_LIMIT)+" "+
+                (postedSpeedLimit?.kmh ?: 0)+" km/h")
+        }
+
+        if(!router.installed() || location.accuracy>25f || speed==null) return
+        val current=NavPoint(location.latitude,location.longitude)
+        if(tracePoints.isEmpty() || RouteGuidance.metersBetween(tracePoints.last(),current)>8.0)
+            tracePoints.addLast(current)
+        while(tracePoints.size>6)tracePoints.removeFirst()
+        if(roadScanRunning || tracePoints.size<3 || now-lastRoadScanAtMs<12_000L)return
+        roadScanRunning=true
+        lastRoadScanAtMs=now
+        val captured=tracePoints.toList()
+        val accuracy=location.accuracy
+        Thread {
+            val matched=runCatching {
+                router.matchedPostedSpeedLimit(captured,accuracy)
+            }.getOrNull()
+            runOnUiThread {
+                roadScanRunning=false
+                if(isDestroyed || screen!=NavScreen.DRIVE)return@runOnUiThread
+                postedSpeedLimit=matched
+                roadLimitUpdatedAtMs=SystemClock.elapsedRealtime()
+            }
+        }.start()
+    }
+
     private fun onGpsPosition(location:Location) {
         gpsFix=location
         if(screen!=NavScreen.DRIVE)return
+        checkPostedSpeedLimit(location)
         val route=activeGuidance ?:return
         val result=route.advance(NavPoint(location.latitude,location.longitude),
             location.accuracy,SystemClock.elapsedRealtime())

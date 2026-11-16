@@ -11,7 +11,8 @@ class SpeedCautionGateTest {
         assertTrue(gate.evaluate(50,61,6f,1000,2_000))
         repeat(4) { assertFalse(gate.evaluate(50,65,6f,1000,3_000+it*1000L)) }
         assertFalse(gate.evaluate(50,65,6f,1000,95_000))
-        assertTrue(gate.evaluate(50,65,6f,1000,96_000))
+        assertFalse(gate.evaluate(50,65,6f,1000,96_000))
+        assertTrue(gate.evaluate(50,65,6f,1000,97_000))
     }
     @Test fun noLimitOrStalePositionNeverWarns() {
         val gate=SpeedCautionGate()
