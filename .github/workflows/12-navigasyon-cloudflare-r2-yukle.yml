@@ -41,8 +41,9 @@ jobs:
       - name: Upload multipart to Cloudflare R2
         run: |
           set -euo pipefail
-          python3 -m pip install --user awscli
-          export PATH="$HOME/.local/bin:$PATH"
+          python3 -m venv "$RUNNER_TEMP/rasaser-awscli"
+          "$RUNNER_TEMP/rasaser-awscli/bin/pip" install --disable-pip-version-check awscli
+          export PATH="$RUNNER_TEMP/rasaser-awscli/bin:$PATH"
           cd "$RUNNER_TEMP/rasaser-r2"
           for item in rasaser-turkiye-shortbread.zip valhalla_tiles.tar turkey-places.zip valhalla-turkiye-manifest.json valhalla.json turkey.manifest.json SHA256SUMS; do
             aws --endpoint-url "$R2_ENDPOINT" s3 cp "$item" "s3://$BUCKET/v1/$item" --no-progress
