@@ -542,8 +542,7 @@ class MainActivity: ComponentActivity() {
                                     fontWeight=FontWeight.Bold)
                                 Text(t(TextKey.TITLE),color=Ink,fontSize=if(landscape)18.sp else 22.sp,
                                     fontWeight=FontWeight.SemiBold,textAlign=TextAlign.Center)
-                                Text(t(TextKey.SUBTITLE),color=Color(0xFF6B6256),fontSize=14.sp,
-                                    textAlign=TextAlign.Center)
+
                                 Spacer(Modifier.height(8.dp))
                                 HomeAction(Icons.Default.Map,
                                     if(mapReady)t(TextKey.MAP_IMPORTED) else t(TextKey.MAP_DOWNLOAD),
@@ -557,7 +556,8 @@ class MainActivity: ComponentActivity() {
                                     mapReady -> t(TextKey.MAP_READY)
                                     else -> t(TextKey.NO_MAP)
                                 }
-                                Text(detail,color=Ink,fontSize=13.sp,textAlign=TextAlign.Center)
+                                if(installing || downloadId>=0L || checkingMap)
+                                     Text(detail,color=Ink,fontSize=13.sp,textAlign=TextAlign.Center)
                                 statusKey?.let {
                                     Text(t(it)+(statusExtra?.let{suffix->": $suffix"} ?: ""),
                                         color=Color(0xFF67462B),fontSize=12.sp,
@@ -572,7 +572,7 @@ class MainActivity: ComponentActivity() {
                                     Column(horizontalAlignment=Alignment.CenterHorizontally) {
                                         Text("RaSaSeR",color=Ink,fontSize=40.sp,fontWeight=FontWeight.Bold)
                                         Text(t(TextKey.TITLE),color=Ink,fontSize=18.sp)
-                                        Text(t(TextKey.SUBTITLE),color=Color.DarkGray,fontSize=12.sp)
+
                                     }
                                 }
                                 Box(Modifier.weight(1f),contentAlignment=Alignment.Center) {
@@ -583,12 +583,11 @@ class MainActivity: ComponentActivity() {
                                             enabled=!installing && downloadId<0L && !mapReady){loadMap()}
                                         HomeAction(Icons.Default.LocationOn,t(TextKey.GRANT_PERMISSIONS)){askPermissions()}
                                         HomeAction(Icons.Default.PlayArrow,t(TextKey.START),enabled=mapReady){startDrive()}
-                                        Text(when{
-                                            installing ->t(TextKey.MAP_VERIFYING)
-                                            downloadId>=0 ->t(TextKey.MAP_DOWNLOADING)+" $downloadPercent%"
-                                            mapReady ->t(TextKey.MAP_READY)
-                                            else ->t(TextKey.NO_MAP)
-                                        },fontSize=11.sp,color=Ink)
+                                        if(installing || downloadId>=0L || checkingMap)
+                                             Text(when{
+                                                 installing || checkingMap ->t(TextKey.MAP_VERIFYING)
+                                                 else ->t(TextKey.MAP_DOWNLOADING)+" $downloadPercent%"
+                                             },fontSize=11.sp,color=Ink)
                                     }
                                 }
                             }
