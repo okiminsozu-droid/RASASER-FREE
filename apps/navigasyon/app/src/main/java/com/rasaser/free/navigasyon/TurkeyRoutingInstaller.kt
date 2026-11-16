@@ -22,6 +22,7 @@ class TurkeyRoutingInstaller(private val context:Context) {
         private const val RELEASE_BASE =
             "https://github.com/okiminsozu-droid/RASASER-FREE/releases/download/rasaser-turkiye-routing-v0.1/"
         private const val DATA_NAME = "rasaser-turkiye-routing-v01.tar"
+        private const val R2_URL = "https://pub-e5b8f3a2a9e84a9dbfc1c01ca1442264.r2.dev/v1/valhalla_tiles.tar"
         const val GRAPH_BYTES = 1148661760L
         const val GRAPH_SHA = "bdfd9a67d8fdd0d5856013e889c6e48cd8a14560934cc5d2b6f3c16a8f6a554f"
     }
@@ -31,12 +32,12 @@ class TurkeyRoutingInstaller(private val context:Context) {
     private fun downloadFile():File = File(
         requireNotNull(context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)),DATA_NAME)
 
-    fun beginWifiDownload():Long {
+    fun beginWifiDownload(fromR2:Boolean=true):Long {
         if(StatFs(context.filesDir.absolutePath).availableBytes<3_000_000_000L)
             throw IllegalStateException("At least 3GB of free space is needed")
         val target=downloadFile()
         if(target.exists()) target.delete()
-        val request=DownloadManager.Request(Uri.parse(RELEASE_BASE+"valhalla_tiles.tar"))
+        val request=DownloadManager.Request(Uri.parse(if(fromR2) R2_URL else RELEASE_BASE+"valhalla_tiles.tar"))
             .setTitle("RaSaSeR Türkiye çevrimdışı rota verisi")
             .setDescription("Rota grafiği · yalnız Wi-Fi")
             .setAllowedOverMetered(false)

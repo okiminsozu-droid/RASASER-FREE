@@ -20,6 +20,7 @@ class TurkeySearchInstaller(private val context: Context) {
     companion object {
         const val RELEASE_URL =
             "https://github.com/okiminsozu-droid/RASASER-FREE/releases/download/rasaser-turkiye-search-v0.1/turkey-places.zip"
+        const val R2_URL = "https://pub-e5b8f3a2a9e84a9dbfc1c01ca1442264.r2.dev/v1/turkey-places.zip"
         const val ZIP_BYTES=66_446_365L
         const val DB_BYTES=150_110_208L
         const val ZIP_SHA="048f474b1ff427ac2310b5201a283d027d87ec769ca7e808254ffbbdf6b603f0"
@@ -55,14 +56,14 @@ class TurkeySearchInstaller(private val context: Context) {
      */
     fun cachedZipExists():Boolean=file().isFile && file().length()==ZIP_BYTES
 
-    fun beginWifiDownload():Long {
+    fun beginWifiDownload(fromR2:Boolean=true):Long {
         if(StatFs(context.filesDir.absolutePath).availableBytes<460_000_000L)
             throw IllegalStateException("storage")
         val dest=file()
         // A fully downloaded ZIP may be used again by install(), never delete
         // it until its checksum proves invalid. Retry is explicit.
         if(dest.exists())dest.delete()
-        val request=DownloadManager.Request(Uri.parse(RELEASE_URL))
+        val request=DownloadManager.Request(Uri.parse(if(fromR2) R2_URL else RELEASE_URL))
             .setTitle("RaSaSeR Türkiye yer arama")
             .setDescription("Çevrimdışı ad arama • 66 MB")
             .setAllowedOverMetered(false)

@@ -110,6 +110,10 @@ class MainActivity: ComponentActivity() {
     private var gpsFix by mutableStateOf<Location?>(null)
     private var downloadId by mutableLongStateOf(-1L)
     private var downloadPercent by mutableIntStateOf(0)
+    private var allPackagesRequested by mutableStateOf(false)
+    private var mapR2Fallback by mutableStateOf(false)
+    private var routingR2Fallback by mutableStateOf(false)
+    private var searchR2Fallback by mutableStateOf(false)
     private var routingDownloadId by mutableLongStateOf(-1L)
     private var routingInstallActive by mutableStateOf(false)
     private var routingMessage by mutableStateOf<RoutingDownloadStatus?>(null)
@@ -173,6 +177,7 @@ class MainActivity: ComponentActivity() {
         downloadId=prefs.getLong("map_download_id",-1L)
         routingDownloadId=prefs.getLong("routing_download_id",-1L)
         searchDownloadId=prefs.getLong("place_search_download_id",-1L)
+        allPackagesRequested=prefs.getBoolean("download_all_turkiye",false)
         network=DefaultNetworkMonitor(this){ connection=it }
         gps=GpsTracker(this){ onGpsPosition(it) }
         voice=VoiceController(this, { key,extra ->
@@ -256,8 +261,14 @@ class MainActivity: ComponentActivity() {
                             }
                             if(transfer.status==DownloadManager.STATUS_FAILED) {
                                 prefs.edit().remove("map_download_id").apply()
-                                statusKey=TextKey.MAP_ERROR
                                 downloadId=-1L
+                                if (!mapR2Fallback) {
+                                    mapR2Fallback=true
+                                    try {
+                                        downloadId=installer.download(if(allPackagesRequested) true else wifiOnly, false)
+                                        prefs.edit().putLong("map_download_id", downloadId).apply()
+                                    } catch (_:Exception) {statusKey=TextKey.MAP_ERROR}
+                                } else statusKey=TextKey.MAP_ERROR
                                 break
                             }
                             delay(1400)
@@ -294,7 +305,14 @@ class MainActivity: ComponentActivity() {
                                 DownloadManager.STATUS_FAILED -> {
                                     prefs.edit().remove("routing_download_id").apply()
                                     routingDownloadId=-1L
-                                    routingMessage=RoutingDownloadStatus.ERROR
+                                    if (!routingR2Fallback) {
+                                        routingR2Fallback=true
+                                        try {
+                                            routingDownloadId=routingInstaller.beginWifiDownload(false)
+                                            prefs.edit().putLong("routing_download_id",routingDownloadId).apply()
+                                            routingMessage=RoutingDownloadStatus.DOWNLOADING
+                                        } catch (_:Exception) {routingMessage=RoutingDownloadStatus.ERROR}
+                                    } else routingMessage=RoutingDownloadStatus.ERROR
                                     break
                                 }
                                 else -> { }
@@ -331,8 +349,20 @@ class MainActivity: ComponentActivity() {
                                 DownloadManager.STATUS_FAILED -> {
                                     searchDownloadId=-1L
                                     prefs.edit().remove("place_search_download_id").apply()
-                                    searchNotice=SearchNotice.DOWNLOAD_ERROR
-                                    searchFailureCode="TRANSFER_"+searchInstaller.transfer(current).reason
+                                    if (!searchR2Fallback) {
+                                        searchR2Fallback=true
+                                        try {
+                                            searchDownloadId=searchInstaller.beginWifiDownload(false)
+                                            prefs.edit().putLong("place_search_download_id",searchDownloadId).apply()
+                                            searchNotice=SearchNotice.DOWNLOADING
+                                        } catch (_:Exception) {
+                                            searchNotice=SearchNotice.DOWNLOAD_ERROR
+                                            searchFailureCode="TRANSFER_START"
+                                        }
+                                    } else {
+                                        searchNotice=SearchNotice.DOWNLOAD_ERROR
+                                        searchFailureCode="TRANSFER_"+searchInstaller.transfer(current).reason
+                                    }
                                     break
                                 }
                                 else ->Unit
@@ -342,7 +372,7 @@ class MainActivity: ComponentActivity() {
                     }
                 }
                 LaunchedEffect(mapReady,connection,onlineAllowed,searchReady) {
-                    if(mapReady && onlineAllowed && connection==Connection.UNMETERED &&
+                    if(mapReady && !allPackagesRequested && onlineAllowed && connection==Connection.UNMETERED &&
                         !searchReady && searchDownloadId<0 && !searchInstalling &&
                         !searchAutoAttempted) {
                         searchAutoAttempted=true
@@ -372,6 +402,52 @@ class MainActivity: ComponentActivity() {
                         statusKey=TextKey.MAP_DOWNLOADING
                     } catch (_:Exception) {
                         statusKey=TextKey.STORAGE_REQUIRED
+                    }
+                }
+                fun requestAllPackages() {
+                    if(allPackagesRequested)return
+                    mapR2Fallback=false
+                    routingR2Fallback=false
+                    searchR2Fallback=false
+                    statusKey=null
+                    routingMessage=null
+                    searchNotice=null
+                    allPackagesRequested=true
+                    prefs.edit().putBoolean("download_all_turkiye",true).apply()
+                }
+                // Sequential installation ensures 2 GB of downloads are never
+                // duplicated. A failed checksum stops the sequence safely.
+                LaunchedEffect(allPackagesRequested,mapReady,checkingMap,installing,
+                    downloadId,routingDownloadId,routingInstallActive,routingMessage,
+                    searchDownloadId,searchInstalling,searchReady,connection,onlineAllowed) {
+                    if(!allPackagesRequested || connection!=Connection.UNMETERED || !onlineAllowed)
+                        return@LaunchedEffect
+                    if(!mapReady) {
+                        if(!checkingMap && !installing && downloadId<0L &&
+                            statusKey!=TextKey.MAP_ERROR) {
+                            try {
+                                downloadId=installer.download(true)
+                                prefs.edit().putLong("map_download_id",downloadId).apply()
+                                downloadPercent=0
+                                statusKey=TextKey.MAP_DOWNLOADING
+                            } catch (_:Exception) {statusKey=TextKey.STORAGE_REQUIRED}
+                        }
+                    } else if(!router.installed()) {
+                        if(!routingInstallActive && routingDownloadId<0L &&
+                            routingMessage!=RoutingDownloadStatus.ERROR) {
+                            try {
+                                routingDownloadId=routingInstaller.beginWifiDownload()
+                                prefs.edit().putLong("routing_download_id",routingDownloadId).apply()
+                                routingMessage=RoutingDownloadStatus.DOWNLOADING
+                            } catch (_:Exception) {routingMessage=RoutingDownloadStatus.ERROR}
+                        }
+                    } else if(!searchReady) {
+                        if(!searchInstalling && searchDownloadId<0L &&
+                            searchNotice!=SearchNotice.DOWNLOAD_ERROR)
+                            startPlaceSearchDownload()
+                    } else {
+                        allPackagesRequested=false
+                        prefs.edit().remove("download_all_turkiye").apply()
                     }
                 }
                 fun loadMap() {
@@ -548,8 +624,16 @@ class MainActivity: ComponentActivity() {
 
                                 Spacer(Modifier.height(8.dp))
                                 HomeAction(Icons.Default.Map,
-                                    if(mapReady)t(TextKey.MAP_IMPORTED) else t(TextKey.MAP_DOWNLOAD),
-                                    enabled=!installing && downloadId<0L && !mapReady) {loadMap()}
+                                    TurkeyPackageUi.button(language,mapReady && router.installed() && searchReady),
+                                    enabled=!allPackagesRequested && !installing && downloadId<0L &&
+                                        routingDownloadId<0L && searchDownloadId<0L &&
+                                        !(mapReady && router.installed() && searchReady)
+                                ) {requestAllPackages()}
+                                if(allPackagesRequested)
+                                    Text(TurkeyPackageUi.stage(language,mapReady,router.installed(),searchReady,
+                                        downloadId>=0L,downloadPercent,routingDownloadId>=0L,
+                                        routingInstallActive,searchDownloadId>=0L,searchInstalling),
+                                        color=Ink,fontSize=12.sp,textAlign=TextAlign.Center)
                                 HomeAction(Icons.Default.LocationOn,t(TextKey.GRANT_PERMISSIONS)){askPermissions()}
                                 HomeAction(Icons.Default.PlayArrow,t(TextKey.START),enabled=mapReady){startDrive()}
                                 val detail=when {
@@ -582,8 +666,16 @@ class MainActivity: ComponentActivity() {
                                     Column(horizontalAlignment=Alignment.CenterHorizontally,
                                         verticalArrangement=Arrangement.spacedBy(10.dp)) {
                                         HomeAction(Icons.Default.Map,
-                                            if(mapReady)t(TextKey.MAP_IMPORTED) else t(TextKey.MAP_DOWNLOAD),
-                                            enabled=!installing && downloadId<0L && !mapReady){loadMap()}
+                                            TurkeyPackageUi.button(language,mapReady && router.installed() && searchReady),
+                                            enabled=!allPackagesRequested && !installing && downloadId<0L &&
+                                                routingDownloadId<0L && searchDownloadId<0L &&
+                                                !(mapReady && router.installed() && searchReady)
+                                        ){requestAllPackages()}
+                                        if(allPackagesRequested)
+                                            Text(TurkeyPackageUi.stage(language,mapReady,router.installed(),searchReady,
+                                                downloadId>=0L,downloadPercent,routingDownloadId>=0L,
+                                                routingInstallActive,searchDownloadId>=0L,searchInstalling),
+                                                fontSize=11.sp,color=Ink)
                                         HomeAction(Icons.Default.LocationOn,t(TextKey.GRANT_PERMISSIONS)){askPermissions()}
                                         HomeAction(Icons.Default.PlayArrow,t(TextKey.START),enabled=mapReady){startDrive()}
                                         if(installing || downloadId>=0L || checkingMap)
@@ -745,6 +837,18 @@ class MainActivity: ComponentActivity() {
                         modifier=Modifier.verticalScroll(rememberScrollState()),
                         verticalArrangement=Arrangement.spacedBy(8.dp)
                     ){
+                        if(!(mapReady && router.installed() && searchReady)) {
+                            OutlinedButton(
+                                onClick={requestAllPackages()},
+                                enabled=!allPackagesRequested && downloadId<0L &&
+                                    routingDownloadId<0L && searchDownloadId<0L
+                            ) {Text(TurkeyPackageUi.button(language,false))}
+                            if(!mapReady) {
+                                OutlinedButton(onClick={loadMap()}) {
+                                    Text(t(TextKey.MAP_DOWNLOAD)+" / USB")
+                                }
+                            }
+                        }
                         if(!searchReady) {
                             OutlinedButton(
                                 enabled=connection==Connection.UNMETERED && onlineAllowed &&

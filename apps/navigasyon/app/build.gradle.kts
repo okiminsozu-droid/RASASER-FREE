@@ -11,8 +11,8 @@ android {
         applicationId = "com.rasaser.free.navigasyon"
         minSdk = 26
         targetSdk = 35
-        versionCode = 8
-        versionName = "0.8.0-dev"
+        versionCode = 9
+        versionName = "0.9.0-dev"
     }
     buildTypes {
         release {
@@ -25,7 +25,7 @@ android {
         // GitHub runners; NEVER use this variant for Google Play or updates.
         create("fieldTest") {
             initWith(getByName("release"))
-            applicationIdSuffix = ".fieldtest08"
+            applicationIdSuffix = ".fieldtest09"
             versionNameSuffix = "-fieldtest"
             signingConfig = signingConfigs.getByName("debug")
             matchingFallbacks += listOf("release")

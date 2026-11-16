@@ -1,0 +1,55 @@
+name: Navigasyon Turkiye R2 Paketlerini Elle Yayinla
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  upload-r2:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: auto
+      AWS_EC2_METADATA_DISABLED: "true"
+      BUCKET: rasaser-navigasyon-turkiye
+      R2_ENDPOINT: https://94ef7f7ca03b597bfc62783ea751e0fd.r2.cloudflarestorage.com
+    steps:
+      - name: Check secrets are configured
+        run: |
+          set -euo pipefail
+          test -n "$AWS_ACCESS_KEY_ID" && test -n "$AWS_SECRET_ACCESS_KEY"
+      - name: Fetch pinned OSM-based release archives
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/rasaser-r2"
+          cd "$RUNNER_TEMP/rasaser-r2"
+          BASE="https://github.com/okiminsozu-droid/RASASER-FREE/releases/download"
+          curl --fail --location --retry 4 --retry-delay 5 --output rasaser-turkiye-shortbread.zip "$BASE/rasaser-turkiye-maps-v0.1/rasaser-turkiye-shortbread.zip"
+          curl --fail --location --retry 4 --retry-delay 5 --output valhalla_tiles.tar "$BASE/rasaser-turkiye-routing-v0.1/valhalla_tiles.tar"
+          curl --fail --location --retry 4 --retry-delay 5 --output turkey-places.zip "$BASE/rasaser-turkiye-search-v0.1/turkey-places.zip"
+          curl --fail --location --retry 4 --output valhalla-turkiye-manifest.json "$BASE/rasaser-turkiye-routing-v0.1/valhalla-turkiye-manifest.json"
+          curl --fail --location --retry 4 --output valhalla.json "$BASE/rasaser-turkiye-routing-v0.1/valhalla.json"
+          curl --fail --location --retry 4 --output turkey.manifest.json "$BASE/rasaser-turkiye-maps-v0.1/turkey.manifest.json"
+          echo "c7d8b277a916ffd4ec7839c7c0420104c19b88fcfcea456be7078346003bacfc  rasaser-turkiye-shortbread.zip" > SHA256SUMS
+          echo "bdfd9a67d8fdd0d5856013e889c6e48cd8a14560934cc5d2b6f3c16a8f6a554f  valhalla_tiles.tar" >> SHA256SUMS
+          echo "048f474b1ff427ac2310b5201a283d027d87ec769ca7e808254ffbbdf6b603f0  turkey-places.zip" >> SHA256SUMS
+          sha256sum --check SHA256SUMS
+      - name: Upload multipart to Cloudflare R2
+        run: |
+          set -euo pipefail
+          python3 -m pip install --user awscli
+          export PATH="$HOME/.local/bin:$PATH"
+          cd "$RUNNER_TEMP/rasaser-r2"
+          for item in rasaser-turkiye-shortbread.zip valhalla_tiles.tar turkey-places.zip valhalla-turkiye-manifest.json valhalla.json turkey.manifest.json SHA256SUMS; do
+            aws --endpoint-url "$R2_ENDPOINT" s3 cp "$item" "s3://$BUCKET/v1/$item" --no-progress
+          done
+          for item in rasaser-turkiye-shortbread.zip valhalla_tiles.tar turkey-places.zip; do
+            local_bytes="$(stat -c %s "$item")"
+            remote_bytes="$(aws --endpoint-url "$R2_ENDPOINT" s3api head-object --bucket "$BUCKET" --key "v1/$item" --query ContentLength --output text)"
+            test "$local_bytes" = "$remote_bytes"
+          done
+          echo "R2 upload complete; Android still validates pinned SHA256 hashes."
