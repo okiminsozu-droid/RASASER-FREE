@@ -60,4 +60,4 @@ jobs:
           disk-size: 6G
           disable-animations: true
           emulator-boot-timeout: 600
-          script: gradle --no-daemon --project-dir apps/navigasyon :app:connectedDebugAndroidTest --stacktrace
+          script: gradle --no-daemon --project-dir apps/navigasyon :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.rasaser.free.navigasyon.SearchInstallDeviceTest --stacktrace
