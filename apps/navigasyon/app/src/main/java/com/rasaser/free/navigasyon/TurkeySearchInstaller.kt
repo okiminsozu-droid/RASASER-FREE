@@ -171,8 +171,20 @@ class TurkeySearchInstaller(private val context: Context) {
                     return report(false,Stage.SQLITE_OPEN)
                 }
                 if(!good)return report(false,Stage.SQLITE_INTEGRITY)
-                if(index.exists())return report(true,Stage.READY) // keep current install
-                if(!stage.renameTo(index))return report(false,Stage.FILE_INSTALL)
+                if(index.exists()) {
+                    if(installed())return report(true,Stage.READY)
+                    // Preserve a broken index for diagnosis, but never treat it
+                    // as installed or overwrite a known-good database.
+                    val backup=File(directory,"turkey-places.invalid.sqlite")
+                    if(backup.exists() || !index.renameTo(backup))
+                        return report(false,Stage.FILE_INSTALL)
+                    if(!stage.renameTo(index)) {
+                        backup.renameTo(index)
+                        return report(false,Stage.FILE_INSTALL)
+                    }
+                } else if(!stage.renameTo(index)) {
+                    return report(false,Stage.FILE_INSTALL)
+                }
                 return report(true,Stage.READY)
             } finally {stage.delete()}
         } catch(e:Exception){
