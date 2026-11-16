@@ -18,20 +18,24 @@ import java.security.MessageDigest
 class OfflineRouteEngineDeviceTest {
     @Test fun turkiyeOfflineRoutingFindsRealRoads() {
         val context=InstrumentationRegistry.getInstrumentation().targetContext
-        val fixture=File(requireNotNull(context.getExternalFilesDir(null)),"valhalla-fixture")
-        val graphSource=File(fixture,"valhalla_tiles.tar")
-        val configSource=File(fixture,"valhalla.json")
-        val metadataSource=File(fixture,"valhalla-turkiye-manifest.json")
-        assertTrue("Pinned Valhalla graph fixture missing",graphSource.isFile)
-        assertTrue("Graph size mismatch",graphSource.length()==TurkeyRoutingInstaller.GRAPH_BYTES)
-        assertTrue("Valhalla config missing",configSource.isFile)
-        assertTrue("Valhalla manifest missing",metadataSource.isFile)
         val routing=File(context.filesDir,"routing").apply { mkdirs() }
         val graph=File(routing,"valhalla_tiles.tar")
-        if(!graph.exists())graphSource.copyTo(graph,overwrite=false,bufferSize=1024*1024)
-        configSource.copyTo(File(routing,"valhalla.json"),overwrite=true)
-        // The installer normally names the metadata exactly like this.
-        metadataSource.copyTo(File(routing,"valhalla.manifest.json"),overwrite=true)
+        val config=File(routing,"valhalla.json")
+        val metadata=File(routing,"valhalla.manifest.json")
+        // The emulator test first stages pinned files directly into the app's
+        // private directory. A fallback supports manual local device tests.
+        if(!graph.isFile) {
+            val fixture=File(requireNotNull(context.getExternalFilesDir(null)),"valhalla-fixture")
+            val source=File(fixture,"valhalla_tiles.tar")
+            assertTrue("No graph at "+graph.path+" or "+source.path,source.isFile)
+            source.copyTo(graph,overwrite=false,bufferSize=1024*1024)
+            File(fixture,"valhalla.json").copyTo(config,overwrite=true)
+            File(fixture,"valhalla-turkiye-manifest.json").copyTo(metadata,overwrite=true)
+        }
+        assertTrue("Graph absent from private routing directory",graph.isFile)
+        assertTrue("Graph size mismatch",graph.length()==TurkeyRoutingInstaller.GRAPH_BYTES)
+        assertTrue("Valhalla config missing",config.isFile)
+        assertTrue("Valhalla manifest missing",metadata.isFile)
         OfflineRouteEngine(context).use { engine ->
             assertTrue("Pinned graph must be installed",engine.installed())
             val istanbul=engine.route(
