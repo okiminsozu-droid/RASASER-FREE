@@ -138,13 +138,10 @@ class TurkeyCountryPackWorker(context: Context, params: WorkerParameters):
                 // A completed, checksum-verified ZIP already occupies storage.
                 // Counting it as "missing" is what can repeatedly block 99%.
                 val networkNeeded=transfer.requiresNetwork(asset)
-                val missing=if(networkNeeded)
-                    (asset.size-partial.length().coerceIn(0,asset.size)).coerceAtLeast(0)
-                    else 0L
-                val finalSearch=asset.name==TurkeyAssets.search.name
-                val reserve=if(finalSearch) 260_000_000L else installReserve
-                val overhead=if(finalSearch) 0L else 80_000_000L
-                checkStorage(missing + reserve + overhead)
+                val spaceRequired=TurkeyInstallSpace.requiredBytes(
+                    asset.size,partial.length(),!networkNeeded,installReserve,
+                    asset.name==TurkeyAssets.search.name)
+                checkStorage(spaceRequired)
                 // Fully checksum-verified cached files can be installed offline.
                 // Partials require an allowed connection; never spend mobile
                 // data on a user-selected Wi-Fi-only transfer.
