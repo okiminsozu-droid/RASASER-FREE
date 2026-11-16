@@ -34,7 +34,7 @@ def get_token():
 
 def api(method,route,file,data=None,extra=None,attempts=4):
     url=ENDPOINT+route+"?file="+urllib.parse.quote(file)
-    headers={"Authorization":"Bearer "+get_token(),"Accept":"application/json"}
+    headers={"Authorization":"Bearer "+get_token(),"Accept":"application/json","User-Agent":"curl/8.12.1"}
     if extra:headers.update(extra)
     if isinstance(data,(dict,list)):
         data=json.dumps(data,separators=(",",":")).encode()
@@ -118,7 +118,7 @@ def copy_file(filename):
         raise RuntimeError("Final R2 metadata verification failed: "+filename)
 
 def main():
-    req=urllib.request.Request(ENDPOINT+"/health")
+    req=urllib.request.Request(ENDPOINT+"/health",headers={"User-Agent":"curl/8.12.1"})
     with urllib.request.urlopen(req,timeout=25) as res:
         print("Worker health:",res.read(400).decode(),flush=True)
     for filename in SOURCES:
