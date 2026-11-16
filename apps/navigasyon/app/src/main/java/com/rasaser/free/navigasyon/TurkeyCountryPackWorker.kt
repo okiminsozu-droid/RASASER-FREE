@@ -6,6 +6,9 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
+import android.os.SystemClock
 import android.os.Build
 import android.os.Environment
 import android.os.StatFs
@@ -57,9 +60,10 @@ class TurkeyCountryPackWorker(context: Context, params: WorkerParameters):
 
         fun enqueue(context: Context, wifiOnly: Boolean = true) {
             val request = OneTimeWorkRequestBuilder<TurkeyCountryPackWorker>()
-                .setConstraints(Constraints.Builder()
-                    .setRequiredNetworkType(if(wifiOnly) NetworkType.UNMETERED
-                        else NetworkType.CONNECTED).build())
+                // Download connectivity is enforced at each GET. The last 1%
+                // (SQLite unpack + SHA + integrity checks) is local and must
+                // not be stopped because Wi-Fi briefly disconnects.
+                .setConstraints(Constraints.NONE)
                 .setInputData(workDataOf(WIFI_ONLY to wifiOnly))
                 .setBackoffCriteria(BackoffPolicy.EXPONENTIAL,30,TimeUnit.SECONDS)
                 .addTag(UNIQUE)
@@ -89,6 +93,15 @@ class TurkeyCountryPackWorker(context: Context, params: WorkerParameters):
         val root = context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)
             ?: return@withContext fail("storage")
         val transfer = ResumableTurkeyTransfer(File(root,"rasaser-turkiye-resumable-v1"))
+        val wifiOnly=inputData.getBoolean(WIFI_ONLY,true)
+        val connectivity=context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        fun allowedNetwork():Boolean {
+            val active=connectivity.activeNetwork ?: return false
+            val caps=connectivity.getNetworkCapabilities(active) ?: return false
+            return caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+                caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED) &&
+                (!wifiOnly || caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED))
+        }
         try {
             setForeground(foreground("Türkiye indiriliyor",0))
             fun progress(stage:Int, current:Long) {
@@ -124,7 +137,22 @@ class TurkeyCountryPackWorker(context: Context, params: WorkerParameters):
                 val partial=File(root,"rasaser-turkiye-resumable-v1/" + asset.name + ".part")
                 val missing=(asset.size-partial.length().coerceIn(0,asset.size)).coerceAtLeast(0)
                 checkStorage(missing + installReserve + 80_000_000L)
-                val file = transfer.download(asset, {isStopped}) { progress(stage,it) }
+                // Fully checksum-verified cached files can be installed offline.
+                // Partials require an allowed connection; never spend mobile
+                // data on a user-selected Wi-Fi-only transfer.
+                if(transfer.requiresNetwork(asset) && !allowedNetwork())
+                    throw WaitingForNetworkException()
+                var lastNetworkCheck=0L
+                val file = transfer.download(asset, {
+                    if(isStopped) true
+                    else {
+                        val now=SystemClock.elapsedRealtime()
+                        if(now-lastNetworkCheck>1200L) {
+                            lastNetworkCheck=now
+                            !allowedNetwork()
+                        } else false
+                    }
+                }) { progress(stage,it) }
                 bytesComplete += asset.size
                 progress(stage,0L)
                 return file
@@ -196,12 +224,20 @@ class TurkeyCountryPackWorker(context: Context, params: WorkerParameters):
                 MAP_READY to true,ROUTE_READY to true,SEARCH_READY to true))
         } catch (_: InsufficientStorageException) {
             fail("storage")
+        } catch (_: WaitingForNetworkException) {
+            // Preserve .part and already-verified data; do not claim progress
+            // while disconnected. A foreground retry may resume after Wi-Fi.
+            if(runAttemptCount >= 7) fail("wifi_wait")
+            else Result.retry()
         } catch (_: IOException) {
-            // Keep .part bytes: WorkManager retries when Wi-Fi becomes available.
-            if(runAttemptCount >= 7) fail("download_retry")
+            // SQLite verification is local, so retrying network endlessly at
+            // 99% cannot repair a deterministic on-device installation error.
+            if(currentStage==STAGE_SEARCH_VERIFY) fail("search_verify")
+            else if(runAttemptCount >= 7) fail("download_retry")
             else Result.retry()
         } catch (_: Exception) {
-            if(runAttemptCount >= 3) fail("verify_install")
+            if(currentStage==STAGE_SEARCH_VERIFY) fail("search_verify")
+            else if(runAttemptCount >= 3) fail("verify_install")
             else Result.retry()
         }
     }
@@ -242,4 +278,5 @@ class TurkeyCountryPackWorker(context: Context, params: WorkerParameters):
     }
 
     private class InsufficientStorageException: IOException()
+    private class WaitingForNetworkException: IOException()
 }
