@@ -193,6 +193,79 @@ class TurkeySearchInstaller(private val context: Context) {
         } finally { temporary?.delete() }
     }
 
+
+    /**
+     * The independently signed field-test variant bundles a verified local
+     * 1M-place SQLite database, eliminating initial DownloadManager failures.
+     * Normal release variants can keep using the separate free ZIP download.
+     */
+    fun bundledAvailable():Boolean=runCatching {
+        context.assets.open("search/turkey-places.sqlite").use { true }
+    }.getOrDefault(false)
+
+    /** Called off the main thread; verifies the complete embedded ODbL index. */
+    fun installBundled():Boolean {
+        if(installed())return true
+        if(!bundledAvailable())return false
+        if(StatFs(context.filesDir.absolutePath).availableBytes<260_000_000L)
+            return report(false,Stage.NO_STORAGE).installed
+        directory.mkdirs()
+        val stage=File(directory,"turkey-places.embedded.next.sqlite")
+        stage.delete()
+        try {
+            val sha=MessageDigest.getInstance("SHA-256")
+            var copied=0L
+            context.assets.open("search/turkey-places.sqlite").use {input->
+                stage.outputStream().buffered().use {out->
+                    val buffer=ByteArray(256*1024)
+                    while(true){
+                        val n=input.read(buffer)
+                        if(n<0)break
+                        copied+=n
+                        if(copied>DB_BYTES)return report(false,Stage.UNPACK_SIZE).installed
+                        sha.update(buffer,0,n)
+                        out.write(buffer,0,n)
+                    }
+                }
+            }
+            if(copied!=DB_BYTES)return report(false,Stage.UNPACK_SIZE).installed
+            if(sha.digest().joinToString(""){"%02x".format(it)}!=DB_SHA)
+                return report(false,Stage.UNPACK_CHECKSUM).installed
+            val compatible=try {
+                SQLiteDatabase.openDatabase(stage.path,null,SQLiteDatabase.OPEN_READONLY).use {db->
+                    val schema=db.rawQuery("SELECT value FROM info WHERE key='schema'",null).use {cur->
+                        cur.moveToFirst() && cur.getString(0)=="1"
+                    }
+                    val total=db.rawQuery("SELECT count(*) FROM places",null).use {cur->
+                        cur.moveToFirst() && cur.getLong(0)>=1_000_000L
+                    }
+                    val fts=db.rawQuery(
+                        "SELECT count(*) FROM places_fts WHERE normalized MATCH 'ankara*'",null
+                    ).use {cur->cur.moveToFirst() && cur.getLong(0)>0}
+                    schema && total && fts
+                }
+            }catch(e:Exception){
+                Log.w(TAG,"Bundled SQLite incompatible with this device",e)
+                return report(false,Stage.SQLITE_OPEN).installed
+            }
+            if(!compatible)return report(false,Stage.SQLITE_SCHEMA).installed
+            if(installed())return true
+            if(index.exists()){
+                val backup=File(directory,"turkey-places.invalid.sqlite")
+                if(backup.exists() || !index.renameTo(backup))
+                    return report(false,Stage.FILE_INSTALL).installed
+            }
+            if(!stage.renameTo(index))return report(false,Stage.FILE_INSTALL).installed
+            report(true,Stage.READY)
+            return true
+        }catch(e:Exception){
+            Log.w(TAG,"Bundled index verification failed",e)
+            return report(false,Stage.UNKNOWN).installed
+        }finally{
+            stage.delete()
+        }
+    }
+
     private fun report(ok:Boolean,stage:Stage):Result {
         lastStage=stage
         if(!ok)Log.w(TAG,"Installation stage: $stage")
