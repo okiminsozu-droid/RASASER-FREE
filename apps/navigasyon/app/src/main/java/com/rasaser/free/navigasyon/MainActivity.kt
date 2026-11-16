@@ -331,6 +331,17 @@ class MainActivity: ComponentActivity() {
                             if(gpsFix==null)
                                 InfoPill(t(TextKey.GPS_WAITING))
                             routeSnapshot?.let { guidance ->
+                                if(guidance.hazards.isNotEmpty()) {
+                                    Card(colors=CardDefaults.cardColors(containerColor=Panel),
+                                        shape=RoundedCornerShape(18.dp)) {
+                                        Column(Modifier.padding(12.dp)) {
+                                            for(hazard in guidance.hazards) {
+                                                Text("⚠ " + HazardWords.text(language,hazard),
+                                                    color=Color(0xFF8C4C25),fontSize=13.sp)
+                                            }
+                                        }
+                                    }
+                                }
                                 if (routePlan!=null && !guidance.arrived && guidance.nextInstruction!=null) {
                                     Card(colors=CardDefaults.cardColors(containerColor=Panel),
                                         shape=RoundedCornerShape(18.dp)) {
@@ -580,6 +591,9 @@ class MainActivity: ComponentActivity() {
                     title={Text(t(TextKey.ALERTS))},
                     text={Column(verticalArrangement=Arrangement.spacedBy(9.dp)){
                         Text(t(TextKey.WARNINGS_INFO))
+                        routeSnapshot?.hazards?.forEach { hazard ->
+                            Text(HazardWords.text(language,hazard),fontSize=13.sp)
+                        }
                         Text(t(TextKey.SPEED_WARNING_UNAVAILABLE))
                         Text(t(TextKey.LIVE_WARNINGS_UNAVAILABLE))
                         Text(t(TextKey.NO_DESTINATION),fontSize=12.sp)
@@ -710,6 +724,8 @@ class MainActivity: ComponentActivity() {
                 calculateRoute(NavPoint(location.latitude,location.longitude),dest)
         } else if(voiceEnabled && !result.speech.isNullOrBlank()) {
             voice.speak(result.speech)
+        } else if(voiceEnabled && result.hazardToAnnounce!=null) {
+            voice.speak(HazardWords.text(language,result.hazardToAnnounce))
         }
     }
 

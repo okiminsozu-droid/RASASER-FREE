@@ -3,11 +3,14 @@ package com.rasaser.free.navigasyon
 import kotlin.math.*
 
 /** One real Valhalla maneuver with a precise route geometry index. */
+enum class RouteHazard { TOLL, ROUGH_ROAD, FERRY, GATE }
+
 data class RouteManeuver(
     val shapeIndex: Int,
     val instruction: String,
     val earlyInstruction: String,
-    val nearInstruction: String
+    val nearInstruction: String,
+    val hazards:List<RouteHazard> = emptyList()
 )
 
 data class GuidanceSnapshot(
@@ -17,7 +20,9 @@ data class GuidanceSnapshot(
     val nextInstruction: String?,
     val speech: String?,
     val shouldReroute: Boolean,
-    val arrived: Boolean
+    val arrived: Boolean,
+    val hazards:List<RouteHazard> = emptyList(),
+    val hazardToAnnounce:RouteHazard? = null
 )
 
 /**
@@ -109,9 +114,20 @@ class RouteGuidance(private val route: RoutePlan) {
             }
         }
 
+        val hazards=upcoming?.value?.hazards?.takeIf { (distanceToTurn ?: 100000.0) < 650.0 }
+            ?: emptyList()
+        var hazardToAnnounce:RouteHazard?=null
+        if(speech==null && !offRoute && !arrived) {
+            for(hazard in hazards) {
+                if(spoken.add("${upcoming!!.index}:hazard:${hazard.name}")) {
+                    hazardToAnnounce=hazard
+                    break
+                }
+            }
+        }
         return GuidanceSnapshot(remaining, bestDistance, distanceToTurn,
             upcoming?.value?.instruction?.takeIf { it.isNotBlank() },
-            speech, shouldReroute, arrived)
+            speech, shouldReroute, arrived,hazards,hazardToAnnounce)
     }
 
     companion object {

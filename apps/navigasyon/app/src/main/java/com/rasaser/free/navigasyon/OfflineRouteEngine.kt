@@ -94,9 +94,15 @@ class OfflineRouteEngine(private val context: Context) : Closeable {
                     val index=offset+localIndex
                     if(index !in points.indices)continue
                     instructions+=text
+                    val warnings=buildList {
+                        if(maneuver.optBoolean("toll",false))add(RouteHazard.TOLL)
+                        if(maneuver.optBoolean("rough",false))add(RouteHazard.ROUGH_ROAD)
+                        if(maneuver.optBoolean("ferry",false))add(RouteHazard.FERRY)
+                        if(maneuver.optBoolean("gate",false))add(RouteHazard.GATE)
+                    }
                     turns+=RouteManeuver(index,text,
                         maneuver.optString("verbal_transition_alert_instruction","").trim(),
-                        maneuver.optString("verbal_pre_transition_instruction","").trim())
+                        maneuver.optString("verbal_pre_transition_instruction","").trim(),warnings)
                 }
             }
             if(points.size<2)return@synchronized null
