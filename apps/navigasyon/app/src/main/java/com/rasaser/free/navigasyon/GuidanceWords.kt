@@ -3,7 +3,7 @@ package com.rasaser.free.navigasyon
 enum class GuidanceLabel { NEXT_TURN, ARRIVED, REROUTING, SPEED_CAUTION, SPEED_LIMIT, LIMIT_UNKNOWN }
 
 object GuidanceWords {
-    private val values:Map<NavLanguage,List<String>>=mapOf(
+    private val values: Map<NavLanguage, List<String>> = mapOf(
         NavLanguage.TR to listOf("Sonraki manevra", "Hedefe ulaştınız", "Rota yeniden hesaplanıyor",
             "Dikkat, hız sınırını aştınız", "Hız sınırı", "Hız sınırı bilinmiyor"),
         NavLanguage.EN to listOf("Next maneuver", "You have arrived", "Recalculating route",
