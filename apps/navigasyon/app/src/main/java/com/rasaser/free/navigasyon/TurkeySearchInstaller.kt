@@ -26,6 +26,9 @@ class TurkeySearchInstaller(private val context: Context) {
         const val ZIP_SHA="048f474b1ff427ac2310b5201a283d027d87ec769ca7e808254ffbbdf6b603f0"
         const val DB_SHA="8ce8f9592e223a4d310c4e4b12151334e50dc13fa5054f44ec3ff525adce038f"
         private const val TAG="RaSaSeRSearchInstall"
+        // Activity recovery and WorkManager may reach the same SQLite at 99%.
+        // Only one installer may manipulate the staged and live index at a time.
+        private val INDEX_INSTALL_LOCK = Any()
     }
 
     enum class Stage { READY, NEED_DOWNLOAD, ZIP_MISSING, ZIP_SIZE, ZIP_CHECKSUM,
@@ -87,7 +90,10 @@ class TurkeySearchInstaller(private val context: Context) {
     /** Must run on a worker thread after successful transfer or for retry. */
     fun install(downloadId:Long?=null):Boolean=installWithResult(downloadId).installed
 
-    fun installWithResult(downloadId:Long?=null, sourceArchive:File?=null):Result {
+    fun installWithResult(downloadId:Long?=null, sourceArchive:File?=null):Result =
+        synchronized(INDEX_INSTALL_LOCK) { installWithResultLocked(downloadId,sourceArchive) }
+
+    private fun installWithResultLocked(downloadId:Long?,sourceArchive:File?):Result {
         if(installed())return report(true,Stage.READY)
         // The 150 MB index is written once; reserve a further 110 MB for SQLite
         // and filesystem overhead. Match installBundled() instead of rejecting
@@ -180,8 +186,10 @@ class TurkeySearchInstaller(private val context: Context) {
                     if(installed())return report(true,Stage.READY)
                     // Preserve a broken index for diagnosis, but never treat it
                     // as installed or overwrite a known-good database.
-                    val backup=File(directory,"turkey-places.invalid.sqlite")
-                    if(backup.exists() || !index.renameTo(backup))
+                    // A previous failed repair must not permanently block a
+                    // later verified archive. Preserve all invalid copies.
+                    val backup=invalidBackup()
+                    if(!index.renameTo(backup))
                         return report(false,Stage.FILE_INSTALL)
                     if(!stage.renameTo(index)) {
                         backup.renameTo(index)
@@ -209,7 +217,11 @@ class TurkeySearchInstaller(private val context: Context) {
     }.getOrDefault(false)
 
     /** Called off the main thread; verifies the complete embedded ODbL index. */
-    fun installBundled():Boolean {
+    fun installBundled():Boolean = synchronized(INDEX_INSTALL_LOCK) {
+        installBundledLocked()
+    }
+
+    private fun installBundledLocked():Boolean {
         if(installed())return true
         if(!bundledAvailable())return false
         if(StatFs(context.filesDir.absolutePath).availableBytes<260_000_000L)
@@ -256,11 +268,16 @@ class TurkeySearchInstaller(private val context: Context) {
             if(!compatible)return report(false,Stage.SQLITE_SCHEMA).installed
             if(installed())return true
             if(index.exists()){
-                val backup=File(directory,"turkey-places.invalid.sqlite")
-                if(backup.exists() || !index.renameTo(backup))
+                val backup=invalidBackup()
+                if(!index.renameTo(backup))
                     return report(false,Stage.FILE_INSTALL).installed
+                if(!stage.renameTo(index)) {
+                    backup.renameTo(index)
+                    return report(false,Stage.FILE_INSTALL).installed
+                }
+            } else if(!stage.renameTo(index)) {
+                return report(false,Stage.FILE_INSTALL).installed
             }
-            if(!stage.renameTo(index))return report(false,Stage.FILE_INSTALL).installed
             report(true,Stage.READY)
             return true
         }catch(e:Exception){
@@ -269,6 +286,13 @@ class TurkeySearchInstaller(private val context: Context) {
         }finally{
             stage.delete()
         }
+    }
+
+    // Do not delete pre-existing failed-install backups or an installed index.
+    private fun invalidBackup():File {
+        val original=File(directory,"turkey-places.invalid.sqlite")
+        if(!original.exists())return original
+        return File(directory,"turkey-places.invalid-${System.currentTimeMillis()}-${System.nanoTime()}.sqlite")
     }
 
     private fun report(ok:Boolean,stage:Stage):Result {
