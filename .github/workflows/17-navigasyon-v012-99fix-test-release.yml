@@ -1,0 +1,62 @@
+name: Navigasyon v0.12 99 Fix Test APK Yayin
+on:
+  push:
+    branches:
+      - feature/rasaser-nav-99percent-safe-fix-v012
+    paths:
+      - '.github/workflows/17-navigasyon-v012-99fix-test-release.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: read
+jobs:
+  publish-pinned-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Basarili test derlemesini ve imzali APK'yi dogrula
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -Eeuo pipefail
+          REPO="okiminsozu-droid/RASASER-FREE"
+          RUN="43876905355"
+          RESULT=""
+          for attempt in $(seq 1 90); do
+            RESULT="$(gh run view "$RUN" --repo "$REPO" --json conclusion --jq .conclusion)"
+            if [ "$RESULT" = "success" ]; then break; fi
+            if [ "$RESULT" != "" ]; then
+              echo "APK compilation/verification did not pass: $RESULT" >&2
+              exit 1
+            fi
+            sleep 12
+          done
+          test "$RESULT" = success
+          mkdir -p "$RUNNER_TEMP/nav-v012"
+          gh run download "$RUN" --repo "$REPO" \
+            --name rasaser-navigasyon-v012-99fix-test-111 \
+            --dir "$RUNNER_TEMP/nav-v012"
+          cd "$RUNNER_TEMP/nav-v012"
+          sha256sum -c SHA256SUMS.txt
+          APK="$PWD/RaSaSeR-Navigasyon-v0.12-99fix-TEST.apk"
+          test -s "$APK"
+          test "$(stat -c %s "$APK")" -lt 100000000
+          echo "FINAL_APK=$APK" >> "$GITHUB_ENV"
+      - name: Guvenli on test APK yayini
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -Eeuo pipefail
+          REPO="okiminsozu-droid/RASASER-FREE"
+          TAG="rasaser-navigasyon-v0.12-99fix-test"
+          if ! gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1; then
+            gh release create "$TAG" --repo "$REPO" \
+              --target "81ae8936014de07073d5989f53e159cb7788faa9" \
+              --title "RaSaSeR Navigasyon v0.12 - %99 Kurulum Onarimi / Saha Testi" \
+              --notes "GELISTIRME TESTI - GERCEK SURUS ICIN ONAYLANMAMISTIR. Son %99 yer arama SQLite kurulumunda Cloudflare arşivleri yeniden sayilmaz. Arşiv tamamen indiğinde yerel doğrulama Wi-Fi olmasa da tamamlanabilir, ancak yeni indirmeler Wi-Fi only ayarına uyar. Eşzamanlı indeks kurulumları kilitlenir, bozuk DB yedekleri korunur ve geçerli SQLite yeniden kurulabilir. GitHub Kotlin testleri ve APK imza/bütünlük doğrulaması sonrası yayınlanır. Harita ve rota dosyaları APK içine gömülü değildir; uygulamadan indirilir. Bu fieldtest12 sürümü, v0.10 ve v0.11 yanına kurulur; eski uygulamaların özel depolamasına erişemez. Eski test sürümlerini silmeyin." \
+              --prerelease
+          fi
+          gh release upload "$TAG" "$FINAL_APK#RaSaSeR-Navigasyon-v0.12-99fix-TEST.apk" \
+            --repo "$REPO" --clobber
+          gh release view "$TAG" --repo "$REPO" --json url,assets \
+            --jq '{release:.url,apk:[.assets[]|{name:.name,size:.size,url:.url}]}'

@@ -66,6 +66,16 @@ internal object TurkeyRangeCheck {
 internal class ResumableTurkeyTransfer(private val folder: File) {
     init { if(!folder.exists() && !folder.mkdirs()) throw IOException("storage unavailable") }
 
+    /** Previously downloaded and fully verified files need no active network.
+     * This lets the final 99% local database install complete after Wi-Fi drops. */
+    fun requiresNetwork(asset:TurkeyAsset):Boolean {
+        val files=listOf(File(folder,asset.name),File(folder,asset.name+".part"))
+        return files.none { file ->
+            file.isFile && file.length()==asset.size &&
+                fileSha256(file).equals(asset.sha256,ignoreCase=true)
+        }
+    }
+
     fun download(asset: TurkeyAsset, cancelled: () -> Boolean,
                  progress: (Long) -> Unit): File {
         val completed = File(folder,asset.name)
