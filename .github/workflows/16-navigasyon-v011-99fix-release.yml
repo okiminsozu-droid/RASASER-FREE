@@ -1,0 +1,49 @@
+name: Navigasyon v0.11 99-Yuzde Duzeltme APK Yayin
+on:
+  push:
+    branches:
+      - feature/rasaser-nav-turkiye-data-v1
+    paths:
+      - '.github/workflows/16-navigasyon-v011-99fix-release.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: read
+jobs:
+  publish-tested-fieldtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Basarili v0.11 derlemesini getir
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -Eeuo pipefail
+          R="okiminsozu-droid/RASASER-FREE"
+          test "$(gh run view 43866792859 --repo "$R" --json conclusion -q '.conclusion')" = "success"
+          mkdir -p "$RUNNER_TEMP/nav011"
+          gh run download 43866792859 --repo "$R" \
+            --name rasaser-navigasyon-v011-99fix-test-108 --dir "$RUNNER_TEMP/nav011"
+          cd "$RUNNER_TEMP/nav011"
+          sha256sum -c SHA256SUMS.txt
+          test -s RaSaSeR-Navigasyon-v0.11-99fix-TEST.apk
+          test "$(stat -c %s RaSaSeR-Navigasyon-v0.11-99fix-TEST.apk)" -lt 100000000
+          echo "APK=$RUNNER_TEMP/nav011/RaSaSeR-Navigasyon-v0.11-99fix-TEST.apk" >> "$GITHUB_ENV"
+      - name: Dogrudan APK indirme sayfasi
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -Eeuo pipefail
+          R="okiminsozu-droid/RASASER-FREE"
+          TAG="rasaser-navigasyon-v0.11-99fix-test"
+          if ! gh release view "$TAG" --repo "$R" >/dev/null 2>&1; then
+            gh release create "$TAG" --repo "$R" \
+              --target 28f5b920a28799ac7483ca09676713ab539f111b \
+              --title "RaSaSeR Navigasyon v0.11 - 99% Kurulum Duzeltmesi" \
+              --notes "Android saha test APK. v0.10'da 3/3 yer arama 99% takilma goruntusu icin dogrulama-asamasi gorunurlugu, duzeltilmis bos alan siniri ve indirilen dosyalari silmeden devam akisi. 606 MB harita, 1.15 GB Valhalla rota ve 66 MB yer arama verisi uygulamadan ayri indirilecektir. APK bunlari icermez. Test APK paket kimligi com.rasaser.free.navigasyon.fieldtest11; eski v0.10 test paketiyle yan yana kurulur ve onceden indirdiginiz v0.10 verisini otomatik goremez. v0.10 uygulamasini verileri korumak icin silmeyin. GitHub test sertifikasi farkli olabilir. Gercek yol surus testleri bitmemistir." \
+              --prerelease
+          fi
+          gh release upload "$TAG" "$APK#RaSaSeR-Navigasyon-v0.11-99fix-TEST.apk" \
+            --repo "$R" --clobber
+          gh release view "$TAG" --repo "$R" --json assets,url \
+            -q '{release: .url, assets: [.assets[] | {name: .name, size: .size, url: .url}]}'
