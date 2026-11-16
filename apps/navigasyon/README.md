@@ -94,3 +94,12 @@ Release SHA256'in GitHub tarafından bildirilen gerçek varlık özeti esas alı
 **Yayıma hazır değildir:** Gerçek yol sürüş testi, kamera/radar/yol kapanışı canlı veri sağlayıcısı, özel yetkili cihazlarda otomatik araç ekranı açılma testi, yayına imzalı optimize APK/AAB gereklidir. Doğrulanmış bir canlı veri kaynağı olmadan kamera/radar/yoğunluk bilgileri gösterilmez.
 
 GitHub QA, Kotlin birim testleri, debug derleme ve **unsigned optimize release derleme kontrolü** için `05-navigasyon-android-ci.yml` kullanılır. İmzalama anahtarları PUBLIC repoya konmaz.
+
+## v0.6 sahada test edilebilir paket — YAYIN DEĞİL
+
+- Altı dilde kullanıcı **mikrofon** düğmesinden çevrimdışı ses tanıma ile açık komut verebilir: ayarlar, uyarılar, ana ekran, sesi aç/kapat, hedefi temizle. Tanıma yalnız cihazın on-device servisi varsa çalışır; cümle içinde geçen kelimeler komut sayılmaz.
+- Gerçek yol tarifi, sesli manevra, hız kontrolü ve yerel harita modülleri v0.5 sürümünden korunmuştur.
+- `fieldTest` Android çeşidi = **release ile aynı minify/resource shrink** + farklı paket adı `com.rasaser.free.navigasyon.fieldtest` + **yalnız TEST debug anahtarı**. Gerçek üretim imzası/release anahtarı kullanılmaz ve public depoda saklanmaz.
+- GitHub PR Android CI testi başarılı olursa **5 gün saklanan test APK ZIP artifact'i** oluşur. APK yanında SHA256SUMS ve README. Test paketi kendi kaynak haritasını taşımaz; Türkiye haritası ve rota verisi uygulama içinden Wi-Fi ile ilk kez indirilir.
+- GitHub Actions'ın rastgele debug anahtarı her yeni derlemede değişebilir; önceki test APK'sı aynı paket üzerine güncellenmeyebilir, önce kaldırılması gerekebilir. Play Store'a kesinlikle gönderilmez.
+- QA Android 15 telefon ve yerel Android 15 araç ekranında yükleme/GPS/MBTiles/rota/TTS/uyarı/ekran döndürme koşulları gerçek cihazda tek tek denenmeden **kullanıma hazır/yayınlanabilir** denmez.

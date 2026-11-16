@@ -11,8 +11,8 @@ android {
         applicationId = "com.rasaser.free.navigasyon"
         minSdk = 26
         targetSdk = 35
-        versionCode = 5
-        versionName = "0.5.0-dev"
+        versionCode = 6
+        versionName = "0.6.0-dev"
     }
     buildTypes {
         release {
@@ -20,6 +20,15 @@ android {
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             // PUBLIC repository contains no signing configuration.
+        }
+        // Installable, minimized FIELD TEST only. Debug key changes between
+        // GitHub runners; NEVER use this variant for Google Play or updates.
+        create("fieldTest") {
+            initWith(getByName("release"))
+            applicationIdSuffix = ".fieldtest"
+            versionNameSuffix = "-fieldtest"
+            signingConfig = signingConfigs.getByName("debug")
+            matchingFallbacks += listOf("release")
         }
     }
     buildFeatures { compose = true }
