@@ -89,7 +89,10 @@ class TurkeySearchInstaller(private val context: Context) {
 
     fun installWithResult(downloadId:Long?=null, sourceArchive:File?=null):Result {
         if(installed())return report(true,Stage.READY)
-        if(StatFs(context.filesDir.absolutePath).availableBytes<350_000_000L)
+        // The 150 MB index is written once; reserve a further 110 MB for SQLite
+        // and filesystem overhead. Match installBundled() instead of rejecting
+        // a valid 260–350 MB free-space window at the last 99% stage.
+        if(StatFs(context.filesDir.absolutePath).availableBytes<260_000_000L)
             return report(false,Stage.NO_STORAGE)
         val cached=file()
         var temporary:File?=null
