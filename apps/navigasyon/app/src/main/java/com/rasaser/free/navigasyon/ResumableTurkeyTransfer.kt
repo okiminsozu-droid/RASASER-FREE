@@ -18,7 +18,7 @@ internal data class TurkeyAsset(
 
 internal object TurkeyAssets {
     private const val BASE =
-        "https://pub-e5b8f3a2a9e84a9dbfc1c01ca1442264.r2.dev/v1/"
+        "https://rasaser-turkiye-map-download.okiminsozu.workers.dev/v1/"
     fun url(name: String) = BASE + name
 
     val mapManifest = TurkeyAsset("turkey.manifest.json", 1048L,

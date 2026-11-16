@@ -18,7 +18,7 @@ import java.util.zip.ZipInputStream
 class TurkeyMapInstaller(private val ctx: Context) {
     companion object {
         const val RELEASE_URL = "https://github.com/okiminsozu-droid/RASASER-FREE/releases/download/rasaser-turkiye-maps-v0.1/rasaser-turkiye-shortbread.zip"
-        const val R2_URL = "https://pub-e5b8f3a2a9e84a9dbfc1c01ca1442264.r2.dev/v1/rasaser-turkiye-shortbread.zip"
+        const val R2_URL = "https://rasaser-turkiye-map-download.okiminsozu.workers.dev/v1/rasaser-turkiye-shortbread.zip"
         const val ZIP_SHA = "c7d8b277a916ffd4ec7839c7c0420104c19b88fcfcea456be7078346003bacfc"
         const val MAP_SHA = "54a9ab9739133e037add2cb1b7e41912374a070f0b386744f7da24c81e7a4e30"
         const val ZIP_BYTES = 605992151L

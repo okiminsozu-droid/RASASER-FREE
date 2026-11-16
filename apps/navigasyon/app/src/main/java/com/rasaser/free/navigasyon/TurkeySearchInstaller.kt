@@ -20,7 +20,7 @@ class TurkeySearchInstaller(private val context: Context) {
     companion object {
         const val RELEASE_URL =
             "https://github.com/okiminsozu-droid/RASASER-FREE/releases/download/rasaser-turkiye-search-v0.1/turkey-places.zip"
-        const val R2_URL = "https://pub-e5b8f3a2a9e84a9dbfc1c01ca1442264.r2.dev/v1/turkey-places.zip"
+        const val R2_URL = "https://rasaser-turkiye-map-download.okiminsozu.workers.dev/v1/turkey-places.zip"
         const val ZIP_BYTES=66_446_365L
         const val DB_BYTES=150_110_208L
         const val ZIP_SHA="048f474b1ff427ac2310b5201a283d027d87ec769ca7e808254ffbbdf6b603f0"

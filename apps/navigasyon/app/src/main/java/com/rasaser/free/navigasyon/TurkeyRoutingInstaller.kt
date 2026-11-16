@@ -22,8 +22,8 @@ class TurkeyRoutingInstaller(private val context:Context) {
         private const val RELEASE_BASE =
             "https://github.com/okiminsozu-droid/RASASER-FREE/releases/download/rasaser-turkiye-routing-v0.1/"
         private const val DATA_NAME = "rasaser-turkiye-routing-v01.tar"
-        private const val R2_URL = "https://pub-e5b8f3a2a9e84a9dbfc1c01ca1442264.r2.dev/v1/valhalla_tiles.tar"
-        private const val R2_META = "https://pub-e5b8f3a2a9e84a9dbfc1c01ca1442264.r2.dev/v1/"
+        private const val R2_URL = "https://rasaser-turkiye-map-download.okiminsozu.workers.dev/v1/valhalla_tiles.tar"
+        private const val R2_META = "https://rasaser-turkiye-map-download.okiminsozu.workers.dev/v1/"
         const val GRAPH_BYTES = 1148661760L
         const val GRAPH_SHA = "bdfd9a67d8fdd0d5856013e889c6e48cd8a14560934cc5d2b6f3c16a8f6a554f"
     }

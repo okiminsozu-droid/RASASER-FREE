@@ -16,7 +16,7 @@ jobs:
         run: |
           python3 - <<'PY'
           import urllib.request
-          base = 'https://pub-e5b8f3a2a9e84a9dbfc1c01ca1442264.r2.dev/v1/'
+          base = 'https://rasaser-turkiye-map-download.okiminsozu.workers.dev/v1/'
           files = {
             'rasaser-turkiye-shortbread.zip': 605992151,
             'valhalla_tiles.tar': 1148661760,
@@ -27,7 +27,7 @@ jobs:
             'turkey-places-manifest.json': 382,
           }
           for name,size in files.items():
-              req=urllib.request.Request(base+name,method='HEAD')
+              req=urllib.request.Request(base+name,method='HEAD',headers={'User-Agent':'RaSaSeR-Navigation/1.0'})
               with urllib.request.urlopen(req,timeout=35) as resp:
                   assert resp.status==200, (name,resp.status)
                   assert int(resp.headers['Content-Length'])==size, name
@@ -37,7 +37,7 @@ jobs:
               for start in (0, 1_048_576):
                   end=start+1023
                   req=urllib.request.Request(base+name,headers={
-                      'Range':f'bytes={start}-{end}', 'Accept-Encoding':'identity'
+                      'Range':f'bytes={start}-{end}', 'Accept-Encoding':'identity', 'User-Agent':'RaSaSeR-Navigation/1.0'
                   })
                   with urllib.request.urlopen(req,timeout=40) as resp:
                       data=resp.read(2048)
