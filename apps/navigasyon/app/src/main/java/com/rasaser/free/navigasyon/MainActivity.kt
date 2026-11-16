@@ -381,7 +381,13 @@ class MainActivity: ComponentActivity() {
                                 }
                             }
                             if(gpsFix==null)
-                                InfoPill(t(TextKey.GPS_WAITING))
+                                InfoPill(when{
+                                    !gps.hasPrecisePermission() ->
+                                        DriveLocationText.get(language,DriveLocationWord.GRANT_GPS)
+                                    !gps.providersEnabled() ->
+                                        DriveLocationText.get(language,DriveLocationWord.GPS_DISABLED)
+                                    else ->t(TextKey.GPS_WAITING)
+                                })
                             routeSnapshot?.let { guidance ->
                                 if(guidance.hazards.isNotEmpty()) {
                                     Card(colors=CardDefaults.cardColors(containerColor=Panel),
@@ -427,7 +433,7 @@ class MainActivity: ComponentActivity() {
                         Button(
                             onClick={
                                 when {
-                                    !gps.hasPermission() -> requestLocationPermission.launch(arrayOf(
+                                    !gps.hasPrecisePermission() -> requestLocationPermission.launch(arrayOf(
                                         Manifest.permission.ACCESS_FINE_LOCATION,
                                         Manifest.permission.ACCESS_COARSE_LOCATION))
                                     !gps.providersEnabled() ->showLocationHelp=true
@@ -632,12 +638,12 @@ class MainActivity: ComponentActivity() {
                     onDismissRequest={showLocationHelp=false},
                     title={Text(DriveLocationText.get(language,DriveLocationWord.MY_LOCATION))},
                     text={Text(DriveLocationText.get(language,
-                        if(!gps.hasPermission())DriveLocationWord.GRANT_GPS
+                        if(!gps.hasPrecisePermission())DriveLocationWord.GRANT_GPS
                         else if(!gps.providersEnabled())DriveLocationWord.GPS_DISABLED
                         else DriveLocationWord.GPS_PENDING))},
                     confirmButton={TextButton(onClick={
                         showLocationHelp=false
-                        if(!gps.hasPermission())
+                        if(!gps.hasPrecisePermission())
                             requestLocationPermission.launch(arrayOf(
                                 Manifest.permission.ACCESS_FINE_LOCATION,
                                 Manifest.permission.ACCESS_COARSE_LOCATION))
@@ -1026,6 +1032,12 @@ class MainActivity: ComponentActivity() {
     override fun onStart() {
         super.onStart()
         network.start();gps.start()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if(::gps.isInitialized && screen==NavScreen.DRIVE && gps.hasPermission())
+            gps.locateNow()
     }
     override fun onStop() {
         gps.stop();network.stop()
