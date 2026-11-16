@@ -19,7 +19,7 @@ jobs:
           set -Eeuo pipefail
           REPO="okiminsozu-droid/RASASER-FREE"
           # Android 15 plain Valhalla JNI, minified R8 APK, artifact build, search regression
-          for RUN in 43891999065 43891999031 43891999051 43891999091; do
+          for RUN in 43894508946 43894508966 43894508872 43894508859; do
             STATE=""
             for attempt in $(seq 1 120); do
               STATE="$(gh run view "$RUN" --repo "$REPO" --json conclusion --jq .conclusion)"
@@ -32,12 +32,12 @@ jobs:
             done
             test "$STATE" = success
           done
-          NAME="$(gh api "repos/$REPO/actions/runs/43891999051/artifacts" \
+          NAME="$(gh api "repos/$REPO/actions/runs/43894508872/artifacts" \
             --jq '.artifacts[].name' | grep '^rasaser-navigasyon-v014-routefix-test-' | head -n 1)"
           test -n "$NAME"
           DIR="$RUNNER_TEMP/nav014"
           mkdir -p "$DIR"
-          gh run download 43891999051 --repo "$REPO" --name "$NAME" --dir "$DIR"
+          gh run download 43894508872 --repo "$REPO" --name "$NAME" --dir "$DIR"
           (cd "$DIR" && sha256sum -c SHA256SUMS.txt)
           APK="$DIR/RaSaSeR-Navigasyon-v0.14-routefix-TEST.apk"
           test -s "$APK"
@@ -52,7 +52,7 @@ jobs:
           TAG="rasaser-navigasyon-v0.14-routefix-test"
           if ! gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1; then
             gh release create "$TAG" --repo "$REPO" \
-              --target "e566e7f6c8924107251994833db5ad55a07335a8" \
+              --target "feature/rasaser-nav-valhalla-route-repair-v014" \
               --title "RaSaSeR Navigasyon v0.14 — Valhalla rota onarım testi" \
               --notes "ANDROID SAHA TESTI. Yalnız Kotlin, imzalı APK, 1.15 GB gerçek Türkiye grafiğiyle Android 15 normal ve R8 küçültülmüş rota testleri, Android yer arama kontrolü başarılıysa yayınlanır. R2 haritaları değiştirilmedi. Bağımsız fieldtest14 uygulamasıdır, v0.13 uygulamasının özel verisini devralmaz. Veriler uygulamadan indirilecektir. Üretim ve gerçek yol güvenlik onayı değildir." \
               --prerelease
