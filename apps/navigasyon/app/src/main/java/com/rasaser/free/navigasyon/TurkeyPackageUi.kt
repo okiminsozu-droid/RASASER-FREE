@@ -49,4 +49,61 @@ object TurkeyPackageUi {
             else -> step
         }
     }
+    /** No storage provider address appears in these user-facing strings. */
+    fun workerStatus(language:NavLanguage,stage:Int,percent:Int,waiting:Boolean):String {
+        val tag=language.tag.lowercase()
+        val label=when(stage) {
+            1 -> when(tag) {
+                "en" -> "1/3 • Türkiye map"
+                "de" -> "1/3 • Türkei-Karte"
+                "es" -> "1/3 • Mapa de Turquía"
+                "ar" -> "1/3 • خريطة تركيا"
+                "ja" -> "1/3 • トルコ地図"
+                else -> "1/3 • Türkiye haritası"
+            }
+            2 -> when(tag) {
+                "en" -> "2/3 • Offline routes"
+                "de" -> "2/3 • Offline-Routen"
+                "es" -> "2/3 • Rutas sin conexión"
+                "ar" -> "2/3 • المسارات دون اتصال"
+                "ja" -> "2/3 • オフライン経路"
+                else -> "2/3 • Çevrimdışı rotalar"
+            }
+            3 -> when(tag) {
+                "en" -> "3/3 • Offline place search"
+                "de" -> "3/3 • Offline-Ortssuche"
+                "es" -> "3/3 • Búsqueda sin conexión"
+                "ar" -> "3/3 • البحث عن الأماكن"
+                "ja" -> "3/3 • オフライン場所検索"
+                else -> "3/3 • Çevrimdışı yer arama"
+            }
+            4 -> return button(language,true)
+            else -> when(tag) {
+                "en" -> "Waiting for Wi-Fi"
+                "de" -> "Warten auf WLAN"
+                "es" -> "Esperando Wi-Fi"
+                "ar" -> "في انتظار شبكة Wi-Fi"
+                "ja" -> "Wi-Fi接続待ち"
+                else -> "Wi-Fi bağlantısı bekleniyor"
+            }
+        }
+        val resume=if(!waiting) "" else when(tag) {
+            "en" -> " • Resumes automatically"
+            "de" -> " • Setzt automatisch fort"
+            "es" -> " • Reanuda automáticamente"
+            "ar" -> " • يُستأنف تلقائياً"
+            "ja" -> " • 自動再開"
+            else -> " • Otomatik devam eder"
+        }
+        return "$label • $percent%$resume"
+    }
+
+    fun error(language:NavLanguage):String = when(language.tag.lowercase()) {
+        "en" -> "Installation stopped. Check Wi-Fi and free storage, then retry."
+        "de" -> "Installation gestoppt. WLAN und Speicher prüfen und erneut versuchen."
+        "es" -> "Instalación detenida. Comprueba Wi-Fi y espacio libre e inténtalo de nuevo."
+        "ar" -> "توقف التثبيت. تحقق من الاتصال والمساحة ثم أعد المحاولة."
+        "ja" -> "インストールが停止しました。通信と空き容量を確認し再試行してください。"
+        else -> "Kurulum durdu. Wi-Fi ve boş alanı kontrol edip yeniden deneyin."
+    }
 }
