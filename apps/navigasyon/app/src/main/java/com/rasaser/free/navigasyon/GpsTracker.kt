@@ -26,26 +26,48 @@ class GpsTracker(
         context.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
         context.checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
 
+    fun providersEnabled():Boolean = listOf(LocationManager.GPS_PROVIDER,LocationManager.NETWORK_PROVIDER)
+        .any { runCatching { manager.isProviderEnabled(it) }.getOrDefault(false) }
+
     fun start() {
-        if (running || !hasPermission()) return
-        running = true
-        try {
-            val providers = listOf(LocationManager.GPS_PROVIDER, LocationManager.NETWORK_PROVIDER)
-            var any = false
-            for (provider in providers) {
-                if (manager.isProviderEnabled(provider)) {
-                    manager.requestLocationUpdates(provider, 850L, 2f, callback, Looper.getMainLooper())
-                    any = true
+        if(running || !hasPermission())return
+        val fine=context.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)==PackageManager.PERMISSION_GRANTED
+        var started=false
+        for(provider in listOf(LocationManager.GPS_PROVIDER,LocationManager.NETWORK_PROVIDER)) {
+            if(provider==LocationManager.GPS_PROVIDER && !fine)continue
+            try {
+                if(manager.isProviderEnabled(provider)) {
+                    manager.requestLocationUpdates(provider,800L,1f,callback,Looper.getMainLooper())
+                    started=true
+                    @Suppress("DEPRECATION")
+                    val prior=manager.getLastKnownLocation(provider)
+                    if(prior!=null && prior.isValidNavigationFix(90_000L))onFix(prior)
                 }
-            }
-            if (!any) running = false
-            for (provider in providers) {
-                @Suppress("DEPRECATION")
-                val recent = manager.getLastKnownLocation(provider)
-                if (recent != null && recent.isValidNavigationFix(maxAgeMs = 120_000L)) onFix(recent)
-            }
-        } catch (_: SecurityException) { running = false }
-        catch (_: IllegalArgumentException) { running = false }
+            }catch (_:SecurityException){} catch (_:IllegalArgumentException){}
+        }
+        running=started
+    }
+
+    /**
+     * One-shot fresh fix request when the user taps My location. This never
+     * substitutes old coordinates for the user's live position.
+     */
+    fun locateNow() {
+        if(!hasPermission())return
+        start()
+        if(Build.VERSION.SDK_INT>=30) {
+            val fine=context.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)==PackageManager.PERMISSION_GRANTED
+            val provider=when {
+                fine && runCatching{manager.isProviderEnabled(LocationManager.GPS_PROVIDER)}.getOrDefault(false) ->LocationManager.GPS_PROVIDER
+                runCatching{manager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)}.getOrDefault(false) ->LocationManager.NETWORK_PROVIDER
+                else ->null
+            } ?:return
+            try {
+                manager.getCurrentLocation(provider,null,context.mainExecutor) { candidate ->
+                    if(candidate!=null && candidate.isValidNavigationFix(30_000L))onFix(candidate)
+                }
+            }catch (_:SecurityException){}catch (_:IllegalArgumentException){}
+        }
     }
 
     fun stop() {

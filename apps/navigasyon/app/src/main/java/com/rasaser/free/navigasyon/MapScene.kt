@@ -22,6 +22,7 @@ import org.maplibre.android.maps.MapView
 import org.maplibre.android.maps.Style
 import org.maplibre.android.style.sources.GeoJsonSource
 import org.maplibre.android.style.layers.LineLayer
+import org.maplibre.android.style.layers.CircleLayer
 import org.maplibre.android.style.layers.PropertyFactory
 import org.maplibre.geojson.Point
 import org.maplibre.geojson.LineString
@@ -40,6 +41,7 @@ class MapScene(private val context: Context, onPlace: (String, String, NavPoint)
     private var night=false
     private var language=NavLanguage.TR
     private var routePoints:List<NavPoint> = emptyList()
+    private var lastAvailableFix:Location?=null
 
     init {
         MapLibre.getInstance(context.applicationContext)
@@ -47,8 +49,9 @@ class MapScene(private val context: Context, onPlace: (String, String, NavPoint)
         mapView.onCreate(null)
         mapView.getMapAsync { ready ->
             map=ready
+            val focus=initialMapFocus()
             ready.cameraPosition=CameraPosition.Builder()
-                .target(LatLng(39.0,34.65)).zoom(5.2).tilt(50.0).build()
+                .target(focus).zoom(if(lastFix==null) 15.7 else 17.4).tilt(60.0).build()
             ready.addOnMapClickListener { position ->
                 val touches=ready.queryRenderedFeatures(ready.projection.toScreenLocation(position),"pois")
                 val feature=touches.firstOrNull()
@@ -114,10 +117,48 @@ class MapScene(private val context: Context, onPlace: (String, String, NavPoint)
         }
         val style=json.toString()
         map?.setStyle(Style.Builder().fromJson(style)) {
+            ensureGpsDot()
             lastFix?.let(::follow)
             renderRoute()
         }
     }
+
+    private fun initialMapFocus():LatLng {
+        // No location information is invented. When a recent usable GPS fix
+        // exists, the vehicle starts close to it; otherwise show the saved
+        // camera area, not a false blue vehicle marker.
+        val prefs=context.getSharedPreferences("map_camera",Context.MODE_PRIVATE)
+        val lat=Double.fromBits(prefs.getLong("lat",39.0.toBits()))
+        val lon=Double.fromBits(prefs.getLong("lon",34.65.toBits()))
+        return LatLng(lat.coerceIn(35.0,43.0),lon.coerceIn(25.0,46.0))
+    }
+
+    fun recenterOnLocation(location:Location) {
+        if(!closed && location.isValidNavigationFix())follow(location)
+    }
+
+    private fun ensureGpsDot() {
+        val m=map ?:return
+        m.getStyle { style ->
+            if(style.getSource("rasaser-gps-dot")==null) {
+                style.addSource(GeoJsonSource("rasaser-gps-dot"))
+                style.addLayer(CircleLayer("rasaser-gps-position","rasaser-gps-dot")
+                    .withProperties(PropertyFactory.circleRadius(9f),
+                        PropertyFactory.circleColor("#177EDD"),
+                        PropertyFactory.circleStrokeColor("#FFFFFF"),
+                        PropertyFactory.circleStrokeWidth(3f)))
+            }
+            lastFix?.let(::drawGpsDot)
+        }
+    }
+
+    private fun drawGpsDot(location:Location) {
+        map?.getStyle { style ->
+            val source:GeoJsonSource?=style.getSourceAs("rasaser-gps-dot")
+            source?.setGeoJson(Point.fromLngLat(location.longitude,location.latitude))
+        }
+    }
+
     fun setLanguage(value:NavLanguage) {
         if(language==value)return
         language=value
@@ -131,12 +172,18 @@ class MapScene(private val context: Context, onPlace: (String, String, NavPoint)
     fun follow(location:Location) {
         if(closed || !location.isValidNavigationFix()) return
         lastFix=location
+        lastAvailableFix=location
+        drawGpsDot(location)
         if (location.hasBearing() && location.hasSpeed() && location.speed>=1.5f)
             heading=location.bearing.toDouble()
         val camera=CameraPosition.Builder()
             .target(LatLng(location.latitude,location.longitude))
             .zoom(17.3).tilt(60.0).bearing(heading).build()
         map?.animateCamera(CameraUpdateFactory.newCameraPosition(camera), 750)
+        // Camera area persists locally only, never sent over the internet.
+        context.getSharedPreferences("map_camera",Context.MODE_PRIVATE).edit()
+            .putLong("lat",location.latitude.toBits())
+            .putLong("lon",location.longitude.toBits()).apply()
     }
 
     fun setRoute(points:List<NavPoint>) {
@@ -184,7 +231,7 @@ class MapScene(private val context: Context, onPlace: (String, String, NavPoint)
 
 @Composable
 fun OfflineDrivingMap(fix: Location?, route:List<NavPoint>?, language:NavLanguage,
-                      onPlace: (String,String,NavPoint)->Unit) {
+                      recenterRequest:Int, onPlace: (String,String,NavPoint)->Unit) {
     val owner=LocalLifecycleOwner.current
     val context=androidx.compose.ui.platform.LocalContext.current
     val currentCallback=androidx.compose.runtime.rememberUpdatedState(onPlace)
@@ -203,6 +250,7 @@ fun OfflineDrivingMap(fix: Location?, route:List<NavPoint>?, language:NavLanguag
     }
     LaunchedEffect(fix?.time,fix?.latitude,fix?.longitude) { if(fix!=null) scene.follow(fix) }
     LaunchedEffect(route) { scene.setRoute(route.orEmpty()) }
+    LaunchedEffect(recenterRequest) { if(fix!=null)scene.recenterOnLocation(fix) }
     LaunchedEffect(language) { scene.setLanguage(language) }
     // Day/night mode remains fully offline and uses the device's local clock.
     LaunchedEffect(scene) {
