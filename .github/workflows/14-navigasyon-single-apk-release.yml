@@ -1,0 +1,58 @@
+name: Navigasyon v0.9 Tek APK Test Yayin
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/14-navigasyon-single-apk-release.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: read
+jobs:
+  publish-apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Dogrulanmis tam APK dosyasini indir
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -Eeuo pipefail
+          mkdir -p "$RUNNER_TEMP/apk"
+          gh run download 43833670411 --repo okiminsozu-droid/RASASER-FREE --name rasaser-navigasyon-v09-COMPLETE-1 --dir "$RUNNER_TEMP/apk"
+          cd "$RUNNER_TEMP/apk"
+          sha256sum -c SHA256SUMS.txt
+          test -s RaSaSeR-Navigasyon-v0.9-TAM-TEST.apk
+          ACTUAL="$(stat -c %s RaSaSeR-Navigasyon-v0.9-TAM-TEST.apk)"
+          test "$ACTUAL" -lt 2147483648
+          echo "APK bytes: $ACTUAL"
+      - name: Tek APK indirilebilir test surumu
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -Eeuo pipefail
+          TAG="rasaser-navigasyon-v0.9-complete-test"
+          APK="$RUNNER_TEMP/apk/RaSaSeR-Navigasyon-v0.9-TAM-TEST.apk"
+          cat > "$RUNNER_TEMP/release-notes.md" <<'NOTES'
+          RaSaSeR Navigasyon v0.9 GELISTIRME TEST APK.
+
+          Tek Android APK icinde eksiksiz offline veri:
+          * Türkiye Shortbread haritası (670 MB, SHA256 kontrol edilmiş)
+          * Türkiye çevrimdışı yer arama indeksi (150 MB, SHA256 kontrol edilmiş)
+          * Türkiye Valhalla sürüş rota grafiği (1,15 GB, SHA256 kontrol edilmiş)
+
+          Veri dosyaları ilk açılışta telefonun özel depolamasına ayrıştırılır.
+          Cihazda yaklaşık 6 GB bos alan onerilir.
+          Gercek surus navigasyon testleri henüz tamamlanmamistir.
+          Trafikte kullanilacak guvenilir son surum degildir.
+          OSM ODbL lisansi ve uygulamada lisans bildirimleri mevcuttur.
+          NOTES
+          if gh release view "$TAG" --repo okiminsozu-droid/RASASER-FREE >/dev/null 2>&1; then
+            gh release upload "$TAG" "$APK" --repo okiminsozu-droid/RASASER-FREE --clobber
+          else
+            gh release create "$TAG" "$APK" --repo okiminsozu-droid/RASASER-FREE \
+              --target feature/rasaser-nav-complete-offline-v09 \
+              --title "RaSaSeR Navigasyon v0.9 — Tum Türkiye Tek APK Test" \
+              --notes-file "$RUNNER_TEMP/release-notes.md" --prerelease
+          fi
+          gh release view "$TAG" --repo okiminsozu-droid/RASASER-FREE --json assets,url \
+            --jq '{url:.url, assets:[.assets[].name]}'
