@@ -417,7 +417,7 @@ class MainActivity: ComponentActivity() {
                             }
                         }
                         if(selectedPlace!=null) {
-                            Card(Modifier.align(Alignment.BottomCenter).padding(bottom=94.dp, start=12.dp,end=12.dp),
+                            Card(Modifier.align(Alignment.BottomCenter).padding(bottom=160.dp, start=12.dp,end=12.dp),
                                 colors=CardDefaults.cardColors(containerColor=Panel)) {
                                 Column(Modifier.padding(15.dp),verticalArrangement=Arrangement.spacedBy(6.dp)) {
                                     Text(selectedPlace.orEmpty(),color=Ink,fontWeight=FontWeight.Bold)
