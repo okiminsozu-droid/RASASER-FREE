@@ -134,7 +134,13 @@ class MapScene(private val context: Context, onPlace: (String, String, NavPoint)
     private fun renderRoute() {
         val ready=map ?:return
         val positions=routePoints
-        if(positions.size<2)return
+        if(positions.size<2) {
+            ready.getStyle { style ->
+                val old:GeoJsonSource?=style.getSourceAs("rasaser-route")
+                old?.setGeoJson(org.maplibre.geojson.FeatureCollection.fromFeatures(emptyList()))
+            }
+            return
+        }
         ready.getStyle { style ->
             if(closed)return@getStyle
             val line=LineString.fromLngLats(positions.map { Point.fromLngLat(it.lon,it.lat) })

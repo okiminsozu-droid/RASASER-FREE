@@ -20,7 +20,7 @@ class VehicleBootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent?) {
         if (intent?.action != Intent.ACTION_BOOT_COMPLETED) return
         val prefs = context.getSharedPreferences("offline_first_settings", Context.MODE_PRIVATE)
-        if (!prefs.getBoolean("auto_drive", true) && prefs.getBoolean("drive_started",false)) return
+        if (!prefs.getBoolean("auto_drive", true) || !prefs.getBoolean("drive_started", false)) return
         if (Build.VERSION.SDK_INT >= 33 &&
             context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
         ) return

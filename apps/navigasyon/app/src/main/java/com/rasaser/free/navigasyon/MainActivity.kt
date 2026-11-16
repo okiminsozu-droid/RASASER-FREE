@@ -7,6 +7,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.location.Location
 import android.os.Build
+import android.os.SystemClock
 import android.os.Bundle
 import android.provider.Settings
 import androidx.activity.ComponentActivity
@@ -111,6 +112,12 @@ class MainActivity: ComponentActivity() {
     private var selectedPlace by mutableStateOf<String?>(null)
     private var routePlan by mutableStateOf<RoutePlan?>(null)
     private var routeInfo by mutableStateOf<DriveInfo?>(null)
+    private var routeSnapshot by mutableStateOf<GuidanceSnapshot?>(null)
+    private var activeGuidance:RouteGuidance?=null
+    private var routeDestination:NavPoint?=null
+    private var routeRequestGeneration=0
+    private var routeRequestRunning=false
+    private var arrivalAnnounced=false
     private lateinit var network: DefaultNetworkMonitor
     private lateinit var gps: GpsTracker
     private lateinit var voice: VoiceController
@@ -129,7 +136,7 @@ class MainActivity: ComponentActivity() {
         downloadId=prefs.getLong("map_download_id",-1L)
         routingDownloadId=prefs.getLong("routing_download_id",-1L)
         network=DefaultNetworkMonitor(this){ connection=it }
-        gps=GpsTracker(this){ gpsFix=it }
+        gps=GpsTracker(this){ onGpsPosition(it) }
         voice=VoiceController(this){ key,extra ->
             statusKey=key
             statusExtra=extra
@@ -246,29 +253,20 @@ class MainActivity: ComponentActivity() {
                     Box(Modifier.fillMaxSize().background(Color(0xFFEEEDE8))) {
                         OfflineDrivingMap(gpsFix, routePlan?.shape,language) { name, _,destination ->
                             selectedPlace=name.ifBlank {DriveWords.get(language,DriveInfo.TARGET_SELECTED)}
+                            routeRequestGeneration++
                             routePlan=null
+                            activeGuidance=null
+                            routeSnapshot=null
+                            routeRequestRunning=false
+                            routeDestination=destination
+                            arrivalAnnounced=false
                             val origin=gpsFix
                             if(origin==null) {
                                 routeInfo=DriveInfo.NEEDS_GPS
                             } else if(!router.installed()) {
                                 routeInfo=DriveInfo.NEEDS_ROUTING_DATA
                             } else {
-                                routeInfo=DriveInfo.WORKING
-                                val activeLanguage=language
-                                Thread {
-                                    val planned=router.route(
-                                        NavPoint(origin.latitude,origin.longitude),
-                                        destination,activeLanguage)
-                                    runOnUiThread {
-                                        if(screen==NavScreen.DRIVE) {
-                                            routePlan=planned
-                                            routeInfo=if(planned!=null) DriveInfo.ROUTE_FOUND
-                                                else DriveInfo.NO_ROUTE
-                                            if(planned!=null && voiceEnabled)
-                                                planned.maneuverInstructions.firstOrNull()?.let(voice::speak)
-                                        }
-                                    }
-                                }.start()
+                                calculateRoute(NavPoint(origin.latitude,origin.longitude),destination)
                             }
                         }
                         // The camera is at the GPS location; an arrow is displayed only
@@ -291,6 +289,22 @@ class MainActivity: ComponentActivity() {
                             }
                             if(gpsFix==null)
                                 InfoPill(t(TextKey.GPS_WAITING))
+                            routeSnapshot?.let { guidance ->
+                                if (routePlan!=null && !guidance.arrived && guidance.nextInstruction!=null) {
+                                    Card(colors=CardDefaults.cardColors(containerColor=Panel),
+                                        shape=RoundedCornerShape(18.dp)) {
+                                        Column(Modifier.padding(14.dp),
+                                            verticalArrangement=Arrangement.spacedBy(4.dp)) {
+                                            Text(GuidanceWords.text(language,GuidanceLabel.NEXT_TURN),
+                                                fontWeight=FontWeight.Bold,color=Ink,fontSize=12.sp)
+                                            Text(guidance.nextInstruction,color=Ink,fontSize=14.sp)
+                                            guidance.nextTurnMeters?.let { meters ->
+                                                Text("${meters.toInt()} m",color=Color(0xFF186AA2),fontSize=17.sp)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                         }
                         if(selectedPlace!=null) {
                             Card(Modifier.align(Alignment.BottomCenter).padding(bottom=94.dp, start=12.dp,end=12.dp),
@@ -299,7 +313,8 @@ class MainActivity: ComponentActivity() {
                                     Text(selectedPlace.orEmpty(),color=Ink,fontWeight=FontWeight.Bold)
                                     routeInfo?.let { Text(DriveWords.get(language,it),color=Ink,fontSize=12.sp) }
                                     routePlan?.let {
-                                        Text("${"%.1f".format(it.meters/1000.0)} km · ${(it.seconds/60.0).toInt()} min",
+                                        val remaining=(routeSnapshot?.remainingMeters ?: it.meters)/1000.0
+                                        Text("${"%.1f".format(remaining)} km · ${(it.seconds/60.0).toInt()} min",
                                             color=Ink,fontSize=13.sp)
                                     }
                                 }
@@ -541,6 +556,49 @@ class MainActivity: ComponentActivity() {
         super.onNewIntent(intent)
         if(intent.action == "com.rasaser.free.navigasyon.OPEN_DRIVE" && mapReady)
             screen=NavScreen.DRIVE
+    }
+
+
+    private fun calculateRoute(origin:NavPoint,destination:NavPoint) {
+        if(routeRequestRunning) return
+        val id=++routeRequestGeneration
+        routeRequestRunning=true
+        routeInfo=if(routePlan==null)DriveInfo.WORKING else DriveInfo.REROUTING
+        val lang=language
+        Thread {
+            val computed=runCatching { router.route(origin,destination,lang) }.getOrNull()
+            runOnUiThread {
+                if(isDestroyed || id!=routeRequestGeneration)return@runOnUiThread
+                routeRequestRunning=false
+                routePlan=computed
+                activeGuidance=computed?.let(::RouteGuidance)
+                routeSnapshot=null
+                routeInfo=if(computed!=null)DriveInfo.ROUTE_FOUND else DriveInfo.NO_ROUTE
+                arrivalAnnounced=false
+                if(computed!=null && voiceEnabled)
+                    computed.maneuverInstructions.firstOrNull()?.let { voice.speak(it) }
+            }
+        }.start()
+    }
+
+    private fun onGpsPosition(location:Location) {
+        gpsFix=location
+        if(screen!=NavScreen.DRIVE)return
+        val route=activeGuidance ?:return
+        val result=route.advance(NavPoint(location.latitude,location.longitude),
+            location.accuracy,SystemClock.elapsedRealtime())
+        routeSnapshot=result
+        if(result.arrived && !arrivalAnnounced) {
+            arrivalAnnounced=true
+            routeInfo=DriveInfo.ARRIVED
+            if(voiceEnabled)voice.speak(GuidanceWords.text(language,GuidanceLabel.ARRIVED))
+        } else if(result.shouldReroute && !routeRequestRunning) {
+            val dest=routeDestination
+            if(dest!=null && router.installed())
+                calculateRoute(NavPoint(location.latitude,location.longitude),dest)
+        } else if(voiceEnabled && !result.speech.isNullOrBlank()) {
+            voice.speak(result.speech)
+        }
     }
 
     override fun onStart() {

@@ -81,10 +81,8 @@ class RouteGuidance(private val route: RoutePlan) {
         if (offRoute && accuracyMeters <= 35f) missedFixes++ else missedFixes = 0
         val shouldReroute = missedFixes >= 3 &&
             (lastRerouteMs == null || nowMs - lastRerouteMs!! >= 45_000L)
-        if (shouldReroute) {
-            missedFixes = 0
-            lastRerouteMs = nowMs
-        }
+        if (missedFixes >= 3) missedFixes = 0 // require three fresh, independent fixes
+        if (shouldReroute) lastRerouteMs = nowMs
 
         if (!offRoute && bestSegment >= lastSegment) lastSegment = bestSegment
         val progress = distances[bestSegment] +
