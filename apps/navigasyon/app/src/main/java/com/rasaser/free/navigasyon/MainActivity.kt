@@ -43,6 +43,7 @@ import androidx.compose.material.icons.filled.Navigation
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.VolumeOff
 import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material.icons.filled.Warning
@@ -59,6 +60,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -129,6 +131,18 @@ class MainActivity: ComponentActivity() {
     private val tracePoints=ArrayDeque<NavPoint>()
     private var lastRoadScanAtMs=0L
     private var roadScanRunning=false
+    private lateinit var placeSearch:OfflinePlaceSearch
+    private lateinit var searchInstaller:TurkeySearchInstaller
+    private var searchDownloadId by mutableLongStateOf(-1L)
+    private var searchInstalling by mutableStateOf(false)
+    private var searchReady by mutableStateOf(false)
+    private var searchAutoAttempted=false
+    private var searchNotice by mutableStateOf<SearchNotice?>(null)
+    private var searchQuery by mutableStateOf("")
+    private var searchBusy by mutableStateOf(false)
+    private var searchResults by mutableStateOf<List<OfflinePlace>>(emptyList())
+    private var showSearchDialog by mutableStateOf(false)
+    private var showSearchResults by mutableStateOf(false)
     private lateinit var network: DefaultNetworkMonitor
     private lateinit var gps: GpsTracker
     private lateinit var voice: VoiceController
@@ -154,6 +168,7 @@ class MainActivity: ComponentActivity() {
         }
         downloadId=prefs.getLong("map_download_id",-1L)
         routingDownloadId=prefs.getLong("routing_download_id",-1L)
+        searchDownloadId=prefs.getLong("place_search_download_id",-1L)
         network=DefaultNetworkMonitor(this){ connection=it }
         gps=GpsTracker(this){ onGpsPosition(it) }
         voice=VoiceController(this, { key,extra ->
@@ -164,6 +179,9 @@ class MainActivity: ComponentActivity() {
         installer=TurkeyMapInstaller(this)
         routingInstaller=TurkeyRoutingInstaller(this)
         router=OfflineRouteEngine(this)
+        placeSearch=OfflinePlaceSearch(this)
+        searchInstaller=TurkeySearchInstaller(this)
+        searchReady=placeSearch.installed()
 
         setContent {
             MaterialTheme {
@@ -241,6 +259,46 @@ class MainActivity: ComponentActivity() {
                         }
                     }
                 }
+                LaunchedEffect(searchDownloadId) {
+                    val current=searchDownloadId
+                    if(current>=0L) {
+                        while(searchDownloadId==current) {
+                            when(searchInstaller.downloadState(current)) {
+                                DownloadManager.STATUS_SUCCESSFUL -> {
+                                    searchDownloadId=-1L
+                                    prefs.edit().remove("place_search_download_id").apply()
+                                    searchInstalling=true
+                                    searchNotice=SearchNotice.VERIFYING
+                                    Thread {
+                                        val ok=searchInstaller.install()
+                                        runOnUiThread {
+                                            searchInstalling=false
+                                            searchReady=ok || placeSearch.installed()
+                                            searchNotice=if(ok)SearchNotice.READY else SearchNotice.DOWNLOAD_ERROR
+                                        }
+                                    }.start()
+                                    break
+                                }
+                                DownloadManager.STATUS_FAILED -> {
+                                    searchDownloadId=-1L
+                                    prefs.edit().remove("place_search_download_id").apply()
+                                    searchNotice=SearchNotice.DOWNLOAD_ERROR
+                                    break
+                                }
+                                else ->Unit
+                            }
+                            delay(1800)
+                        }
+                    }
+                }
+                LaunchedEffect(mapReady,connection,onlineAllowed,searchReady) {
+                    if(mapReady && onlineAllowed && connection==Connection.UNMETERED &&
+                        !searchReady && searchDownloadId<0 && !searchInstalling &&
+                        !searchAutoAttempted) {
+                        searchAutoAttempted=true
+                        startPlaceSearchDownload()
+                    }
+                }
                 LaunchedEffect(screen) {
                     if(screen==NavScreen.DRIVE)
                         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
@@ -291,29 +349,7 @@ class MainActivity: ComponentActivity() {
                 if(screen==NavScreen.DRIVE && mapReady) {
                     Box(Modifier.fillMaxSize().background(Color(0xFFEEEDE8))) {
                         OfflineDrivingMap(gpsFix, routePlan?.shape,language,recenterRequest) { name, _,destination ->
-                            selectedPlace=name.ifBlank {DriveWords.get(language,DriveInfo.TARGET_SELECTED)}
-                            routeRequestGeneration++
-                            routePlan=null
-                            activeGuidance=null
-                            routeSnapshot=null
-                            routeRequestRunning=false
-                            routeDestination=destination
-                            resumeSavedRoute=false
-                            prefs.edit()
-                                .putLong("saved_destination_lat",destination.lat.toBits())
-                                .putLong("saved_destination_lon",destination.lon.toBits())
-                                .putString("saved_destination_name",selectedPlace)
-                                .apply()
-                            arrivalAnnounced=false
-                            val origin=gpsFix
-                            if(origin==null) {
-                                resumeSavedRoute=true
-                                routeInfo=DriveInfo.NEEDS_GPS
-                            } else if(!router.installed()) {
-                                routeInfo=DriveInfo.NEEDS_ROUTING_DATA
-                            } else {
-                                calculateRoute(NavPoint(origin.latitude,origin.longitude),destination)
-                            }
+                            selectDestination(name.ifBlank {DriveWords.get(language,DriveInfo.TARGET_SELECTED)},destination)
                         }
                         // The actual GPS marker is rendered by MapLibre at its
                         // latitude/longitude. No false fixed-center car icon.
@@ -410,7 +446,11 @@ class MainActivity: ComponentActivity() {
                         ) {
                             DriveButton(Icons.Default.Settings,t(TextKey.SETTINGS),Modifier.weight(1f)){showSettings=true}
                             DriveButton(Icons.Default.Mic,t(TextKey.MICROPHONE),Modifier.weight(1f)){
-                                voice.listenOffline()
+                                if(voice.canRecognizeOffline()) voice.listenOffline()
+                                else {
+                                    searchNotice=SearchNotice.NO_OFFLINE_SPEECH
+                                    showSearchDialog=true
+                                }
                             }
                             DriveButton(Icons.Default.Warning,t(TextKey.ALERTS),Modifier.weight(1f)){
                                 showAlerts=true
@@ -418,7 +458,7 @@ class MainActivity: ComponentActivity() {
                         }
                         Text("© OpenStreetMap · BBBike",
                             modifier=Modifier.align(Alignment.BottomStart)
-                                .padding(start=12.dp,bottom=80.dp),fontSize=9.sp,color=Ink)
+                                .padding(start=12.dp,bottom=96.dp),fontSize=9.sp,color=Ink)
                     }
                 } else {
                     BoxWithConstraints(Modifier.fillMaxSize().background(Sand).safeDrawingPadding()) {
@@ -508,6 +548,52 @@ class MainActivity: ComponentActivity() {
                     }
                 }
 
+                if(showSearchDialog) AlertDialog(
+                    onDismissRequest={showSearchDialog=false},
+                    title={Text(SearchWords.text(language,SearchNotice.TITLE))},
+                    text={Column(verticalArrangement=Arrangement.spacedBy(8.dp)){
+                        TextField(
+                            value=searchQuery,onValueChange={searchQuery=it},
+                            label={Text(SearchWords.text(language,SearchNotice.ENTER_PLACE))},
+                            singleLine=true,modifier=Modifier.fillMaxWidth()
+                        )
+                        searchNotice?.let {Text(SearchWords.text(language,it),fontSize=12.sp)}
+                    }},
+                    confirmButton={TextButton(onClick={
+                        showSearchDialog=false
+                        startDestinationSearch(searchQuery)
+                    }){Text(SearchWords.text(language,SearchNotice.SEARCH))}},
+                    dismissButton={TextButton(onClick={showSearchDialog=false}){Text(t(TextKey.BACK))}}
+                )
+                if(showSearchResults) AlertDialog(
+                    onDismissRequest={showSearchResults=false},
+                    title={Text(SearchWords.text(language,SearchNotice.RESULTS))},
+                    text={Column(modifier=Modifier.verticalScroll(rememberScrollState()),
+                        verticalArrangement=Arrangement.spacedBy(8.dp)){
+                        if(!searchReady) {
+                            Text(SearchWords.text(language,SearchNotice.MISSING))
+                            OutlinedButton(onClick={startPlaceSearchDownload()},
+                                enabled=connection==Connection.UNMETERED && onlineAllowed &&
+                                    searchDownloadId<0 && !searchInstalling) {
+                                Text(SearchWords.text(language,SearchNotice.DOWNLOAD))
+                            }
+                        } else if(searchResults.isEmpty()) {
+                            Text(SearchWords.text(language,SearchNotice.NO_MATCH))
+                        }
+                        for(place in searchResults){
+                            OutlinedButton(modifier=Modifier.fillMaxWidth(),onClick={
+                                showSearchResults=false
+                                selectDestination(place.name,NavPoint(place.lat,place.lon))
+                            }){
+                                Column(horizontalAlignment=Alignment.Start){
+                                    Text(place.name,fontSize=13.sp)
+                                    Text(place.kind,fontSize=10.sp)
+                                }
+                            }
+                        }
+                    }},
+                    confirmButton={TextButton(onClick={showSearchResults=false}){Text(t(TextKey.BACK))}}
+                )
                 if(showLocationHelp) AlertDialog(
                     onDismissRequest={showLocationHelp=false},
                     title={Text(DriveLocationText.get(language,DriveLocationWord.MY_LOCATION))},
@@ -567,6 +653,17 @@ class MainActivity: ComponentActivity() {
                         modifier=Modifier.verticalScroll(rememberScrollState()),
                         verticalArrangement=Arrangement.spacedBy(8.dp)
                     ){
+                        Text(SearchWords.text(language,SearchNotice.EXPLANATION),fontSize=12.sp)
+                        if(searchReady) {
+                            Text(SearchWords.text(language,SearchNotice.READY),fontSize=12.sp)
+                        } else {
+                            OutlinedButton(
+                                enabled=connection==Connection.UNMETERED && onlineAllowed &&
+                                    searchDownloadId<0 && !searchInstalling,
+                                onClick={startPlaceSearchDownload()}
+                            ){Text(SearchWords.text(language,SearchNotice.DOWNLOAD))}
+                        }
+                        searchNotice?.let {Text(SearchWords.text(language,it),fontSize=12.sp)}
                         Text(RoutingDownloadText.get(language,RoutingDownloadStatus.EXPLANATION),fontSize=12.sp)
                         if(router.installed()){
                             Text(RoutingDownloadText.get(language,RoutingDownloadStatus.READY),
@@ -689,6 +786,88 @@ class MainActivity: ComponentActivity() {
             .remove("saved_destination_name").apply()
     }
 
+    private fun startPlaceSearchDownload() {
+        if(searchReady || searchDownloadId>=0L || searchInstalling)return
+        try {
+            searchDownloadId=searchInstaller.beginWifiDownload()
+            getSharedPreferences("offline_first_settings",MODE_PRIVATE)
+                .edit().putLong("place_search_download_id",searchDownloadId).apply()
+            searchNotice=SearchNotice.DOWNLOADING
+        }catch (_:Exception) {
+            searchNotice=SearchNotice.DOWNLOAD_ERROR
+        }
+    }
+
+    private fun startDestinationSearch(transcript:String) {
+        val target=DestinationSpeech.destination(language,transcript)
+        if(target==null) return
+        searchQuery=target
+        if(!searchReady || !placeSearch.installed()) {
+            searchNotice=SearchNotice.MISSING
+            searchResults=emptyList()
+            showSearchResults=true
+            if(connection==Connection.UNMETERED && onlineAllowed)
+                startPlaceSearchDownload()
+            return
+        }
+        if(searchBusy)return
+        searchBusy=true
+        searchNotice=SearchNotice.SEARCHING
+        val position=gpsFix?.let {NavPoint(it.latitude,it.longitude)}
+        Thread {
+            val places=placeSearch.find(target,position)
+            runOnUiThread {
+                searchBusy=false
+                searchResults=places
+                if(places.isEmpty()) {
+                    searchNotice=SearchNotice.NO_MATCH
+                    showSearchResults=true
+                } else {
+                    // Navigate automatically only when a target is clearly unique.
+                    val first=places[0]
+                    val allSameArea=places.all {candidate ->
+                        PlaceQuery.normalize(candidate.name)==PlaceQuery.normalize(first.name) &&
+                            RouteGuidance.metersBetween(
+                                NavPoint(first.lat,first.lon),NavPoint(candidate.lat,candidate.lon))<1_500.0
+                    }
+                    val uniquelyRanked=places.size==1 || allSameArea ||
+                        (first.score>=450.0 && first.score-(places.getOrNull(1)?.score ?: 0.0)>80.0)
+                    if(uniquelyRanked) {
+                        showSearchResults=false
+                        selectDestination(first.name,NavPoint(first.lat,first.lon))
+                    }else {
+                        searchNotice=SearchNotice.SELECT_ONE
+                        showSearchResults=true
+                    }
+                }
+            }
+        }.start()
+    }
+
+    private fun selectDestination(name:String,destination:NavPoint) {
+        selectedPlace=name
+        routeRequestGeneration++
+        routePlan=null
+        activeGuidance=null
+        routeSnapshot=null
+        routeRequestRunning=false
+        routeDestination=destination
+        resumeSavedRoute=false
+        arrivalAnnounced=false
+        getSharedPreferences("offline_first_settings",MODE_PRIVATE).edit()
+            .putLong("saved_destination_lat",destination.lat.toBits())
+            .putLong("saved_destination_lon",destination.lon.toBits())
+            .putString("saved_destination_name",name).apply()
+        val current=gpsFix
+        if(current==null) {
+            resumeSavedRoute=true
+            routeInfo=DriveInfo.NEEDS_GPS
+            gps.locateNow()
+        } else if(!router.installed()) {
+            routeInfo=DriveInfo.NEEDS_ROUTING_DATA
+        } else calculateRoute(NavPoint(current.latitude,current.longitude),destination)
+    }
+
     private fun handleVoiceNavigation(spoken:String) {
         when(VoiceNavigationCommands.match(language,spoken)) {
             VoiceNavigationCommand.SETTINGS -> showSettings=true
@@ -711,7 +890,7 @@ class MainActivity: ComponentActivity() {
                     .edit().putBoolean("voice_enabled",true).apply()
             }
             VoiceNavigationCommand.CLEAR_DESTINATION ->clearCurrentDestination()
-            null -> Unit // Never guess a navigation target from a partial transcript.
+            null -> startDestinationSearch(spoken)
         }
     }
 
