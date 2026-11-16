@@ -12,8 +12,8 @@ android {
         minSdk = 26
         targetSdk = 35
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        versionCode = 13
-        versionName = "0.13.0-dev"
+        versionCode = 14
+        versionName = "0.14.0-dev"
     }
     buildTypes {
         release {
@@ -26,12 +26,16 @@ android {
         // GitHub runners; NEVER use this variant for Google Play or updates.
         create("fieldTest") {
             initWith(getByName("release"))
-            applicationIdSuffix = ".fieldtest13"
+            applicationIdSuffix = ".fieldtest14"
             versionNameSuffix = "-fieldtest"
             signingConfig = signingConfigs.getByName("debug")
             matchingFallbacks += listOf("release")
         }
     }
+    // CI can instrument the actual minified field-test build; normal search
+    // integration tests still use the default unminified debug variant.
+    if (providers.gradleProperty("navMinifiedDeviceTest").orNull == "true")
+        testBuildType = "fieldTest"
     buildFeatures { compose = true }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
