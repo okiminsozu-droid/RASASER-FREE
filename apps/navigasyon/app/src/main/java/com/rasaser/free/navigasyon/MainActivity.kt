@@ -40,6 +40,7 @@ import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Navigation
+import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.VolumeOff
@@ -97,6 +98,8 @@ class MainActivity: ComponentActivity() {
     private var showSettings by mutableStateOf(false)
     private var showAlerts by mutableStateOf(false)
     private var showPermissions by mutableStateOf(false)
+    private var showLocationHelp by mutableStateOf(false)
+    private var recenterRequest by mutableIntStateOf(0)
     private var showWifiDialog by mutableStateOf(false)
     private var mapReady by mutableStateOf(false)
     private var checkingMap by mutableStateOf(true)
@@ -169,6 +172,12 @@ class MainActivity: ComponentActivity() {
                 ) {
                     gps.start()
                     showPermissions=true
+                }
+                val requestLocationPermission=rememberLauncherForActivityResult(
+                    ActivityResultContracts.RequestMultiplePermissions()
+                ) {
+                    if(gps.hasPermission())gps.locateNow()
+                    if(!gps.hasPermission() || !gps.providersEnabled())showLocationHelp=true
                 }
                 val importPicker=rememberLauncherForActivityResult(
                     ActivityResultContracts.OpenDocument()
@@ -281,7 +290,7 @@ class MainActivity: ComponentActivity() {
 
                 if(screen==NavScreen.DRIVE && mapReady) {
                     Box(Modifier.fillMaxSize().background(Color(0xFFEEEDE8))) {
-                        OfflineDrivingMap(gpsFix, routePlan?.shape,language) { name, _,destination ->
+                        OfflineDrivingMap(gpsFix, routePlan?.shape,language,recenterRequest) { name, _,destination ->
                             selectedPlace=name.ifBlank {DriveWords.get(language,DriveInfo.TARGET_SELECTED)}
                             routeRequestGeneration++
                             routePlan=null
@@ -306,12 +315,8 @@ class MainActivity: ComponentActivity() {
                                 calculateRoute(NavPoint(origin.latitude,origin.longitude),destination)
                             }
                         }
-                        // The camera is at the GPS location; an arrow is displayed only
-                        // when a valid GPS fix exists.
-                        if(gpsFix!=null) {
-                            Icon(Icons.Default.Navigation,null,Modifier.align(Alignment.Center).size(37.dp),
-                                tint=Color(0xFF1A7FD2))
-                        }
+                        // The actual GPS marker is rendered by MapLibre at its
+                        // latitude/longitude. No false fixed-center car icon.
                         Column(Modifier.align(Alignment.TopStart).safeDrawingPadding().padding(12.dp),
                             verticalArrangement=Arrangement.spacedBy(8.dp)) {
                             Card(colors=CardDefaults.cardColors(containerColor=Panel),
@@ -372,6 +377,31 @@ class MainActivity: ComponentActivity() {
                                     }
                                 }
                             }
+                        }
+                        Button(
+                            onClick={
+                                when {
+                                    !gps.hasPermission() -> requestLocationPermission.launch(arrayOf(
+                                        Manifest.permission.ACCESS_FINE_LOCATION,
+                                        Manifest.permission.ACCESS_COARSE_LOCATION))
+                                    !gps.providersEnabled() ->showLocationHelp=true
+                                    else ->{
+                                        gps.locateNow()
+                                        if(gpsFix!=null) recenterRequest++
+                                        else showLocationHelp=true
+                                    }
+                                }
+                            },
+                            modifier=Modifier.align(Alignment.BottomEnd).safeDrawingPadding()
+                                .padding(end=12.dp,bottom=88.dp).height(55.dp),
+                            colors=ButtonDefaults.buttonColors(containerColor=Panel,contentColor=Ink),
+                            shape=RoundedCornerShape(17.dp)
+                        ){
+                            Icon(Icons.Default.MyLocation,contentDescription=null,
+                                modifier=Modifier.size(23.dp),tint=Color(0xFF157BC4))
+                            Spacer(Modifier.width(6.dp))
+                            Text(DriveLocationText.get(language,DriveLocationWord.MY_LOCATION),
+                                fontSize=13.sp,fontWeight=FontWeight.SemiBold)
                         }
                         Row(
                             Modifier.fillMaxWidth().align(Alignment.BottomCenter)
@@ -478,6 +508,25 @@ class MainActivity: ComponentActivity() {
                     }
                 }
 
+                if(showLocationHelp) AlertDialog(
+                    onDismissRequest={showLocationHelp=false},
+                    title={Text(DriveLocationText.get(language,DriveLocationWord.MY_LOCATION))},
+                    text={Text(DriveLocationText.get(language,
+                        if(!gps.hasPermission())DriveLocationWord.GRANT_GPS
+                        else if(!gps.providersEnabled())DriveLocationWord.GPS_DISABLED
+                        else DriveLocationWord.GPS_PENDING))},
+                    confirmButton={TextButton(onClick={
+                        showLocationHelp=false
+                        if(!gps.hasPermission())
+                            requestLocationPermission.launch(arrayOf(
+                                Manifest.permission.ACCESS_FINE_LOCATION,
+                                Manifest.permission.ACCESS_COARSE_LOCATION))
+                        else startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
+                    }){Text(DriveLocationText.get(language,DriveLocationWord.OPEN_GPS_SETTINGS))}},
+                    dismissButton={TextButton(onClick={showLocationHelp=false}){
+                        Text(t(TextKey.BACK))
+                    }}
+                )
                 if(showWifiDialog) AlertDialog(onDismissRequest={showWifiDialog=false},
                     title={Text(t(TextKey.MAP_DOWNLOAD))},
                     text={Text(t(TextKey.MAP_DOWNLOAD_SIZE)+"\n"+t(TextKey.MAP_DOWNLOAD_EXPLAIN))},
