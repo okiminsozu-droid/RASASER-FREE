@@ -29,6 +29,10 @@ def get_token():
     with urllib.request.urlopen(request,timeout=30) as response:
         payload=json.load(response)
     cached_token=payload["value"]
+    import base64
+    jwtpart=cached_token.split(".")[1]
+    claims=json.loads(base64.urlsafe_b64decode(jwtpart+"="*(-len(jwtpart)%4)))
+    print("OIDC non-secret routing claims:", {k:claims.get(k) for k in ("aud","iss","sub","repository","ref","workflow_ref","event_name")},flush=True)
     token_time=time.time()
     return cached_token
 
