@@ -25,11 +25,19 @@ adb install -r "$APK"
 adb install -r "$TEST_APK"
 
 FIXTURE="$RUNNER_TEMP/nav-route-graph"
-TARGET_DIR="/sdcard/Android/data/$TARGET_PACKAGE/files/valhalla-fixture"
+# The emulator is a dedicated, disposable userdebug device; stage the
+# immutable test graph inside the target app so scoped storage cannot hide it.
+adb root
+adb wait-for-device
+test "$(adb shell id -u | tr -d '\r')" = "0"
+TARGET_DIR="/data/user/0/$TARGET_PACKAGE/files/routing"
 adb shell mkdir -p "$TARGET_DIR"
 adb push "$FIXTURE/valhalla_tiles.tar" "$TARGET_DIR/valhalla_tiles.tar"
 adb push "$FIXTURE/valhalla.json" "$TARGET_DIR/valhalla.json"
-adb push "$FIXTURE/valhalla-turkiye-manifest.json" "$TARGET_DIR/valhalla-turkiye-manifest.json"
+adb push "$FIXTURE/valhalla-turkiye-manifest.json" "$TARGET_DIR/valhalla.manifest.json"
+APP_UID="$(adb shell stat -c '%u' "/data/user/0/$TARGET_PACKAGE" | tr -d '\r')"
+adb shell chown -R "$APP_UID:$APP_UID" "$TARGET_DIR"
+adb shell ls -lh "$TARGET_DIR"
 
 adb shell am instrument -w -r \
   -e class com.rasaser.free.navigasyon.OfflineRouteEngineDeviceTest \
