@@ -12,7 +12,9 @@ data class OfflinePlace(val name:String,val kind:String,val lat:Double,val lon:D
 /** All results come from real OSM coordinates in a local SQLite FTS4 database. */
 class OfflinePlaceSearch(private val context:Context) {
     private val file:File get()=File(context.filesDir,"search/turkey-places.sqlite")
-    fun installed():Boolean=file.isFile && file.length()>=256*1024
+    // A half-installed or incompatible SQLite file must not be reported as
+    // usable just because it is larger than 256 KB.
+    fun installed():Boolean=TurkeySearchInstaller(context).installed()
 
     fun find(words:String,origin:NavPoint?):List<OfflinePlace> {
         if(!installed())return emptyList()

@@ -1,0 +1,61 @@
+name: Navigasyon v0.13 Android-Dogrulanmis APK
+on:
+  push:
+    branches: [feature/rasaser-nav-search-index-finalize-v013]
+    paths:
+      - '.github/workflows/19-navigasyon-v013-tested-apk-release.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: read
+jobs:
+  publish-only-after-device-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Android 15 ve Kotlin testleri basarili olmadan yayinlama
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -Eeuo pipefail
+          REPO="okiminsozu-droid/RASASER-FREE"
+          for RUN in 43882388519 43882388491; do
+            STATE=""
+            for attempt in $(seq 1 75); do
+              STATE="$(gh run view "$RUN" --repo "$REPO" --json conclusion --jq '.conclusion')"
+              if [ "$STATE" = "success" ]; then break; fi
+              if [ -n "$STATE" ]; then
+                echo "Testing failed; do not publish: $RUN ($STATE)" >&2
+                exit 1
+              fi
+              sleep 12
+            done
+            test "$STATE" = success
+          done
+          mkdir -p "$RUNNER_TEMP/verified-v013"
+          gh run download 43882388519 --repo "$REPO" \
+            --name rasaser-navigasyon-v013-searchfix-test-116 \
+            --dir "$RUNNER_TEMP/verified-v013"
+          cd "$RUNNER_TEMP/verified-v013"
+          sha256sum --check SHA256SUMS.txt
+          APK="$PWD/RaSaSeR-Navigasyon-v0.13-searchfix-TEST.apk"
+          test -s "$APK"
+          test "$(stat -c %s "$APK")" -lt 100000000
+          echo "APK=$APK" >> "$GITHUB_ENV"
+      - name: Yalniz dogrulanmis test APK'yi yayinla
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -Eeuo pipefail
+          REPO="okiminsozu-droid/RASASER-FREE"
+          TAG="rasaser-navigasyon-v0.13-searchfix-test"
+          if ! gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1; then
+            gh release create "$TAG" --repo "$REPO" --prerelease \
+              --target "3f267a325bfd2efc268b3c2e85470e925faf7e5b" \
+              --title "RaSaSeR Navigasyon v0.13 — yer arama %99 onarimi" \
+              --notes "GELISTIRME TEST SURUMU: Google Play ya da trafikte guvenilir navigasyon yayini degildir. Cloudflare veri arsivleri yeniden uretilmedi. Android 15 gercek emulator FTS4+Ankara arama testi ve Kotlin+APK imza butunluk kontrolu basarili olmadan bu APK yayinlanmaz. Iki hedef: 1) Yer arama 99% asamasinda agir SQLite tam tarama yerine SHA256 + hizli Android FTS4 kontrolu, 2) Türkiye haritasını indir etiketi. Hata varsa kullanici arayuzunde teknik asama kodu gorunur. Eski map/route verileri guvende kalsin diye fieldtest13 diger test uygulamalarindan ayridir; onceden indirilen cihaz-ozel verilere erisemez, uygulamadan harita indirmesi gerekebilir. v0.12'yi silmeyin."
+          fi
+          gh release upload "$TAG" "$APK#RaSaSeR-Navigasyon-v0.13-searchfix-TEST.apk" \
+            --repo "$REPO" --clobber
+          gh release view "$TAG" --repo "$REPO" --json url,assets \
+            --jq '{release:.url,apk:[.assets[]|{name:.name,size:.size,url:.url}]}'

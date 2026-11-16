@@ -26,7 +26,7 @@ object TurkeyPackageUi {
             "es" -> "Descargar Turquía • 1,82 GB"
             "ar" -> "تنزيل خريطة تركيا • 1.82 غيغابايت"
             "ja" -> "トルコをダウンロード • 1.82 GB"
-            else -> "Türkiye'yi indir • 1,82 GB"
+            else -> "Türkiye haritasını indir • 1,82 GB"
         }
     }
     fun stage(language:NavLanguage,map:Boolean,route:Boolean,search:Boolean,
@@ -145,7 +145,7 @@ object TurkeyPackageUi {
             }
             else -> when {
                 storage -> "Boş depolama alanı yetersiz. Yer açıp 'Kaldığı yerden devam et'e basın."
-                search -> "Yer arama doğrulaması tamamlanamadı. İndirilen haritalar korunuyor; devam edebilirsiniz."
+                search -> "Yer arama doğrulaması tamamlanamadı (hata: ${code.take(42)}). Haritalar korunuyor; kaldığı yerden devam edin."
                 else -> "Kurulum durakladı. Wi-Fi'yi kontrol edip kaldığı yerden devam edin."
             }
         }
