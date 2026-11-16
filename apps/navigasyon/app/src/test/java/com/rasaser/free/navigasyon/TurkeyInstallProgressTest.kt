@@ -14,6 +14,18 @@ class TurkeyInstallProgressTest {
         assertFalse(status.contains("99%"))
     }
 
+    @Test fun turkishPrimaryButtonNamesTheMapWithoutChangingNavigation() {
+        val label=TurkeyPackageUi.button(NavLanguage.TR,false)
+        assertTrue(label.startsWith("Türkiye haritasını indir"))
+        assertFalse(label.startsWith("Türkiye'yi indir"))
+    }
+
+    @Test fun failedSearchIncludesExactDiagnosticStage() {
+        val message=TurkeyPackageUi.error(NavLanguage.TR,"search_SQLITE_OPEN")
+        assertTrue(message.contains("search_SQLITE_OPEN"))
+        assertTrue(message.contains("Haritalar korunuyor"))
+    }
+
     @Test fun resumeButtonPreservesAlreadyDownloadedPacks() {
         val label=TurkeyPackageUi.button(NavLanguage.TR,false,true)
         assertTrue(label.contains("Kaldığı yerden devam"))
