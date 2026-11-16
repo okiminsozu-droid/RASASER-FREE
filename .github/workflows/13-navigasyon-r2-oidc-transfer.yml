@@ -24,6 +24,16 @@ jobs:
         uses: actions/checkout@v4
         with:
           persist-credentials: false
+      - name: Cloudflare Worker erisim testi
+        run: |
+          set -euo pipefail
+          for url in "https://rasaser-nav-r2-import-probe.okiminsozu.workers.dev/health" "https://rasaser-apps-core.okiminsozu.workers.dev/" "https://pub-e5b8f3a2a9e84a9dbfc1c01ca1442264.r2.dev/"; do
+            echo "Testing host: ${url%%/*}"
+            curl -sS -L -D /tmp/rasaser-headers -o /tmp/rasaser-body --connect-timeout 10 --max-time 25 "$url" || true
+            head -12 /tmp/rasaser-headers || true
+            head -c 250 /tmp/rasaser-body || true
+            echo
+          done
       - name: Guvenli GitHub OIDC imzali kimligi ile 7 gercek paketi aktar
         env:
           PYTHONUNBUFFERED: '1'
