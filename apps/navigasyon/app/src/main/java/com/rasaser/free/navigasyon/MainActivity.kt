@@ -138,6 +138,8 @@ class MainActivity: ComponentActivity() {
     private var searchInstalling by mutableStateOf(false)
     private var searchReady by mutableStateOf(false)
     private var searchAutoAttempted=false
+    private var pendingSearchSpeech:String?=null
+    private var searchFailureCode:String?=null
     private var searchNotice by mutableStateOf<SearchNotice?>(null)
     private var searchQuery by mutableStateOf("")
     private var searchBusy by mutableStateOf(false)
@@ -185,6 +187,23 @@ class MainActivity: ComponentActivity() {
         placeSearch=OfflinePlaceSearch(this)
         searchInstaller=TurkeySearchInstaller(this)
         searchReady=placeSearch.installed()
+        // Reuse the already-downloaded archive after a background interruption.
+        if(!searchReady && searchInstaller.cachedZipExists()){
+            searchInstalling=true
+            Thread {
+                val result=searchInstaller.installWithResult()
+                runOnUiThread {
+                    searchInstalling=false
+                    searchReady=result.installed || placeSearch.installed()
+                    searchFailureCode=if(searchReady)null else result.stage.name
+                    searchNotice=if(searchReady)null else SearchNotice.DOWNLOAD_ERROR
+                    if(searchReady)pendingSearchSpeech?.let { phrase->
+                        pendingSearchSpeech=null
+                        startDestinationSearch(phrase)
+                    }
+                }
+            }.start()
+        }
 
         setContent {
             MaterialTheme {
@@ -273,18 +292,23 @@ class MainActivity: ComponentActivity() {
                     val current=searchDownloadId
                     if(current>=0L) {
                         while(searchDownloadId==current) {
-                            when(searchInstaller.downloadState(current)) {
+                            when(searchInstaller.transfer(current).status) {
                                 DownloadManager.STATUS_SUCCESSFUL -> {
                                     searchDownloadId=-1L
                                     prefs.edit().remove("place_search_download_id").apply()
                                     searchInstalling=true
                                     searchNotice=SearchNotice.VERIFYING
                                     Thread {
-                                        val ok=searchInstaller.install()
+                                        val result=searchInstaller.installWithResult(current)
                                         runOnUiThread {
                                             searchInstalling=false
-                                            searchReady=ok || placeSearch.installed()
-                                            searchNotice=if(ok)SearchNotice.READY else SearchNotice.DOWNLOAD_ERROR
+                                            searchReady=result.installed || placeSearch.installed()
+                                            searchFailureCode=if(searchReady)null else result.stage.name
+                                            searchNotice=if(searchReady)null else SearchNotice.DOWNLOAD_ERROR
+                                            if(searchReady)pendingSearchSpeech?.let { phrase->
+                                                pendingSearchSpeech=null
+                                                startDestinationSearch(phrase)
+                                            }
                                         }
                                     }.start()
                                     break
@@ -293,6 +317,7 @@ class MainActivity: ComponentActivity() {
                                     searchDownloadId=-1L
                                     prefs.edit().remove("place_search_download_id").apply()
                                     searchNotice=SearchNotice.DOWNLOAD_ERROR
+                                    searchFailureCode="TRANSFER_"+searchInstaller.transfer(current).reason
                                     break
                                 }
                                 else ->Unit
@@ -781,7 +806,8 @@ class MainActivity: ComponentActivity() {
             runOnUiThread {
                 mapReady=ready
                 checkingMap=false
-                if (ready && ((autoDrive && prefs.getBoolean("drive_started",false)) || intent?.action == "com.rasaser.free.navigasyon.OPEN_DRIVE")) screen=NavScreen.DRIVE
+                if (ready && (autoDrive || intent?.action == "com.rasaser.free.navigasyon.OPEN_DRIVE"))
+                    screen=NavScreen.DRIVE
             }
         }.start()
     }
@@ -828,6 +854,31 @@ class MainActivity: ComponentActivity() {
 
     private fun startPlaceSearchDownload() {
         if(searchReady || searchDownloadId>=0L || searchInstalling)return
+        searchNotice=null
+        searchFailureCode=null
+        if(searchInstaller.cachedZipExists()){
+            searchInstalling=true
+            Thread {
+                val result=searchInstaller.installWithResult()
+                runOnUiThread {
+                    searchInstalling=false
+                    searchReady=result.installed || placeSearch.installed()
+                    searchFailureCode=if(searchReady)null else result.stage.name
+                    if(searchReady) {
+                        pendingSearchSpeech?.let { phrase->
+                            pendingSearchSpeech=null
+                            startDestinationSearch(phrase)
+                        }
+                    } else startPlaceSearchFresh()
+                }
+            }.start()
+            return
+        }
+        startPlaceSearchFresh()
+    }
+
+    private fun startPlaceSearchFresh() {
+        if(searchReady || searchDownloadId>=0L || searchInstalling)return
         try {
             searchDownloadId=searchInstaller.beginWifiDownload()
             getSharedPreferences("offline_first_settings",MODE_PRIVATE)
@@ -835,6 +886,7 @@ class MainActivity: ComponentActivity() {
             searchNotice=SearchNotice.DOWNLOADING
         }catch (_:Exception) {
             searchNotice=SearchNotice.DOWNLOAD_ERROR
+            searchFailureCode="DOWNLOAD_START"
         }
     }
 
@@ -843,6 +895,7 @@ class MainActivity: ComponentActivity() {
         if(target==null) return
         searchQuery=target
         if(!searchReady || !placeSearch.installed()) {
+            pendingSearchSpeech=target
             searchNotice=SearchNotice.MISSING
             searchResults=emptyList()
             showSearchResults=true
@@ -852,7 +905,7 @@ class MainActivity: ComponentActivity() {
         }
         if(searchBusy)return
         searchBusy=true
-        searchNotice=SearchNotice.SEARCHING
+        searchNotice=null
         val position=gpsFix?.let {NavPoint(it.latitude,it.longitude)}
         Thread {
             val places=placeSearch.find(target,position)
@@ -873,6 +926,7 @@ class MainActivity: ComponentActivity() {
                     val uniquelyRanked=places.size==1 || allSameArea ||
                         (first.score>=450.0 && first.score-(places.getOrNull(1)?.score ?: 0.0)>80.0)
                     if(uniquelyRanked) {
+                        searchNotice=null
                         showSearchResults=false
                         selectDestination(first.name,NavPoint(first.lat,first.lon))
                     }else {
