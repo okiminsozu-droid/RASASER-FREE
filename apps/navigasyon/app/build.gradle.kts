@@ -11,8 +11,8 @@ android {
         applicationId = "com.rasaser.free.navigasyon"
         minSdk = 26
         targetSdk = 35
-        versionCode = 9
-        versionName = "0.9.0-dev"
+        versionCode = 10
+        versionName = "0.10.0-dev"
     }
     buildTypes {
         release {
@@ -25,7 +25,7 @@ android {
         // GitHub runners; NEVER use this variant for Google Play or updates.
         create("fieldTest") {
             initWith(getByName("release"))
-            applicationIdSuffix = ".fieldtest09"
+            applicationIdSuffix = ".fieldtest10"
             versionNameSuffix = "-fieldtest"
             signingConfig = signingConfigs.getByName("debug")
             matchingFallbacks += listOf("release")
@@ -49,6 +49,7 @@ dependencies {
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-extended")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.7")
+    implementation("androidx.work:work-runtime-ktx:2.12.0")
     implementation("org.maplibre.gl:android-sdk-opengl:13.7.1")
     // MIT licensed, embedded Android Valhalla routing engine.
     implementation("io.github.rallista:valhalla-mobile:0.6.1")

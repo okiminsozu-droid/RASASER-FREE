@@ -87,13 +87,14 @@ class TurkeySearchInstaller(private val context: Context) {
     /** Must run on a worker thread after successful transfer or for retry. */
     fun install(downloadId:Long?=null):Boolean=installWithResult(downloadId).installed
 
-    fun installWithResult(downloadId:Long?=null):Result {
+    fun installWithResult(downloadId:Long?=null, sourceArchive:File?=null):Result {
         if(installed())return report(true,Stage.READY)
         if(StatFs(context.filesDir.absolutePath).availableBytes<350_000_000L)
             return report(false,Stage.NO_STORAGE)
         val cached=file()
         var temporary:File?=null
-        val archive=if(cached.isFile && cached.length()==ZIP_BYTES)cached
+        val archive=if(sourceArchive!=null) sourceArchive
+        else if(cached.isFile && cached.length()==ZIP_BYTES)cached
         else if(downloadId!=null && downloadId>=0L) {
             // Some vendors keep DownloadManager results behind content://.
             val temp=File(context.cacheDir,"places-v01-downloaded.zip")

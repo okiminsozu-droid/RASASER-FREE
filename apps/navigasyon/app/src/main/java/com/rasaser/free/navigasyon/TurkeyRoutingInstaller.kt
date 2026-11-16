@@ -23,6 +23,7 @@ class TurkeyRoutingInstaller(private val context:Context) {
             "https://github.com/okiminsozu-droid/RASASER-FREE/releases/download/rasaser-turkiye-routing-v0.1/"
         private const val DATA_NAME = "rasaser-turkiye-routing-v01.tar"
         private const val R2_URL = "https://pub-e5b8f3a2a9e84a9dbfc1c01ca1442264.r2.dev/v1/valhalla_tiles.tar"
+        private const val R2_META = "https://pub-e5b8f3a2a9e84a9dbfc1c01ca1442264.r2.dev/v1/"
         const val GRAPH_BYTES = 1148661760L
         const val GRAPH_SHA = "bdfd9a67d8fdd0d5856013e889c6e48cd8a14560934cc5d2b6f3c16a8f6a554f"
     }
@@ -56,10 +57,11 @@ class TurkeyRoutingInstaller(private val context:Context) {
     }
 
     /** Must run off main thread after DownloadManager reports SUCCESSFUL. */
-    fun installDownloaded():Boolean {
-        val source=downloadFile()
-        val metadata=fetchJson(RELEASE_BASE+"valhalla-turkiye-manifest.json") ?:return false
-        val config=fetchJson(RELEASE_BASE+"valhalla.json") ?:return false
+    fun installDownloaded(source:File=downloadFile(),
+                          metadataOverride:JSONObject?=null,
+                          configOverride:JSONObject?=null):Boolean {
+        val metadata=metadataOverride ?: fetchJson(R2_META+"valhalla-turkiye-manifest.json") ?:return false
+        val config=configOverride ?: fetchJson(R2_META+"valhalla.json") ?:return false
         val expectedSha=metadata.optString("graph_sha256","").lowercase()
         val expectedBytes=metadata.optLong("file_size",0)
         if(expectedSha!=GRAPH_SHA)return false
