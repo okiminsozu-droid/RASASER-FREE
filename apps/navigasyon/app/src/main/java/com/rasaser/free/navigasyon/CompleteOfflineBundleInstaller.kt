@@ -38,14 +38,18 @@ class CompleteOfflineBundleInstaller(private val context: Context) {
         runCatching { context.assets.open(name).use { true } }.getOrDefault(false)
     }
 
-    private fun routeReady(): Boolean = try {
-        if (!graph.isFile || graph.length() != TurkeyRoutingInstaller.GRAPH_BYTES ||
-            !routeManifest.isFile || !routeConfig.isFile) return false
-        val record = JSONObject(routeManifest.readText(Charsets.UTF_8))
-        record.optLong("file_size", -1) == TurkeyRoutingInstaller.GRAPH_BYTES &&
-            record.optString("graph_sha256", "").lowercase() == TurkeyRoutingInstaller.GRAPH_SHA &&
-            JSONObject(routeConfig.readText(Charsets.UTF_8)).has("mjolnir")
-    } catch (_: Exception) { false }
+    private fun routeReady(): Boolean {
+        return try {
+            if (!graph.isFile || graph.length() != TurkeyRoutingInstaller.GRAPH_BYTES ||
+                !routeManifest.isFile || !routeConfig.isFile) false
+            else {
+                val record = JSONObject(routeManifest.readText(Charsets.UTF_8))
+                record.optLong("file_size", -1) == TurkeyRoutingInstaller.GRAPH_BYTES &&
+                    record.optString("graph_sha256", "").lowercase() == TurkeyRoutingInstaller.GRAPH_SHA &&
+                    JSONObject(routeConfig.readText(Charsets.UTF_8)).has("mjolnir")
+            }
+        } catch (_: Exception) { false }
+    }
 
     fun install(reportProgress: (String) -> Unit): Result {
         val search = TurkeySearchInstaller(context)
