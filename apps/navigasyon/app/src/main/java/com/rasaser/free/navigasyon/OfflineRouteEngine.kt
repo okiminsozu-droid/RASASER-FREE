@@ -39,18 +39,23 @@ class OfflineRouteEngine(private val context: Context) : Closeable {
 
     fun installed(): Boolean = extract.isFile && marker.isFile && configFile.isFile && extract.length()>20*1024*1024
 
-    fun route(origin:NavPoint,destination:NavPoint,lang:NavLanguage): RoutePlan? = synchronized(lock) {
-        if(!installed()) return@synchronized null
-        val instance=native ?: try {
+    private fun activeEngine(): Valhalla? {
+        native?.let { return it }
+        if(!installed())return null
+        return try {
             val json=JSONObject(configFile.readText())
-            val mjolnir=json.optJSONObject("mjolnir") ?: return@synchronized null
+            val mjolnir=json.optJSONObject("mjolnir") ?:return null
             mjolnir.put("tile_extract",extract.absolutePath)
             mjolnir.put("tile_dir",File(context.filesDir,"routing/valhalla_tiles").absolutePath)
-            mjolnir.remove("tile_url")  // Never contact a routing server.
+            mjolnir.remove("tile_url")
             val config=moshi.adapter(ValhallaConfig::class.java).fromJson(json.toString())
-                ?: return@synchronized null
+                ?:return null
             Valhalla(context,config).also { native=it }
-        } catch (_:Exception) {return@synchronized null}
+        } catch (_:Exception) { null }
+    }
+
+    fun route(origin:NavPoint,destination:NavPoint,lang:NavLanguage): RoutePlan? = synchronized(lock) {
+        val instance=activeEngine() ?:return@synchronized null
         try {
             val req=JSONObject()
                 .put("locations",JSONArray()
@@ -101,6 +106,49 @@ class OfflineRouteEngine(private val context: Context) : Closeable {
             if(!distance.isFinite() || !duration.isFinite() || distance<=0.0)return@synchronized null
             RoutePlan(points,distance,duration,instructions,turns)
         } catch (_: Exception) { null }
+    }
+
+
+    /**
+     * Optional current-road posted speed limit derived from Valhalla trace_attributes.
+     * Called off the main thread using a short, recent and accurate GPS trace.
+     * Do not substitute edge.speed: it is the routing-speed estimate, not the legal limit.
+     */
+    fun matchedPostedSpeedLimit(points:List<NavPoint>, accuracyMeters:Float): RoadSpeedLimit? = synchronized(lock) {
+        if(points.size !in 2..8 || accuracyMeters !in 0.1f..25f) return@synchronized null
+        val actor=activeEngine() ?:return@synchronized null
+        try {
+            val shape=JSONArray()
+            for(point in points) {
+                if(point.lat !in -90.0..90.0 || point.lon !in -180.0..180.0)
+                    return@synchronized null
+                shape.put(JSONObject().put("lat",point.lat).put("lon",point.lon))
+            }
+            val fields=JSONArray().put("edge.names").put("edge.speed_limit")
+                .put("edge.speed").put("edge.speed_type")
+                .put("matched.point").put("matched.type")
+                .put("matched.edge_index").put("matched.distance_from_trace_point")
+            val request=JSONObject().put("shape",shape).put("costing","auto")
+                .put("shape_match","map_snap")
+                .put("trace_options",JSONObject()
+                    .put("gps_accuracy",accuracyMeters.toDouble())
+                    .put("search_radius",35))
+                .put("filters",JSONObject().put("attributes",fields).put("action","include"))
+            val response=JSONObject(actor.traceAttributesRaw(request.toString()))
+            val matches=response.optJSONArray("matched_points") ?:return@synchronized null
+            val last=matches.optJSONObject(matches.length()-1) ?:return@synchronized null
+            if(last.optString("type")!="matched" ||
+                last.optDouble("distance_from_trace_point",1000.0)>30.0 ||
+                !last.has("edge_index"))return@synchronized null
+            val edgeIndex=last.optInt("edge_index",-1)
+            val edges=response.optJSONArray("edges") ?:return@synchronized null
+            if(edgeIndex !in 0 until edges.length())return@synchronized null
+            val edge=edges.optJSONObject(edgeIndex) ?:return@synchronized null
+            val limit=edge.optDouble("speed_limit",Double.NaN)
+            if(!limit.isFinite() || limit<10.0 || limit>150.0) return@synchronized null
+            val name=edge.optJSONArray("names")?.optString(0)?.takeIf {it.isNotBlank()}
+            RoadSpeedLimit(limit.toInt(),name)
+        } catch (_:Exception) { null }
     }
 
     override fun close()=synchronized(lock) {
