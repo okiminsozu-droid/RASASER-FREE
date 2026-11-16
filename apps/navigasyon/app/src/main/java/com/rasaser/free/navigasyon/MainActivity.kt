@@ -146,6 +146,7 @@ class MainActivity: ComponentActivity() {
     private var searchResults by mutableStateOf<List<OfflinePlace>>(emptyList())
     private var showSearchDialog by mutableStateOf(false)
     private var showSearchResults by mutableStateOf(false)
+    private var showSpeechConsent by mutableStateOf(false)
     private lateinit var network: DefaultNetworkMonitor
     private lateinit var gps: GpsTracker
     private lateinit var voice: VoiceController
@@ -212,6 +213,17 @@ class MainActivity: ComponentActivity() {
                 ) {
                     gps.start()
                     showPermissions=true
+                }
+                val requestAudioPermission=rememberLauncherForActivityResult(
+                    ActivityResultContracts.RequestPermission()
+                ) { granted ->
+                    if(!granted)showSearchDialog=true
+                    else if(voice.canRecognizeOffline())voice.listenOffline()
+                    else if(voice.canRecognizeSystem()) {
+                        if(prefs.getBoolean("system_speech_consent",false))
+                            voice.listenSystemWithConsent()
+                        else showSpeechConsent=true
+                    } else showSearchDialog=true
                 }
                 val requestLocationPermission=rememberLauncherForActivityResult(
                     ActivityResultContracts.RequestMultiplePermissions()
@@ -478,10 +490,17 @@ class MainActivity: ComponentActivity() {
                         ) {
                             DriveButton(Icons.Default.Settings,t(TextKey.SETTINGS),Modifier.weight(1f)){showSettings=true}
                             DriveButton(Icons.Default.Mic,t(TextKey.MICROPHONE),Modifier.weight(1f)){
-                                if(voice.canRecognizeOffline()) voice.listenOffline()
-                                else {
-                                    searchNotice=SearchNotice.NO_OFFLINE_SPEECH
-                                    showSearchDialog=true
+                                when {
+                                    checkSelfPermission(Manifest.permission.RECORD_AUDIO)!=
+                                        PackageManager.PERMISSION_GRANTED ->
+                                        requestAudioPermission.launch(Manifest.permission.RECORD_AUDIO)
+                                    voice.canRecognizeOffline() ->voice.listenOffline()
+                                    voice.canRecognizeSystem() -> {
+                                        if(prefs.getBoolean("system_speech_consent",false))
+                                            voice.listenSystemWithConsent()
+                                        else showSpeechConsent=true
+                                    }
+                                    else ->showSearchDialog=true
                                 }
                             }
                             DriveButton(Icons.Default.Warning,t(TextKey.ALERTS),Modifier.weight(1f)){
@@ -602,6 +621,20 @@ class MainActivity: ComponentActivity() {
                     dismissButton={TextButton(onClick={showRoutingPrompt=false}){
                         Text(t(TextKey.BACK))
                     }}
+                )
+                if(showSpeechConsent) AlertDialog(
+                    onDismissRequest={showSpeechConsent=false;showSearchDialog=true},
+                    title={Text(SystemSpeechWords.get(language,SystemSpeechWord.TITLE))},
+                    text={Text(SystemSpeechWords.get(language,SystemSpeechWord.DESCRIPTION))},
+                    confirmButton={TextButton(onClick={
+                        showSpeechConsent=false
+                        prefs.edit().putBoolean("system_speech_consent",true).apply()
+                        voice.listenSystemWithConsent()
+                    }){Text(SystemSpeechWords.get(language,SystemSpeechWord.ALLOW))}},
+                    dismissButton={TextButton(onClick={
+                        showSpeechConsent=false
+                        showSearchDialog=true
+                    }){Text(SystemSpeechWords.get(language,SystemSpeechWord.TYPE_INSTEAD))}}
                 )
                 if(showSearchDialog) AlertDialog(
                     onDismissRequest={showSearchDialog=false},
