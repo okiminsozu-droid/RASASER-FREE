@@ -13,9 +13,9 @@ import android.speech.tts.TextToSpeech
 import java.util.Locale
 
 /**
- * No cloud speech service. Recognition is offered only where Android has an
- * explicitly on-device speech recognizer. Text-to-speech also depends on locally
- * installed voice data for the selected language.
+ * On-device recognition is always preferred. The optional Android system
+ * recognizer may contact its provider, and is used ONLY after explicit consent.
+ * No commercial or paid speech API is embedded in this app.
  */
 class VoiceController(
     private val context: Context,
@@ -59,24 +59,51 @@ class VoiceController(
         SpeechRecognizer.isOnDeviceRecognitionAvailable(context) &&
         context.checkSelfPermission(Manifest.permission.RECORD_AUDIO)==PackageManager.PERMISSION_GRANTED
 
-    fun listenOffline() {
-        if (context.checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
-            onMessage(TextKey.MICROPHONE_PERMISSION, null)
+    fun canRecognizeSystem():Boolean=
+        SpeechRecognizer.isRecognitionAvailable(context) &&
+        context.checkSelfPermission(Manifest.permission.RECORD_AUDIO)==PackageManager.PERMISSION_GRANTED
+
+    fun listenOffline() = listen(allowSystemProvider=false)
+    /** Uses the device speech provider only after an affirmative user action. */
+    fun listenSystemWithConsent() = listen(allowSystemProvider=true)
+
+    private fun listen(allowSystemProvider:Boolean) {
+        if(context.checkSelfPermission(Manifest.permission.RECORD_AUDIO)!=PackageManager.PERMISSION_GRANTED){
+            onMessage(TextKey.MICROPHONE_PERMISSION,null)
             return
         }
-        if (Build.VERSION.SDK_INT < 31 || !SpeechRecognizer.isOnDeviceRecognitionAvailable(context)) {
-            onMessage(TextKey.VOICE_UNAVAILABLE, null)
+        val onDevice=Build.VERSION.SDK_INT>=31 &&
+            SpeechRecognizer.isOnDeviceRecognitionAvailable(context)
+        if(!onDevice && !(allowSystemProvider && SpeechRecognizer.isRecognitionAvailable(context))){
+            onMessage(TextKey.VOICE_UNAVAILABLE,null)
             return
         }
         speech?.destroy()
-        speech = SpeechRecognizer.createOnDeviceSpeechRecognizer(context)
+        speech = try {
+            if(onDevice)SpeechRecognizer.createOnDeviceSpeechRecognizer(context)
+            else SpeechRecognizer.createSpeechRecognizer(context)
+        }catch (_:Exception){
+            onMessage(TextKey.VOICE_UNAVAILABLE,null)
+            return
+        }
         speech?.setRecognitionListener(object : RecognitionListener {
             override fun onReadyForSpeech(params: Bundle?) { onMessage(TextKey.RECORDING, null) }
             override fun onBeginningOfSpeech() {}
             override fun onRmsChanged(rmsdB: Float) {}
             override fun onBufferReceived(buffer: ByteArray?) {}
             override fun onEndOfSpeech() {}
-            override fun onError(error: Int) { onMessage(TextKey.VOICE_ERROR, null) }
+            override fun onError(error: Int) {
+                // A missing on-device language model is not a navigation failure.
+                // Android may prompt the user before downloading that voice model.
+                if(onDevice && Build.VERSION.SDK_INT>=33 &&
+                    (error==SpeechRecognizer.ERROR_LANGUAGE_UNAVAILABLE ||
+                     error==SpeechRecognizer.ERROR_LANGUAGE_NOT_SUPPORTED)) {
+                    runCatching {
+                        speech?.triggerModelDownload(recognitionIntent())
+                    }
+                }
+                onMessage(TextKey.VOICE_ERROR,null)
+            }
             override fun onResults(results: Bundle?) {
                 val first = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull()
                 onMessage(if (first.isNullOrBlank()) TextKey.VOICE_ERROR else TextKey.RECOGNIZED, first)
@@ -85,13 +112,16 @@ class VoiceController(
             override fun onPartialResults(partialResults: Bundle?) {}
             override fun onEvent(eventType: Int, params: Bundle?) {}
         })
-        speech?.startListening(Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE, lang.tag)
-            putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true)
-            putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
-        })
+        speech?.startListening(recognitionIntent())
     }
+
+    private fun recognitionIntent()=Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+        putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+        putExtra(RecognizerIntent.EXTRA_LANGUAGE,lang.tag)
+        putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE,true)
+        putExtra(RecognizerIntent.EXTRA_MAX_RESULTS,3)
+    }
+
     fun close() {
         speech?.destroy()
         speech = null
