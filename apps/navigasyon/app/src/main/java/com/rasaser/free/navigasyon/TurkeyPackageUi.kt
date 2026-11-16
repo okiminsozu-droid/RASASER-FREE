@@ -2,7 +2,7 @@ package com.rasaser.free.navigasyon
 
 /** User-controlled complete country installation; never claims downloads are complete early. */
 object TurkeyPackageUi {
-    fun button(language:NavLanguage, ready:Boolean):String {
+    fun button(language:NavLanguage, ready:Boolean, resume:Boolean=false):String {
         val languageTag=language.tag.lowercase()
         if(ready) return when(languageTag) {
             "en" -> "Türkiye is ready"
@@ -11,6 +11,14 @@ object TurkeyPackageUi {
             "ar" -> "تركيا جاهزة"
             "ja" -> "トルコのデータは準備完了"
             else -> "Türkiye hazır"
+        }
+        if(resume) return when(languageTag) {
+            "en" -> "Resume Türkiye installation"
+            "de" -> "Türkei-Installation fortsetzen"
+            "es" -> "Reanudar instalación de Turquía"
+            "ar" -> "متابعة تثبيت تركيا"
+            "ja" -> "トルコのインストールを再開"
+            else -> "Kaldığı yerden devam et"
         }
         return when(languageTag) {
             "en" -> "Download Türkiye • 1.82 GB"
@@ -78,6 +86,14 @@ object TurkeyPackageUi {
                 else -> "3/3 • Çevrimdışı yer arama"
             }
             4 -> return button(language,true)
+            5 -> return when(tag) {
+                "en" -> "3/3 • Verifying place index • Download complete"
+                "de" -> "3/3 • Ortsindex wird geprüft • Download abgeschlossen"
+                "es" -> "3/3 • Verificando lugares • Descarga finalizada"
+                "ar" -> "3/3 • التحقق من الأماكن • اكتمل التنزيل"
+                "ja" -> "3/3 • 場所データを検証中 • ダウンロード完了"
+                else -> "3/3 • Yer arama doğrulanıyor • İndirme tamamlandı"
+            }
             else -> when(tag) {
                 "en" -> "Waiting for Wi-Fi"
                 "de" -> "Warten auf WLAN"
@@ -98,12 +114,40 @@ object TurkeyPackageUi {
         return "$label • $percent%$resume"
     }
 
-    fun error(language:NavLanguage):String = when(language.tag.lowercase()) {
-        "en" -> "Installation stopped. Check Wi-Fi and free storage, then retry."
-        "de" -> "Installation gestoppt. WLAN und Speicher prüfen und erneut versuchen."
-        "es" -> "Instalación detenida. Comprueba Wi-Fi y espacio libre e inténtalo de nuevo."
-        "ar" -> "توقف التثبيت. تحقق من الاتصال والمساحة ثم أعد المحاولة."
-        "ja" -> "インストールが停止しました。通信と空き容量を確認し再試行してください。"
-        else -> "Kurulum durdu. Wi-Fi ve boş alanı kontrol edip yeniden deneyin."
+    fun error(language:NavLanguage,code:String):String {
+        val storage=code.contains("storage",ignoreCase=true)
+        val search=code.startsWith("search_",ignoreCase=true)
+        return when(language.tag.lowercase()) {
+            "en" -> when {
+                storage -> "Not enough free storage. Free up space and tap Resume."
+                search -> "Place index verification could not finish. Tap Resume; downloaded maps are kept."
+                else -> "Installation paused. Check Wi-Fi, then tap Resume; existing files are kept."
+            }
+            "de" -> when {
+                storage -> "Zu wenig Speicher. Platz schaffen und Fortsetzen wählen."
+                search -> "Ortsindex nicht fertig geprüft. Fortsetzen; Karten bleiben erhalten."
+                else -> "Installation pausiert. WLAN prüfen und fortsetzen."
+            }
+            "es" -> when {
+                storage -> "Falta espacio libre. Libera espacio y pulsa Reanudar."
+                search -> "No se completó la verificación de lugares. Reanuda sin borrar mapas."
+                else -> "Instalación pausada. Revisa Wi-Fi y reanuda."
+            }
+            "ar" -> when {
+                storage -> "لا توجد مساحة كافية. حرر مساحة ثم تابع."
+                search -> "لم يكتمل فحص الأماكن. تابع دون حذف الخرائط."
+                else -> "توقف التثبيت مؤقتًا. تحقق من الشبكة ثم تابع."
+            }
+            "ja" -> when {
+                storage -> "空き容量不足です。容量を確保して再開してください。"
+                search -> "場所データの検証が未完了です。既存の地図を残して再開できます。"
+                else -> "インストールは一時停止しました。通信を確認して再開してください。"
+            }
+            else -> when {
+                storage -> "Boş depolama alanı yetersiz. Yer açıp 'Kaldığı yerden devam et'e basın."
+                search -> "Yer arama doğrulaması tamamlanamadı. İndirilen haritalar korunuyor; devam edebilirsiniz."
+                else -> "Kurulum durakladı. Wi-Fi'yi kontrol edip kaldığı yerden devam edin."
+            }
+        }
     }
 }
