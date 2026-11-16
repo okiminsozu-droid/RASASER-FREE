@@ -35,9 +35,15 @@ class VoiceController(
     fun setLanguage(language: NavLanguage) {
         lang = language
         val engine = tts ?: return
-        val available = engine.setLanguage(Locale.forLanguageTag(lang.tag))
-        speechReady = available != TextToSpeech.LANG_MISSING_DATA &&
-            available != TextToSpeech.LANG_NOT_SUPPORTED
+        val wanted = Locale.forLanguageTag(lang.tag)
+        // Never select a cloud-dependent TTS voice in an offline-first app.
+        val localVoice = runCatching {
+            engine.voices?.filter { it.locale.language == wanted.language &&
+                !it.isNetworkConnectionRequired }?.firstOrNull()
+        }.getOrNull()
+        speechReady = localVoice != null && runCatching {
+            engine.setVoice(localVoice) == TextToSpeech.SUCCESS
+        }.getOrDefault(false)
     }
     fun setEnabled(state: Boolean) {
         enabled = state

@@ -10,6 +10,7 @@ import android.os.Build
 import android.os.SystemClock
 import android.os.Bundle
 import android.provider.Settings
+import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -118,6 +119,7 @@ class MainActivity: ComponentActivity() {
     private var routeRequestGeneration=0
     private var routeRequestRunning=false
     private var arrivalAnnounced=false
+    private var resumeSavedRoute=false
     private var postedSpeedLimit by mutableStateOf<RoadSpeedLimit?>(null)
     private var roadLimitUpdatedAtMs=0L
     private val speedCaution=SpeedCautionGate()
@@ -139,6 +141,14 @@ class MainActivity: ComponentActivity() {
         wifiOnly=prefs.getBoolean("wifi_only",true)
         autoDrive=prefs.getBoolean("auto_drive",true)
         voiceEnabled=prefs.getBoolean("voice_enabled",true)
+        if(prefs.contains("saved_destination_lat") &&
+            prefs.contains("saved_destination_lon")) {
+            routeDestination=NavPoint(
+                Double.fromBits(prefs.getLong("saved_destination_lat",0L)),
+                Double.fromBits(prefs.getLong("saved_destination_lon",0L)))
+            selectedPlace=prefs.getString("saved_destination_name",null)
+            resumeSavedRoute=true
+        }
         downloadId=prefs.getLong("map_download_id",-1L)
         routingDownloadId=prefs.getLong("routing_download_id",-1L)
         network=DefaultNetworkMonitor(this){ connection=it }
@@ -222,6 +232,9 @@ class MainActivity: ComponentActivity() {
                     }
                 }
                 LaunchedEffect(screen) {
+                    if(screen==NavScreen.DRIVE)
+                        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                    else window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
                     while(screen==NavScreen.DRIVE) {
                         val now=SystemClock.elapsedRealtime()
                         if(postedSpeedLimit!=null && now-roadLimitUpdatedAtMs>25_000L)
@@ -275,9 +288,16 @@ class MainActivity: ComponentActivity() {
                             routeSnapshot=null
                             routeRequestRunning=false
                             routeDestination=destination
+                            resumeSavedRoute=false
+                            prefs.edit()
+                                .putLong("saved_destination_lat",destination.lat.toBits())
+                                .putLong("saved_destination_lon",destination.lon.toBits())
+                                .putString("saved_destination_name",selectedPlace)
+                                .apply()
                             arrivalAnnounced=false
                             val origin=gpsFix
                             if(origin==null) {
+                                resumeSavedRoute=true
                                 routeInfo=DriveInfo.NEEDS_GPS
                             } else if(!router.installed()) {
                                 routeInfo=DriveInfo.NEEDS_ROUTING_DATA
@@ -527,6 +547,27 @@ class MainActivity: ComponentActivity() {
                             voiceEnabled=!it;voice.setEnabled(!it)
                             prefs.edit().putBoolean("voice_enabled",!it).apply()
                         }
+                        if(routeDestination!=null) {
+                            OutlinedButton(onClick={
+                                routeRequestGeneration++
+                                routeRequestRunning=false
+                                activeGuidance=null
+                                routePlan=null
+                                routeSnapshot=null
+                                routeDestination=null
+                                resumeSavedRoute=false
+                                selectedPlace=null
+                                routeInfo=null
+                                prefs.edit()
+                                    .remove("saved_destination_lat")
+                                    .remove("saved_destination_lon")
+                                    .remove("saved_destination_name")
+                                    .apply()
+                                showSettings=false
+                            }) {
+                                Text(GuidanceWords.text(language,GuidanceLabel.CLEAR_TARGET))
+                            }
+                        }
                         Text(t(TextKey.AUTO_START_NOTE),fontSize=12.sp)
                         Text(t(TextKey.MAP_SOURCE),fontSize=11.sp)
                     }},
@@ -649,6 +690,12 @@ class MainActivity: ComponentActivity() {
         gpsFix=location
         if(screen!=NavScreen.DRIVE)return
         checkPostedSpeedLimit(location)
+        if(resumeSavedRoute && routeDestination!=null && router.installed() &&
+            !routeRequestRunning) {
+            resumeSavedRoute=false
+            val destination=routeDestination!!
+            calculateRoute(NavPoint(location.latitude,location.longitude),destination)
+        }
         val route=activeGuidance ?:return
         val result=route.advance(NavPoint(location.latitude,location.longitude),
             location.accuracy,SystemClock.elapsedRealtime())
