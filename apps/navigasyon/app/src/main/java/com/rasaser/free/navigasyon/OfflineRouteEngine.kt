@@ -52,7 +52,17 @@ class OfflineRouteEngine(private val context: Context) : Closeable {
     private val configFile:File get()=File(context.filesDir,"routing/valhalla.json")
     private val moshi=Moshi.Builder().add(KotlinJsonAdapterFactory()).build()
 
-    fun installed(): Boolean = extract.isFile && marker.isFile && configFile.isFile && extract.length()>20*1024*1024
+    // A tar header or an interrupted 20MB download is not a usable road graph.
+    // The full archive SHA-256 is verified at installation, so avoid rehashing
+    // 1.15GB on every map render or GPS update.
+    fun installed(): Boolean =
+        extract.isFile && extract.length()==TurkeyRoutingInstaller.GRAPH_BYTES &&
+        marker.isFile && configFile.isFile && runCatching {
+            val metadata=JSONObject(marker.readText(Charsets.UTF_8))
+            metadata.optLong("file_size",-1L)==TurkeyRoutingInstaller.GRAPH_BYTES &&
+                metadata.optString("graph_sha256","").equals(
+                    TurkeyRoutingInstaller.GRAPH_SHA,ignoreCase=true)
+        }.getOrDefault(false)
 
     private fun activeEngine(): Valhalla? {
         native?.let { return it }
