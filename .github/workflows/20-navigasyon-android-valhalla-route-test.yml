@@ -1,0 +1,51 @@
+name: Navigasyon Android Valhalla Gercek Rota Testi
+on:
+  pull_request:
+    paths:
+      - 'apps/navigasyon/**'
+      - '.github/workflows/20-navigasyon-android-valhalla-route-test.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  real-offline-valhalla:
+    runs-on: ubuntu-latest
+    timeout-minutes: 65
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v4
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
+      - name: Test fonts
+        run: |
+          set -Eeuo pipefail
+          python3 apps/navigasyon/tools/prepare_offline_glyphs.py --target "apps/navigasyon/app/src/main/assets/fonts/Noto Sans Regular"
+          FONT="apps/navigasyon/app/src/main/assets/fonts/NotoSansArabic-Regular.ttf"
+          mkdir -p "$(dirname "$FONT")"
+          curl --proto '=https' --tlsv1.2 -fL --retry 4 --output "$FONT" \
+            "https://raw.githubusercontent.com/notofonts/noto-fonts/ffebf8c1ee449e544955a7e813c54f9b73848eac/hinted/ttf/NotoSansArabic/NotoSansArabic-Regular.ttf"
+          test "$(stat -c %s "$FONT")" -eq 240456
+      - name: Resumable SHA256-pinned Türkiye route data
+        run: bash apps/navigasyon/tools/fetch_pinned_route_test_graph.sh
+      - name: Android API 35 emulator KVM
+        run: |
+          if test -e /dev/kvm; then sudo chmod 666 /dev/kvm; fi
+      - name: Real Android 15 Valhalla JNI route Istanbul and Uşak-Ankara
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          target: default
+          profile: pixel_6
+          ram-size: 4096M
+          disk-size: 9G
+          emulator-boot-timeout: 600
+          disable-animations: true
+          script: NAV_ROUTE_TEST_MINIFIED=0 bash apps/navigasyon/tools/run_android_route_test.sh

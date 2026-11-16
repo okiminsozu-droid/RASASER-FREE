@@ -132,6 +132,7 @@ class MainActivity: ComponentActivity() {
     private var selectedPlace by mutableStateOf<String?>(null)
     private var routePlan by mutableStateOf<RoutePlan?>(null)
     private var routeInfo by mutableStateOf<DriveInfo?>(null)
+    private var routeFailureCode by mutableStateOf<String?>(null)
     private var routeSnapshot by mutableStateOf<GuidanceSnapshot?>(null)
     private var activeGuidance:RouteGuidance?=null
     private var routeDestination:NavPoint?=null
@@ -545,6 +546,10 @@ class MainActivity: ComponentActivity() {
                                 Column(Modifier.padding(15.dp),verticalArrangement=Arrangement.spacedBy(6.dp)) {
                                     Text(selectedPlace.orEmpty(),color=Ink,fontWeight=FontWeight.Bold)
                                     routeInfo?.let { Text(DriveWords.get(language,it),color=Ink,fontSize=12.sp) }
+                                    if(routeInfo==DriveInfo.NO_ROUTE) routeFailureCode?.let { code ->
+                                        Text("Rota motoru: $code",
+                                            color=Color(0xFF964737),fontSize=11.sp)
+                                    }
                                     routePlan?.let {
                                         val remaining=(routeSnapshot?.remainingMeters ?: it.meters)/1000.0
                                         Text("${"%.1f".format(remaining)} km · ${(it.seconds/60.0).toInt()} min",
@@ -1068,6 +1073,7 @@ class MainActivity: ComponentActivity() {
         routePlan=null
         activeGuidance=null
         routeSnapshot=null
+        routeFailureCode=null
         routeRequestRunning=false
         routeDestination=destination
         resumeSavedRoute=false
@@ -1125,6 +1131,7 @@ class MainActivity: ComponentActivity() {
                 if(isDestroyed || id!=routeRequestGeneration)return@runOnUiThread
                 routeRequestRunning=false
                 routePlan=computed
+                routeFailureCode=if(computed==null)router.failureCode() ?: "ROUTE_UNKNOWN" else null
                 activeGuidance=computed?.let(::RouteGuidance)
                 routeSnapshot=null
                 routeInfo=if(computed!=null)DriveInfo.ROUTE_FOUND else DriveInfo.NO_ROUTE
