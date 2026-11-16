@@ -54,6 +54,11 @@ class VoiceController(
         if (enabled && speechReady) tts?.speak(message, TextToSpeech.QUEUE_FLUSH, null, "nav_speech")
         else if (enabled) onMessage(TextKey.VOICE_UNAVAILABLE, null)
     }
+    fun canRecognizeOffline():Boolean =
+        Build.VERSION.SDK_INT >= 31 &&
+        SpeechRecognizer.isOnDeviceRecognitionAvailable(context) &&
+        context.checkSelfPermission(Manifest.permission.RECORD_AUDIO)==PackageManager.PERMISSION_GRANTED
+
     fun listenOffline() {
         if (context.checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
             onMessage(TextKey.MICROPHONE_PERMISSION, null)

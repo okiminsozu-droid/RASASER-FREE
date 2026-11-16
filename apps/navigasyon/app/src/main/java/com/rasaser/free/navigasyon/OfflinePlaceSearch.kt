@@ -74,6 +74,7 @@ object PlaceQuery {
             // eczanesine -> eczane; fuzzy fallback only on final token.
             variants+=words.dropLast(1)+(words.last().dropLast(2))
             variants+=words.dropLast(1)+(words.last().dropLast(3))
+            variants+=words.dropLast(1)+(words.last().dropLast(4))
             variants+=words.dropLast(1)+(words.last().take(6))
         }
         return variants.distinct().filter{it.all{token->token.length>=2}}

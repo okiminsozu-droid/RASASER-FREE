@@ -25,7 +25,7 @@ object DestinationSpeech {
         for(pattern in prefix[language].orEmpty())text=text.replace(pattern,"")
         for(pattern in suffix[language].orEmpty())text=text.replace(pattern,"")
         text=text.trim()
-        if(text.length<3 || text.length>110)return null
+        if(text.length<2 || text.length>110)return null
         // Do not infer place names from sentences or arbitrary actions.
         if(text.contains('\n') || text.contains(';'))return null
         return text
