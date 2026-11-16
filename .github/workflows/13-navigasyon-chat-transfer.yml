@@ -1,0 +1,78 @@
+name: Navigasyon v0.9 APK Sohbete Parca Aktarimi
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/13-navigasyon-chat-transfer.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  split-verified:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Dogrulanmis APK eserini mevcut basarili derlemeden getir
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -Eeuo pipefail
+          mkdir -p "$RUNNER_TEMP/rasaser-apk" "$RUNNER_TEMP/rasaser-pieces"
+          gh run download 43833670411 --repo okiminsozu-droid/RASASER-FREE --name rasaser-navigasyon-v09-COMPLETE-1 --dir "$RUNNER_TEMP/rasaser-apk"
+          APK="$RUNNER_TEMP/rasaser-apk/RaSaSeR-Navigasyon-v0.9-TAM-TEST.apk"
+          test -s "$APK"
+          (cd "$RUNNER_TEMP/rasaser-apk" && sha256sum -c SHA256SUMS.txt)
+          split -b 384m -d -a 2 "$APK" "$RUNNER_TEMP/rasaser-pieces/apk-part-"
+          test "$(find "$RUNNER_TEMP/rasaser-pieces" -maxdepth 1 -name 'apk-part-*' | wc -l)" -eq 6
+          cat "$RUNNER_TEMP"/rasaser-pieces/apk-part-* | sha256sum | awk '{print $1}' > "$RUNNER_TEMP/combined.sha"
+          sha256sum "$APK" | awk '{print $1}' > "$RUNNER_TEMP/original.sha"
+          diff "$RUNNER_TEMP/combined.sha" "$RUNNER_TEMP/original.sha"
+          ls -lh "$RUNNER_TEMP"/rasaser-pieces/apk-part-*
+      - name: Parca 00 sohbet aktarimi
+        uses: actions/upload-artifact@v4
+        with:
+          name: rasaser-nav-v09-chat-part-00
+          path: ${{ runner.temp }}/rasaser-pieces/apk-part-00
+          retention-days: 3
+          if-no-files-found: error
+          compression-level: 0
+      - name: Parca 01 sohbet aktarimi
+        uses: actions/upload-artifact@v4
+        with:
+          name: rasaser-nav-v09-chat-part-01
+          path: ${{ runner.temp }}/rasaser-pieces/apk-part-01
+          retention-days: 3
+          if-no-files-found: error
+          compression-level: 0
+      - name: Parca 02 sohbet aktarimi
+        uses: actions/upload-artifact@v4
+        with:
+          name: rasaser-nav-v09-chat-part-02
+          path: ${{ runner.temp }}/rasaser-pieces/apk-part-02
+          retention-days: 3
+          if-no-files-found: error
+          compression-level: 0
+      - name: Parca 03 sohbet aktarimi
+        uses: actions/upload-artifact@v4
+        with:
+          name: rasaser-nav-v09-chat-part-03
+          path: ${{ runner.temp }}/rasaser-pieces/apk-part-03
+          retention-days: 3
+          if-no-files-found: error
+          compression-level: 0
+      - name: Parca 04 sohbet aktarimi
+        uses: actions/upload-artifact@v4
+        with:
+          name: rasaser-nav-v09-chat-part-04
+          path: ${{ runner.temp }}/rasaser-pieces/apk-part-04
+          retention-days: 3
+          if-no-files-found: error
+          compression-level: 0
+      - name: Parca 05 sohbet aktarimi
+        uses: actions/upload-artifact@v4
+        with:
+          name: rasaser-nav-v09-chat-part-05
+          path: ${{ runner.temp }}/rasaser-pieces/apk-part-05
+          retention-days: 3
+          if-no-files-found: error
+          compression-level: 0
