@@ -11,6 +11,7 @@ android {
         applicationId = "com.rasaser.free.navigasyon"
         minSdk = 26
         targetSdk = 35
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         versionCode = 13
         versionName = "0.13.0-dev"
     }
@@ -58,4 +59,6 @@ dependencies {
     implementation("com.stadiamaps:osrm-openapi:0.0.10")
     implementation("com.squareup.moshi:moshi-kotlin:1.15.2")
     testImplementation("junit:junit:4.13.2")
+    androidTestImplementation("androidx.test:runner:1.6.2")
+    androidTestImplementation("androidx.test.ext:junit:1.2.1")
 }
