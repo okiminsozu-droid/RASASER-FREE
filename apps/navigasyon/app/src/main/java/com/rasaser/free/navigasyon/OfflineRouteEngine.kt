@@ -32,6 +32,21 @@ data class RoutePlan(
 class OfflineRouteEngine(private val context: Context) : Closeable {
     private val lock=Any()
     private var native:Valhalla?=null
+    @Volatile private var failure:String?=null
+
+    /** Safe, coordinate-free diagnostic: never log GPS, destination or URL. */
+    fun failureCode():String?=failure
+
+    private fun fail(code:String):RoutePlan? {
+        failure=code
+        return null
+    }
+
+    private fun errorCode(phase:String,error:Throwable):String {
+        val valhallaCode=Regex("code=(\\d+)").find(error.message.orEmpty())?.groupValues?.getOrNull(1)
+        return if(valhallaCode!=null) "${phase}_VALHALLA_${valhallaCode}"
+            else "${phase}_${error.javaClass.simpleName.take(32)}"
+    }
     private val extract:File get()=File(context.filesDir,"routing/valhalla_tiles.tar")
     private val marker:File get()=File(context.filesDir,"routing/valhalla.manifest.json")
     private val configFile:File get()=File(context.filesDir,"routing/valhalla.json")
@@ -41,20 +56,33 @@ class OfflineRouteEngine(private val context: Context) : Closeable {
 
     private fun activeEngine(): Valhalla? {
         native?.let { return it }
-        if(!installed())return null
+        if(!installed()) {
+            failure="ROUTE_FILES_MISSING"
+            return null
+        }
         return try {
             val json=JSONObject(configFile.readText())
-            val mjolnir=json.optJSONObject("mjolnir") ?:return null
+            val mjolnir=json.optJSONObject("mjolnir") ?:run {
+                failure="CONFIG_NO_MJOLNIR"
+                return null
+            }
             mjolnir.put("tile_extract",extract.absolutePath)
             mjolnir.put("tile_dir",File(context.filesDir,"routing/valhalla_tiles").absolutePath)
             mjolnir.remove("tile_url")
             val config=moshi.adapter(ValhallaConfig::class.java).fromJson(json.toString())
-                ?:return null
+                ?:run {
+                    failure="CONFIG_PARSE"
+                    return null
+                }
             Valhalla(context,config).also { native=it }
-        } catch (_:Exception) { null }
+        } catch (e:Throwable) {
+            failure=errorCode("ENGINE_INIT",e)
+            null
+        }
     }
 
     fun route(origin:NavPoint,destination:NavPoint,lang:NavLanguage): RoutePlan? = synchronized(lock) {
+        failure=null
         val instance=activeEngine() ?:return@synchronized null
         try {
             val req=JSONObject()
@@ -66,21 +94,21 @@ class OfflineRouteEngine(private val context: Context) : Closeable {
                     .put("units","kilometers")
                     .put("language",valhallaLanguage(lang)))
             val parsed=moshi.adapter(RouteRequest::class.java).fromJson(req.toString())
-                ?: return@synchronized null
+                ?: return@synchronized fail("REQUEST_PARSE")
             val responseObject=when (val output=instance.route(parsed)) {
                 is ValhallaResponse.Json ->output.jsonResponse
-                else->return@synchronized null
+                else->return@synchronized fail("RESPONSE_FORMAT")
             }
             val response=JSONObject(moshi.adapter(RouteResponse::class.java).toJson(responseObject))
-            val trip=response.optJSONObject("trip") ?: return@synchronized null
-            val legs=trip.optJSONArray("legs") ?: return@synchronized null
+            val trip=response.optJSONObject("trip") ?: return@synchronized fail("RESPONSE_NO_TRIP")
+            val legs=trip.optJSONArray("legs") ?: return@synchronized fail("RESPONSE_NO_LEGS")
             val points=mutableListOf<NavPoint>()
             val instructions=mutableListOf<String>()
             val turns=mutableListOf<RouteManeuver>()
             for(i in 0 until legs.length()) {
                 val leg=legs.optJSONObject(i) ?:continue
                 val geometry=decodePolyline6(leg.optString("shape",""))
-                if(geometry.isEmpty())return@synchronized null
+                if(geometry.isEmpty())return@synchronized fail("RESPONSE_POLYLINE")
                 val overlap=if(points.isNotEmpty() && geometry.first()==points.last()) 1 else 0
                 val offset=points.size-overlap
                 points.addAll(geometry.drop(overlap))
@@ -105,13 +133,16 @@ class OfflineRouteEngine(private val context: Context) : Closeable {
                         maneuver.optString("verbal_pre_transition_instruction","").trim(),warnings)
                 }
             }
-            if(points.size<2)return@synchronized null
-            val summary=trip.optJSONObject("summary") ?:return@synchronized null
+            if(points.size<2)return@synchronized fail("RESPONSE_EMPTY_SHAPE")
+            val summary=trip.optJSONObject("summary") ?:return@synchronized fail("RESPONSE_NO_SUMMARY")
             val distance=summary.optDouble("length",Double.NaN)*1000.0
             val duration=summary.optDouble("time",Double.NaN)
-            if(!distance.isFinite() || !duration.isFinite() || distance<=0.0)return@synchronized null
+            if(!distance.isFinite() || !duration.isFinite() || distance<=0.0)
+                return@synchronized fail("RESPONSE_METRICS")
             RoutePlan(points,distance,duration,instructions,turns)
-        } catch (_: Exception) { null }
+        } catch (e:Throwable) {
+            fail(errorCode("ROUTE",e))
+        }
     }
 
 
