@@ -159,29 +159,33 @@ class TurkeySearchInstaller(private val context: Context) {
                     return report(false,Stage.UNPACK_SIZE)
                 if(checksum.digest().joinToString(""){"%02x".format(it)}!=DB_SHA)
                     return report(false,Stage.UNPACK_CHECKSUM)
+                // Full data integrity is guaranteed by the SHA-256 check
+                // above. The R2 source archive also passed an independent
+                // complete SQLite quick_check in CI. Running a second full
+                // database scan on a low-memory Android device can block the
+                // last 1% for minutes or cause a vendor-specific failure.
+                // Probe actual schema, one real row and one FTS4 result only.
                 val good=try {
-                    SQLiteDatabase.openDatabase(stage.path,null,SQLiteDatabase.OPEN_READONLY).use {db->
-                        val schema=db.rawQuery("SELECT value FROM info WHERE key='schema'",null).use {c->
-                            c.moveToFirst() && c.getString(0)=="1"
-                        }
-                        if(!schema)return report(false,Stage.SQLITE_SCHEMA)
+                    SQLiteDatabase.openDatabase(
+                        stage.path,null,
+                        SQLiteDatabase.OPEN_READONLY or SQLiteDatabase.NO_LOCALIZED_COLLATORS
+                    ).use { db ->
+                        val schema=db.rawQuery(
+                            "SELECT value FROM info WHERE key='schema' LIMIT 1",null
+                        ).use {c->c.moveToFirst() && c.getString(0)=="1"}
                         val hasPlace=db.rawQuery(
-                            "SELECT count(*) FROM places LIMIT 1",null
-                        ).use {c->c.moveToFirst() && c.getLong(0)>1_000_000L}
-                        if(!hasPlace)return report(false,Stage.SQLITE_SCHEMA)
+                            "SELECT 1 FROM places LIMIT 1",null
+                        ).use {c->c.moveToFirst()}
                         val probe=db.rawQuery(
-                            "SELECT count(*) FROM places_fts WHERE normalized MATCH 'ankara*'",null
-                        ).use {c->c.moveToFirst() && c.getLong(0)>0}
-                        if(!probe)return report(false,Stage.SQLITE_SCHEMA)
-                        db.rawQuery("PRAGMA quick_check",null).use {c->
-                            c.moveToFirst() && c.getString(0)=="ok"
-                        }
+                            "SELECT 1 FROM places_fts WHERE places_fts MATCH 'ankara*' LIMIT 1",null
+                        ).use {c->c.moveToFirst()}
+                        schema && hasPlace && probe
                     }
                 } catch(e:Exception) {
-                    Log.w(TAG,"SQLite index incompatible with device",e)
+                    Log.w(TAG,"Android SQLite search index open/FTS4 probe failed",e)
                     return report(false,Stage.SQLITE_OPEN)
                 }
-                if(!good)return report(false,Stage.SQLITE_INTEGRITY)
+                if(!good)return report(false,Stage.SQLITE_SCHEMA)
                 if(index.exists()) {
                     if(installed())return report(true,Stage.READY)
                     // Preserve a broken index for diagnosis, but never treat it
