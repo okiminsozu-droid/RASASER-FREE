@@ -29,15 +29,11 @@ def get_token():
     with urllib.request.urlopen(request,timeout=30) as response:
         payload=json.load(response)
     cached_token=payload["value"]
-    import base64
-    jwtpart=cached_token.split(".")[1]
-    claims=json.loads(base64.urlsafe_b64decode(jwtpart+"="*(-len(jwtpart)%4)))
-    print("OIDC non-secret routing claims:", {k:claims.get(k) for k in ("aud","iss","sub","repository","ref","workflow_ref","event_name")},flush=True)
     token_time=time.time()
     return cached_token
 
-def api(method,route,file,data=None,extra=None,attempts=4):
-    url=ENDPOINT+route+"?file="+urllib.parse.quote(file)
+def api(method,route,file,data=None,extra=None,attempts=4,suffix=""):
+    url=ENDPOINT+route+"?file="+urllib.parse.quote(file)+suffix
     headers={"Authorization":"Bearer "+get_token(),"Accept":"application/json","User-Agent":"curl/8.12.1"}
     if extra:headers.update(extra)
     if isinstance(data,(dict,list)):
@@ -107,7 +103,7 @@ def copy_file(filename):
                      extra={"X-RASASER-PART-SHA256":sha,
                             "Content-Type":"application/octet-stream",
                             "Content-Length":str(len(chunk))},
-                     attempts=4)
+                     attempts=4,suffix=query)
             if info.get("partNumber")!=number or not info.get("etag"):
                 raise RuntimeError(f"Invalid R2 response for {filename} part {number}")
             pieces.append(info)
