@@ -32,26 +32,8 @@ jobs:
           curl --proto '=https' --tlsv1.2 -fL --retry 4 --output "$FONT" \
             "https://raw.githubusercontent.com/notofonts/noto-fonts/ffebf8c1ee449e544955a7e813c54f9b73848eac/hinted/ttf/NotoSansArabic/NotoSansArabic-Regular.ttf"
           test "$(stat -c %s "$FONT")" -eq 240456
-      - name: Pin real Turkey Valhalla graph and configs from Cloudflare
-        run: |
-          set -Eeuo pipefail
-          DIR="$RUNNER_TEMP/nav-route-graph"
-          mkdir -p "$DIR"
-          BASE="https://rasaser-turkiye-map-download.okiminsozu.workers.dev/v1"
-          curl --proto '=https' --tlsv1.2 -fL --retry 5 --retry-delay 10 \
-            --connect-timeout 25 -o "$DIR/valhalla_tiles.tar" "$BASE/valhalla_tiles.tar"
-          test "$(stat -c %s "$DIR/valhalla_tiles.tar")" -eq 1148661760
-          echo "bdfd9a67d8fdd0d5856013e889c6e48cd8a14560934cc5d2b6f3c16a8f6a554f  $DIR/valhalla_tiles.tar" | sha256sum -c -
-          curl --proto '=https' --tlsv1.2 -fL --retry 5 -o "$DIR/valhalla.json" "$BASE/valhalla.json"
-          echo "bc0bb95856c09c51b859bb2f18423b43a0353504bb8e26529f3aad71bbf98fc3  $DIR/valhalla.json" | sha256sum -c -
-          curl --proto '=https' --tlsv1.2 -fL --retry 5 -o "$DIR/valhalla-turkiye-manifest.json" "$BASE/valhalla-turkiye-manifest.json"
-          echo "ce663429563e556ac78e729e8d919b72993f587a2b8426e5d556007022924f26  $DIR/valhalla-turkiye-manifest.json" | sha256sum -c -
-          python3 - "$DIR/valhalla.json" <<'PY'
-          import json,sys
-          config=json.load(open(sys.argv[1],encoding="utf-8"))
-          print("Routing config root keys:", sorted(config.keys()),flush=True)
-          print("Mjolnir tile configuration fields:", sorted(config.get("mjolnir",{}).keys()),flush=True)
-          PY
+      - name: Resumable SHA256-pinned Türkiye route data
+        run: bash apps/navigasyon/tools/fetch_pinned_route_test_graph.sh
       - name: Android API 35 emulator KVM
         run: |
           if test -e /dev/kvm; then sudo chmod 666 /dev/kvm; fi
