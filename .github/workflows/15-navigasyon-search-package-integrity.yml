@@ -1,0 +1,58 @@
+name: Navigasyon Son Yuzde - SQLite Kaynak Paketi Dogrulamasi
+on:
+  push:
+    branches: [feature/rasaser-nav-turkiye-data-v1]
+    paths:
+      - '.github/workflows/15-navigasyon-search-package-integrity.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  search-db-probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: R2 search paketi indir hash dosya ic sayim ve SQLite kontrolu
+        run: |
+          python3 - <<'PY'
+          import hashlib, sqlite3, tempfile, urllib.request, zipfile
+          from pathlib import Path
+          url='https://rasaser-turkiye-map-download.okiminsozu.workers.dev/v1/turkey-places.zip'
+          with tempfile.TemporaryDirectory() as root:
+              root=Path(root)
+              archive=root/'places.zip'
+              req=urllib.request.Request(url,headers={'User-Agent':'RaSaSeR-Navigation/1.0'})
+              with urllib.request.urlopen(req,timeout=90) as stream, archive.open('wb') as out:
+                  while True:
+                      block=stream.read(1024*1024)
+                      if not block: break
+                      out.write(block)
+              assert archive.stat().st_size==66446365, archive.stat().st_size
+              digest=hashlib.file_digest(archive.open('rb'),'sha256').hexdigest()
+              assert digest=='048f474b1ff427ac2310b5201a283d027d87ec769ca7e808254ffbbdf6b603f0', digest
+              print('SOURCE ZIP SHA verified', flush=True)
+              with zipfile.ZipFile(archive) as z:
+                  print('ZIP names:',z.namelist(),flush=True)
+                  assert z.namelist()==['turkey-places.sqlite'], z.namelist()
+                  assert z.getinfo('turkey-places.sqlite').file_size==150110208
+                  z.extract('turkey-places.sqlite',root)
+              dbfile=root/'turkey-places.sqlite'
+              expected='8ce8f9592e223a4d310c4e4b12151334e50dc13fa5054f44ec3ff525adce038f'
+              with dbfile.open('rb') as f:
+                  assert hashlib.file_digest(f,'sha256').hexdigest()==expected
+              conn=sqlite3.connect('file:'+str(dbfile)+'?mode=ro',uri=True)
+              try:
+                  schema=conn.execute("SELECT sql FROM sqlite_master WHERE name='places_fts'").fetchone()
+                  assert schema, 'no FTS table'
+                  print('FTS schema:',schema[0][:450],flush=True)
+                  assert 'using fts4' in schema[0].lower(),'FTS5 not supported by stock Android'
+                  info=conn.execute("SELECT value FROM info WHERE key='schema'").fetchone()
+                  count=conn.execute("SELECT count(*) FROM places").fetchone()[0]
+                  probe=conn.execute("SELECT count(*) FROM places_fts WHERE normalized MATCH 'ankara*'").fetchone()[0]
+                  check=conn.execute('PRAGMA quick_check').fetchone()[0]
+                  print('Schema:',info,'places:',count,'Ankara matches:',probe,'quick_check:',check,flush=True)
+                  assert info[0]=='1' and count>1_000_000 and probe>0 and check=='ok'
+              finally:
+                  conn.close()
+          print('R2 SEARCH PACKAGE FULL SQLITE VALIDATION SUCCESS',flush=True)
+          PY

@@ -1,0 +1,85 @@
+name: Navigasyon Android Derleme Testi
+on:
+  pull_request:
+    paths:
+      - 'apps/navigasyon/**'
+      - '.github/workflows/05-navigasyon-android-ci.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Kodu al
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Android SDK
+        uses: android-actions/setup-android@v4
+      - name: Android API 36
+        run: sdkmanager --install "platforms;android-36" "build-tools;35.0.0"
+      - name: Gradle 8.11.1
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
+      - name: App kimligi ve gizlilik kontrolu
+        run: |
+          python3 tools/check_repo.py
+          python3 tools/validate_app.py navigasyon false
+      - name: Cevrimdisi yer adlari icin lisansli glyph kaynaklarini paketle
+        run: python3 apps/navigasyon/tools/prepare_offline_glyphs.py --target "apps/navigasyon/app/src/main/assets/fonts/Noto Sans Regular"
+      - name: Noto Sans Arabic (SIL OFL) offline font
+        run: |
+          set -Eeuo pipefail
+          FONT="apps/navigasyon/app/src/main/assets/fonts/NotoSansArabic-Regular.ttf"
+          mkdir -p "$(dirname "$FONT")"
+          curl --proto '=https' --tlsv1.2 -fL --retry 4 --connect-timeout 25 \
+            --output "$FONT" \
+            "https://raw.githubusercontent.com/notofonts/noto-fonts/ffebf8c1ee449e544955a7e813c54f9b73848eac/hinted/ttf/NotoSansArabic/NotoSansArabic-Regular.ttf"
+          test "$(stat -c %s "$FONT")" -eq 240456
+      - name: Kotlin unit tests ve Android APK derleme
+        run: gradle --no-daemon --project-dir apps/navigasyon :app:testDebugUnitTest :app:assembleDebug :app:assembleRelease :app:assembleFieldTest
+      - name: Installable optimized field test APK verify
+        run: |
+          set -Eeuo pipefail
+          APK="apps/navigasyon/app/build/outputs/apk/fieldTest/app-fieldTest.apk"
+          test -s "$APK"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$APK"
+          unzip -t "$APK" | tail -2
+          # Search SQLite lives exclusively in the optional downloadable pack.
+          if unzip -Z -1 "$APK" | grep -q '^assets/search/turkey-places.sqlite$'; then
+            echo "ERROR: 150MB search index must not be inside APK" >&2
+            exit 1
+          fi
+          echo "APK exact bytes: $(stat -c %s "$APK")"
+          test "$(stat -c %s "$APK")" -lt 100000000
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | grep -F "name='com.rasaser.free.navigasyon.fieldtest11'"
+          mkdir -p "apps/navigasyon/field-test"
+          cp "$APK" "apps/navigasyon/field-test/RaSaSeR-Navigasyon-v0.11-99fix-TEST.apk"
+          (
+            cd "apps/navigasyon/field-test"
+            sha256sum "RaSaSeR-Navigasyon-v0.11-99fix-TEST.apk" > SHA256SUMS.txt
+          )
+          echo "DEVELOPMENT TEST ONLY. The 606MB map, 1.15GB routing and 66MB search packs must be downloaded in-app; no map data is embedded. Not for public road use." > "apps/navigasyon/field-test/README.txt"
+          echo "Safe parallel package: fieldtest11 installs alongside fieldtest10. DO NOT uninstall the older app with installed map data. The test signing key changes on GitHub runners; existing private map files are not automatically shared." >> "apps/navigasyon/field-test/README.txt"
+          du -h "apps/navigasyon/field-test/RaSaSeR-Navigasyon-v0.11-99fix-TEST.apk"
+      - name: Downloadable short-lived device test APK
+        if: ${{ github.event_name == 'pull_request' && github.head_ref == 'feature/rasaser-nav-turkiye-data-v1' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: rasaser-navigasyon-v011-99fix-test-${{ github.run_number }}
+          path: |
+            apps/navigasyon/field-test/RaSaSeR-Navigasyon-v0.11-99fix-TEST.apk
+            apps/navigasyon/field-test/SHA256SUMS.txt
+            apps/navigasyon/field-test/README.txt
+          if-no-files-found: error
+          retention-days: 5
+          compression-level: 0
+      # Only transient sideload test artifacts are uploaded, no production signing keys.

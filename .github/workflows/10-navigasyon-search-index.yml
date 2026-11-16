@@ -1,0 +1,44 @@
+name: Navigasyon Turkiye Offline Yer Arama Paketi
+on:
+  push:
+    branches: [feature/rasaser-nav-turkiye-data-v1]
+    paths: ['apps/navigasyon/search/build_places_index.py','.github/workflows/10-navigasyon-search-index.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: nav-offline-place-pack
+  cancel-in-progress: false
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 110
+    steps:
+      - uses: actions/checkout@v4
+      - run: pip install --disable-pip-version-check 'mapbox-vector-tile==2.2.0'
+      - name: Türkiye MBTiles kaynak paketini kontrol et
+        run: |
+          set -Eeuo pipefail
+          DIR="$RUNNER_TEMP/places"; mkdir -p "$DIR"
+          curl -fL --retry 4 -o "$DIR/map.zip" https://github.com/okiminsozu-droid/RASASER-FREE/releases/download/rasaser-turkiye-maps-v0.1/rasaser-turkiye-shortbread.zip
+          echo "c7d8b277a916ffd4ec7839c7c0420104c19b88fcfcea456be7078346003bacfc  $DIR/map.zip" | sha256sum -c -
+          unzip -o "$DIR/map.zip" -d "$DIR/map"
+          MAP="$(find "$DIR/map" -name '*.mbtiles' -type f | head -1)"
+          test -n "$MAP"
+          echo "54a9ab9739133e037add2cb1b7e41912374a070f0b386744f7da24c81e7a4e30  $MAP" | sha256sum -c -
+          echo "MAP=$MAP" >> "$GITHUB_ENV"
+      - name: Gerçek işletme, şehir ve sokak adlarını ülke çapında indeksle
+        run: |
+          set -Eeuo pipefail
+          DIR="$RUNNER_TEMP/places"
+          python3 apps/navigasyon/search/build_places_index.py "$MAP" "$DIR/turkey-places.sqlite" "$DIR/turkey-places.zip" "$DIR/turkey-places-manifest.json"
+      - name: ODbL 1.0 lisanslı yer arama paketini GitHub Release olarak yayınla
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -Eeuo pipefail
+          if gh release view rasaser-turkiye-search-v0.1 >/dev/null 2>&1; then
+            echo "Existing package preserved"; exit 0
+          fi
+          DIR="$RUNNER_TEMP/places"
+          gh release create rasaser-turkiye-search-v0.1 "$DIR/turkey-places.zip" "$DIR/turkey-places-manifest.json" --target main --title "RaSaSeR Turkiye Yer Arama v0.1" --notes "OSM Shortbread çevrimdışı ülke çapında yer arama · ODbL 1.0 © OpenStreetMap contributors." --prerelease

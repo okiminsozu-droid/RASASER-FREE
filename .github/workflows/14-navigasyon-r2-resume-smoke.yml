@@ -1,0 +1,62 @@
+name: RaSaSeR Navigasyon R2 Range ve Resume Dogrulamasi
+on:
+  push:
+    branches: [feature/rasaser-nav-turkiye-data-v1]
+    paths:
+      - '.github/workflows/14-navigasyon-r2-resume-smoke.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  remote-resume-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Cloudflare uzerinde 7 dosya ve byte range sunumu
+        run: |
+          python3 - <<'PY'
+          import urllib.request
+          import hashlib
+          base = 'https://rasaser-turkiye-map-download.okiminsozu.workers.dev/v1/'
+          files = {
+            'rasaser-turkiye-shortbread.zip': 605992151,
+            'valhalla_tiles.tar': 1148661760,
+            'turkey-places.zip': 66446365,
+            'turkey.manifest.json': 1048,
+            'valhalla-turkiye-manifest.json': 657,
+            'valhalla.json': 9598,
+            'turkey-places-manifest.json': 382,
+          }
+          metadata_sha = {
+            'turkey.manifest.json': 'b588343ca2ad3b51dbd76f36e57009e58d8712e9fcb454c5e6f7b4673ce8cd46',
+            'valhalla-turkiye-manifest.json': 'ce663429563e556ac78e729e8d919b72993f587a2b8426e5d556007022924f26',
+            'valhalla.json': 'bc0bb95856c09c51b859bb2f18423b43a0353504bb8e26529f3aad71bbf98fc3',
+            'turkey-places-manifest.json': '1415b1c76a898e46da40691ededec05db3e1f75dfa870c8557fb662a1e49da01',
+          }
+          for name,size in files.items():
+              req=urllib.request.Request(base+name,method='HEAD',headers={'User-Agent':'RaSaSeR-Navigation/1.0'})
+              with urllib.request.urlopen(req,timeout=35) as resp:
+                  assert resp.status==200, (name,resp.status)
+                  assert int(resp.headers['Content-Length'])==size, name
+              if name.endswith('.json'):
+                  req=urllib.request.Request(base+name,headers={'User-Agent':'RaSaSeR-Navigation/1.0'})
+                  with urllib.request.urlopen(req,timeout=40) as resp:
+                      data=resp.read(20000)
+                      assert resp.status==200,(name,resp.status)
+                      assert len(data)==size,(name,len(data))
+                      assert hashlib.sha256(data).hexdigest()==metadata_sha[name],name
+                  print('GET full metadata SHA OK:',name,size,flush=True)
+                  continue
+              for start in (0, 1_048_576):
+                  end=start+1023
+                  req=urllib.request.Request(base+name,headers={
+                      'Range':f'bytes={start}-{end}', 'Accept-Encoding':'identity', 'User-Agent':'RaSaSeR-Navigation/1.0'
+                  })
+                  with urllib.request.urlopen(req,timeout=40) as resp:
+                      data=resp.read(2048)
+                      assert resp.status==206,(name,'HTTP',resp.status)
+                      assert resp.headers['Content-Range']==f'bytes {start}-{end}/{size}',(name,resp.headers.get('Content-Range'))
+                      assert len(data)==1024,(name,'bytes',len(data))
+                  print('Partial resume OK:',name,start,end,flush=True)
+          print('7 full sources, 4 JSON bodies verified and 6 resumable HTTP byte ranges VERIFIED',flush=True)
+          PY

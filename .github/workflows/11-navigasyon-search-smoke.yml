@@ -1,0 +1,36 @@
+name: Navigasyon Türkiye Yer Arama Gerçek Veri Testi
+on:
+  push:
+    branches: [feature/rasaser-nav-turkiye-data-v1]
+    paths: ['.github/workflows/11-navigasyon-search-smoke.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  search-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with: { persist-credentials: false }
+      - name: 1 milyon isimli veritabanını güvenli indir
+        run: |
+          set -Eeuo pipefail
+          DIR="$RUNNER_TEMP/places"
+          mkdir -p "$DIR"
+          curl -fL --retry 4 -o "$DIR/places.zip" "https://github.com/okiminsozu-droid/RASASER-FREE/releases/download/rasaser-turkiye-search-v0.1/turkey-places.zip"
+          echo "048f474b1ff427ac2310b5201a283d027d87ec769ca7e808254ffbbdf6b603f0  $DIR/places.zip" | sha256sum -c -
+          unzip -o "$DIR/places.zip" -d "$DIR"
+          echo "8ce8f9592e223a4d310c4e4b12151334e50dc13fa5054f44ec3ff525adce038f  $DIR/turkey-places.sqlite" | sha256sum -c -
+          python3 - "$DIR/turkey-places.sqlite" <<'PY'
+          import sqlite3,sys
+          db=sqlite3.connect(sys.argv[1])
+          n=db.execute('select count(*) from places').fetchone()[0]
+          assert n>=1000000,n
+          for q in ('banaz* devlet* hastan*','agaoglu* eczane*','ankara*'):
+              rows=db.execute("""select places.name,places.lat,places.lon from places
+              join places_fts on places.id=places_fts.docid
+              where places_fts match ? limit 10""",(q,)).fetchall()
+              print('Query',q,'results',rows,flush=True)
+          print('verified nationwide OSM place index count',n,flush=True)
+          PY

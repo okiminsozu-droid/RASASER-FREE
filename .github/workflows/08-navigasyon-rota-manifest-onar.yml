@@ -1,0 +1,46 @@
+name: RaSaSeR Türkiye Rota Manifest Dogrula
+on:
+  push:
+    branches:
+      - feature/rasaser-nav-turkiye-data-v1
+    paths:
+      - '.github/workflows/08-navigasyon-rota-manifest-onar.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Mevcut Release'in gercek dosya ozetini kontrol et
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -Eeuo pipefail
+          TAG="rasaser-turkiye-routing-v0.1"
+          GRAPH_SHA="bdfd9a67d8fdd0d5856013e889c6e48cd8a14560934cc5d2b6f3c16a8f6a554f"
+          ACTUAL="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$TAG" \
+            --jq '.assets[] | select(.name=="valhalla_tiles.tar") | .digest')"
+          if [ "$ACTUAL" != "sha256:$GRAPH_SHA" ]; then
+            echo "Guvenlik: yayımlanmış grafiğin digest'i beklenenden farklı. Manifest degismedi."
+            exit 2
+          fi
+          mkdir -p "$RUNNER_TEMP/manifest"
+          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" \
+            --pattern "valhalla-turkiye-manifest.json" --dir "$RUNNER_TEMP/manifest"
+          export GRAPH_SHA
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          f=Path(os.environ["RUNNER_TEMP"])/"manifest/valhalla-turkiye-manifest.json"
+          value=json.loads(f.read_text(encoding="utf8"))
+          assert value["file_size"]==1148661760, "Graph size does not match"
+          assert value["source_sha256"]=="98c3a485da1719dd0b0c5dff7b68f8af5a37fd6fe50fb179f46a6f15d5399139", "OSM snapshot mismatch"
+          value["graph_sha256"]=os.environ["GRAPH_SHA"]
+          value["release_asset_digest_verified"]=True
+          f.write_text(json.dumps(value,ensure_ascii=False,indent=2)+"\n",encoding="utf8")
+          PY
+          gh release upload "$TAG" "$RUNNER_TEMP/manifest/valhalla-turkiye-manifest.json" \
+            --repo "$GITHUB_REPOSITORY" --clobber
+          echo "Verified released graph SHA256: $GRAPH_SHA"

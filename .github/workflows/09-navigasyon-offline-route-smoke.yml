@@ -1,0 +1,42 @@
+name: Navigasyon Türkiye Offline Gerçek Rota Smoke Testi
+on:
+  push:
+    branches: [feature/rasaser-nav-turkiye-data-v1]
+    paths: ['.github/workflows/09-navigasyon-offline-route-smoke.yml', 'apps/navigasyon/routing/smoke_test.py']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  route-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Yayımlanmış Türkiye yol verisi ve config dosyasını indir
+        run: |
+          set -Eeuo pipefail
+          DIR="$RUNNER_TEMP/rasaser-nav-smoke"
+          mkdir -p "$DIR"
+          BASE="https://github.com/okiminsozu-droid/RASASER-FREE/releases/download/rasaser-turkiye-routing-v0.1"
+          curl --proto '=https' --tlsv1.2 -fL --retry 4 --retry-delay 7 -o "$DIR/valhalla_tiles.tar" "$BASE/valhalla_tiles.tar"
+          curl --proto '=https' --tlsv1.2 -fL --retry 4 -o "$DIR/valhalla.json" "$BASE/valhalla.json"
+          (
+            cd "$DIR"
+            echo "bdfd9a67d8fdd0d5856013e889c6e48cd8a14560934cc5d2b6f3c16a8f6a554f  valhalla_tiles.tar" | sha256sum -c -
+            echo "bc0bb95856c09c51b859bb2f18423b43a0353504bb8e26529f3aad71bbf98fc3  valhalla.json" | sha256sum -c -
+          )
+      - name: Ücretsiz Valhalla motoruyla yerel Türkiye yol tarifi
+        run: |
+          set -Eeuo pipefail
+          DIR="$RUNNER_TEMP/rasaser-nav-smoke"
+          docker run --rm \
+            -v "$DIR:/custom_files:ro" \
+            --entrypoint valhalla_service \
+            ghcr.io/valhalla/valhalla:latest \
+            /custom_files/valhalla.json route \
+            '{"locations":[{"lat":41.0082,"lon":28.9784},{"lat":41.0104,"lon":28.9870}],"costing":"auto","directions_options":{"units":"kilometers","language":"tr-TR"}}' \
+            > "$DIR/istanbul-route.json"
+          python3 apps/navigasyon/routing/smoke_test.py "$DIR/istanbul-route.json"
+      # No 1.15 GB Github Actions artifact is uploaded or retained.

@@ -1,0 +1,89 @@
+name: RaSaSeR Türkiye Valhalla Offline Rota Verisi
+on:
+  push:
+    branches:
+      - feature/rasaser-nav-turkiye-data-v1
+    paths:
+      - 'apps/navigasyon/routing/verify_turkey_graph.py'
+      - '.github/workflows/07-navigasyon-turkiye-rota-uret.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: rasaser-nav-turkey-valhalla-v01
+  cancel-in-progress: false
+jobs:
+  turkiye:
+    runs-on: ubuntu-latest
+    timeout-minutes: 100
+    steps:
+      - name: Kodu al
+        uses: actions/checkout@v4
+        with: { persist-credentials: true }
+      - name: Disk ve RAM kontrolu
+        run: |
+          df -h .
+          free -h
+      - name: Turkiye OSM ham yol verisini indir ve hash dogrula
+        run: |
+          set -Eeuo pipefail
+          ROOT="$RUNNER_TEMP/rasaser-routing"
+          mkdir -p "$ROOT"
+          curl --proto '=https' --tlsv1.2 -fL --retry 5 --retry-delay 8 \
+            --connect-timeout 35 -o "$ROOT/turkey-latest.osm.pbf" \
+            https://download.geofabrik.de/europe/turkey-latest.osm.pbf
+          curl --proto '=https' --tlsv1.2 -fL --retry 5 \
+            -o "$ROOT/turkey-latest.osm.pbf.md5" \
+            https://download.geofabrik.de/europe/turkey-latest.osm.pbf.md5
+          (cd "$ROOT" && md5sum -c turkey-latest.osm.pbf.md5)
+      - name: Valhalla graph uretimi (internetsiz kullanilacak)
+        run: |
+          set -Eeuo pipefail
+          ROOT="$RUNNER_TEMP/rasaser-routing"
+          chmod a+r "$ROOT/turkey-latest.osm.pbf"
+          docker run --rm -v "$ROOT:/custom_files" \
+            -e build_admins=False -e build_time_zones=False \
+            -e build_elevation=False -e build_transit=False \
+            -e server_threads=2 -e serve_tiles=False -e build_tar=True \
+            -e use_default_speeds_config=False \
+            ghcr.io/valhalla/valhalla-scripted:latest
+          find "$ROOT" -maxdepth 2 -type f -printf '%p %s bytes\n' | head -30
+          test -s "$ROOT/valhalla_tiles.tar"
+      - name: Rota grafiğini dogrula ve metadata hazirla
+        run: |
+          set -Eeuo pipefail
+          ROOT="$RUNNER_TEMP/rasaser-routing"
+          python3 apps/navigasyon/routing/verify_turkey_graph.py \
+            "$ROOT/valhalla_tiles.tar" --source "$ROOT/turkey-latest.osm.pbf" \
+            --out "$ROOT/valhalla-turkiye-manifest.json"
+      - name: Turkiye offline grafigini versiyonlu yayinla
+        env: { GH_TOKEN: '${{ github.token }}' }
+        run: |
+          set -Eeuo pipefail
+          ROOT="$RUNNER_TEMP/rasaser-routing"
+          cat > "$ROOT/README.md" <<'EOF'
+          Türkiye Valhalla offline rota grafiği - kaynak OpenStreetMap, ODbL 1.0.
+          © OpenStreetMap contributors. https://www.openstreetmap.org/copyright
+          Bu dosya harita görüntüsü değildir; yalnızca cihaz içi rota/tek yön/yol eşleme verisidir.
+          RaSaSeR Navigasyon Android offline route SDK entegrasyonu ayrıca test edilecektir.
+          EOF
+          FILE="$ROOT/valhalla_tiles.tar"
+          BYTES="$(stat -c %s "$FILE")"
+          MAX=1900000000
+          if [ "$BYTES" -gt "$MAX" ]; then
+            echo "Grafik Release tek dosya sinirini asiyor; veri silinmedi. Paket parcalama gerekli."
+            exit 2
+          fi
+          if gh release view "rasaser-turkiye-routing-v0.1" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Mevcut grafigi koruyorum; eksik config ve manifest dosyalarini ekliyorum."
+            gh release upload "rasaser-turkiye-routing-v0.1" \
+              "$ROOT/valhalla.json" "$ROOT/valhalla-turkiye-manifest.json" \
+              --repo "$GITHUB_REPOSITORY" --clobber
+          else
+            gh release create "rasaser-turkiye-routing-v0.1" \
+              "$FILE" "$ROOT/valhalla.json" "$ROOT/valhalla-turkiye-manifest.json" "$ROOT/README.md" \
+              --repo "$GITHUB_REPOSITORY" --target "main" \
+              --title "RaSaSeR Türkiye Offline Rota Grafiği v0.1" \
+              --notes "Deneysel Valhalla offline rota grafiği, Türkiye OSM verilerinden üretildi. Android cihaz testi yapılmadan sürüşte kullanılmamalıdır." \
+              --prerelease
+          fi

@@ -1,0 +1,56 @@
+name: Navigasyon Turkiye Tum Harita Paketini Uret ve Yayinla
+on:
+  push:
+    branches:
+      - feature/rasaser-nav-turkiye-data-v1
+    paths:
+      - 'apps/navigasyon/data/prepare_turkey_shortbread.py'
+      - '.github/workflows/06-navigasyon-turkiye-harita-yayin.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: nav-turkiye-countrywide-map-publish
+  cancel-in-progress: false
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - name: Kodlari al
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Türkiye Shortbread harita paketini indir ve dogrula
+        run: python3 apps/navigasyon/data/prepare_turkey_shortbread.py --output "$RUNNER_TEMP/turkiye-data"
+      - name: Veri lisansi ve surum notlarini hazirla
+        run: |
+          cat > "$RUNNER_TEMP/turkiye-data/RELEASE_NOTES.md" <<'EOF'
+          # RaSaSeR Navigasyon Türkiye — ülke çapı vektör haritası
+          
+          **Bu paket Türkiye genelinin çevrimdışı vektör temel haritasıdır.** Yol tarifi / dönüş yasağı hesaplayan navigasyon grafiği değildir; rota motoru ayrıca entegre edilmelidir.
+          
+          - Kaynak: BBBike.org Türkiye Shortbread MBTiles, OpenStreetMap verileri
+          - Veri lisansı: Open Database License (ODbL) 1.0, © OpenStreetMap contributors
+          - Kaynak: https://data.bbbike.org/osm/region/europe/turkey/
+          - Lisans: https://www.openstreetmap.org/copyright
+          - Doğrulama: ulusal ZIP CRC, SQLite quick_check, MBTiles metadata, karo sayısı, Türkiye'den 10 kent merkezine ait örnek karolar, SHA256 manifest.
+          - Dosya: rasaser-turkiye-shortbread.zip (içinde MBTiles)
+          - Manifest: turkey.manifest.json
+          
+          Bu dosyayı Android MapLibre ile kullanmak için **Shortbread katman adlarına göre bir stil**, çevrimdışı MBTiles okuyucu ve uygulama içi indirme/kurulum servisi gereklidir. Mevcut RaSaSeR Navigasyon Android prototipinde bunlar henüz bulunmuyor.
+          
+          **Dikkat:** Veri tarihi ve yol gerçekliği kaynak OSM derlemesine bağlıdır. Harita trafik, radar veya yol güvenliği garantisi taşımaz.
+          EOF
+      - name: Buyuk haritayi Actions artifact kotasina koymadan Github Release'e ekle
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="rasaser-turkiye-maps-v0.1"
+          zip="$RUNNER_TEMP/turkiye-data/rasaser-turkiye-shortbread.zip"
+          manifest="$RUNNER_TEMP/turkiye-data/turkey.manifest.json"
+          notes="$RUNNER_TEMP/turkiye-data/RELEASE_NOTES.md"
+          gh release create "$tag" "$zip" "$manifest" \
+            --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+            --title "RaSaSeR Türkiye Haritası v0.1 (Shortbread Vektör)" \
+            --notes-file "$notes" --prerelease

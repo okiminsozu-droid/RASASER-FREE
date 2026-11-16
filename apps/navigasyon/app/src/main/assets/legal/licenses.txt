@@ -1,0 +1,30 @@
+RaSaSeR Navigasyon Türkiye - Geliştirici önizlemesi
+
+© OpenStreetMap contributors, ODbL 1.0
+https://www.openstreetmap.org/copyright
+Veri dağıtımı: BBBike.org (Shortbread MBTiles)
+
+MapLibre Native Android 13.7.1 (OpenGL ES) - BSD-2-Clause
+https://github.com/maplibre/maplibre-native
+
+AndroidX / Kotlin / Jetpack Compose: ilgili Apache-2.0 ve diğer bağımlılık bildirimleri.
+Yayın öncesi üçüncü taraf tüm bildiriler uygulamaya eklenecek.
+
+ÖNEMLİ: Çevrimdışı yol tarifi, gerçek zamanlı trafik, kamera ve hız sınırı
+verileri henüz entegre edilmemiştir. Hiçbir veri uydurulmaz.
+
+Noto Sans Regular MapLibre glyph PBFs - SIL Open Font License 1.1.
+Supplied with the app as offline assets, original license included.
+https://github.com/UNDP-Data/fonts/tree/main/docs/fonts/Noto%20Sans%20Regular
+
+Valhalla Mobile 0.6.1, © contributors — MIT License.
+https://github.com/Rallista/valhalla-mobile
+Valhalla routing engine, © Valhalla contributors — MIT License.
+https://github.com/valhalla/valhalla
+Valhalla model libraries — inspect their individual license notices before publishing.
+All OpenStreetMap-derived routing data remains ODbL 1.0 with original attribution.
+
+Noto Sans Arabic Regular: SIL Open Font License 1.1,
+https://github.com/notofonts/arabic/blob/main/OFL.txt
+Pinned source revision: ffebf8c1ee449e544955a7e813c54f9b73848eac
+The font is embedded at build time and served only from 127.0.0.1.

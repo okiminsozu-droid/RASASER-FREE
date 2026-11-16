@@ -1,0 +1,48 @@
+name: RaSaSeR Navigasyon - GitHub OIDC ile R2 Tam Ulke Yayin
+on:
+  push:
+    branches:
+      - feature/rasaser-nav-turkiye-data-v1
+    paths:
+      - '.github/workflows/13-navigasyon-r2-oidc-transfer.yml'
+      - 'apps/navigasyon/cloudflare/upload_r2_oidc.py'
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: rasaser-navigasyon-r2-verified-upload
+  cancel-in-progress: false
+
+jobs:
+  r2-upload:
+    if: github.repository == 'okiminsozu-droid/RASASER-FREE'
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - name: GitHub kaynagini al
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Cloudflare Worker erisim testi
+        run: |
+          set -euo pipefail
+          for url in "https://rasaser-nav-r2-import-probe.okiminsozu.workers.dev/health" "https://rasaser-apps-core.okiminsozu.workers.dev/" "https://pub-e5b8f3a2a9e84a9dbfc1c01ca1442264.r2.dev/"; do
+            echo "Testing host: ${url%%/*}"
+            curl -sS -L -D /tmp/rasaser-headers -o /tmp/rasaser-body --connect-timeout 10 --max-time 25 "$url" || true
+            head -12 /tmp/rasaser-headers || true
+            head -c 250 /tmp/rasaser-body || true
+            echo
+          done
+      - name: Guvenli GitHub OIDC imzali kimligi ile 7 gercek paketi aktar
+        env:
+          PYTHONUNBUFFERED: '1'
+        run: |
+          set -euo pipefail
+          python3 apps/navigasyon/cloudflare/upload_r2_oidc.py
+      - name: R2 aktarimi tamamlandi
+        run: |
+          echo "Seven expected files were sha256 verified from GitHub Releases."
+          echo "Uploaded by GitHub OIDC with per-part SHA256 to the navigasyon R2 bucket."
+          echo "Do not remove known-good GitHub release assets."
