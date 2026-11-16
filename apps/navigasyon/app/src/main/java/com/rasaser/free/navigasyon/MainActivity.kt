@@ -77,6 +77,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
+import androidx.work.WorkInfo
+import androidx.work.WorkManager
+import androidx.compose.material3.LinearProgressIndicator
 import java.util.Calendar
 
 private val Sand=Color(0xFFE9D9BB)
@@ -111,6 +115,11 @@ class MainActivity: ComponentActivity() {
     private var downloadId by mutableLongStateOf(-1L)
     private var downloadPercent by mutableIntStateOf(0)
     private var allPackagesRequested by mutableStateOf(false)
+    private var bundleWaiting by mutableStateOf(false)
+    private var bundleStep by mutableIntStateOf(0)
+    private var bundlePercent by mutableIntStateOf(0)
+    private var bundleFailure by mutableStateOf<String?>(null)
+    private var bundleRefreshStarted=false
     private var mapR2Fallback by mutableStateOf(false)
     private var routingR2Fallback by mutableStateOf(false)
     private var searchR2Fallback by mutableStateOf(false)
@@ -177,7 +186,6 @@ class MainActivity: ComponentActivity() {
         downloadId=prefs.getLong("map_download_id",-1L)
         routingDownloadId=prefs.getLong("routing_download_id",-1L)
         searchDownloadId=prefs.getLong("place_search_download_id",-1L)
-        allPackagesRequested=prefs.getBoolean("download_all_turkiye",false)
         network=DefaultNetworkMonitor(this){ connection=it }
         gps=GpsTracker(this){ onGpsPosition(it) }
         voice=VoiceController(this, { key,extra ->
@@ -245,6 +253,41 @@ class MainActivity: ComponentActivity() {
                     if (uri!=null) installInThread {
                         contentResolver.openInputStream(uri)?.let { installer.importFrom(it) } ?: false
                     }
+                }
+                // Persistent WorkManager state, also observed after activity recreation.
+                LaunchedEffect(Unit) {
+                    WorkManager.getInstance(this@MainActivity)
+                        .getWorkInfosForUniqueWorkFlow(TurkeyCountryPackWorker.UNIQUE)
+                        .collectLatest { states ->
+                            val info=states.firstOrNull { !it.state.isFinished }
+                                ?: states.lastOrNull() ?: return@collectLatest
+                            bundleStep=info.progress.getInt(TurkeyCountryPackWorker.STAGE,0)
+                            bundlePercent=info.progress.getInt(TurkeyCountryPackWorker.PERCENT,0)
+                            bundleWaiting=info.state==WorkInfo.State.ENQUEUED ||
+                                info.state==WorkInfo.State.BLOCKED
+                            allPackagesRequested=bundleWaiting || info.state==WorkInfo.State.RUNNING
+                            bundleFailure=if(info.state==WorkInfo.State.FAILED)
+                                info.outputData.getString(TurkeyCountryPackWorker.ERROR) ?: "download"
+                                else null
+                            if(info.state==WorkInfo.State.SUCCEEDED && !bundleRefreshStarted) {
+                                bundleRefreshStarted=true
+                                bundleStep=TurkeyCountryPackWorker.STAGE_DONE
+                                bundlePercent=100
+                                Thread {
+                                    val map=LocalMapVerifier.turkeyMapReady(this@MainActivity)
+                                    val search=placeSearch.installed()
+                                    runOnUiThread {
+                                        mapReady=map
+                                        searchReady=search
+                                        if(map) statusKey=TextKey.MAP_INSTALLED
+                                        if(search) pendingSearchSpeech?.let { phrase ->
+                                            pendingSearchSpeech=null
+                                            startDestinationSearch(phrase)
+                                        }
+                                    }
+                                }.start()
+                            }
+                        }
                 }
                 LaunchedEffect(downloadId) {
                     val id=downloadId
@@ -371,14 +414,6 @@ class MainActivity: ComponentActivity() {
                         }
                     }
                 }
-                LaunchedEffect(mapReady,connection,onlineAllowed,searchReady) {
-                    if(mapReady && !allPackagesRequested && onlineAllowed && connection==Connection.UNMETERED &&
-                        !searchReady && searchDownloadId<0 && !searchInstalling &&
-                        !searchAutoAttempted) {
-                        searchAutoAttempted=true
-                        startPlaceSearchDownload()
-                    }
-                }
                 LaunchedEffect(screen) {
                     if(screen==NavScreen.DRIVE)
                         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
@@ -406,55 +441,23 @@ class MainActivity: ComponentActivity() {
                 }
                 fun requestAllPackages() {
                     if(allPackagesRequested)return
-                    mapR2Fallback=false
-                    routingR2Fallback=false
-                    searchR2Fallback=false
-                    statusKey=null
-                    routingMessage=null
-                    searchNotice=null
-                    allPackagesRequested=true
-                    prefs.edit().putBoolean("download_all_turkiye",true).apply()
-                }
-                // Sequential installation ensures 2 GB of downloads are never
-                // duplicated. A failed checksum stops the sequence safely.
-                LaunchedEffect(allPackagesRequested,mapReady,checkingMap,installing,
-                    downloadId,routingDownloadId,routingInstallActive,routingMessage,
-                    searchDownloadId,searchInstalling,searchReady,connection,onlineAllowed) {
-                    if(!allPackagesRequested || connection!=Connection.UNMETERED || !onlineAllowed)
-                        return@LaunchedEffect
-                    if(!mapReady) {
-                        if(!checkingMap && !installing && downloadId<0L &&
-                            statusKey!=TextKey.MAP_ERROR) {
-                            try {
-                                downloadId=installer.download(true)
-                                prefs.edit().putLong("map_download_id",downloadId).apply()
-                                downloadPercent=0
-                                statusKey=TextKey.MAP_DOWNLOADING
-                            } catch (_:Exception) {statusKey=TextKey.STORAGE_REQUIRED}
-                        }
-                    } else if(!router.installed()) {
-                        if(!routingInstallActive && routingDownloadId<0L &&
-                            routingMessage!=RoutingDownloadStatus.ERROR) {
-                            try {
-                                routingDownloadId=routingInstaller.beginWifiDownload()
-                                prefs.edit().putLong("routing_download_id",routingDownloadId).apply()
-                                routingMessage=RoutingDownloadStatus.DOWNLOADING
-                            } catch (_:Exception) {routingMessage=RoutingDownloadStatus.ERROR}
-                        }
-                    } else if(!searchReady) {
-                        if(!searchInstalling && searchDownloadId<0L &&
-                            searchNotice!=SearchNotice.DOWNLOAD_ERROR)
-                            startPlaceSearchDownload()
-                    } else {
+                    try {
+                        TurkeyCountryPackWorker.enqueue(this@MainActivity,wifiOnly)
+                        allPackagesRequested=true
+                        bundleWaiting=true
+                        bundleStep=TurkeyCountryPackWorker.STAGE_WAIT
+                        bundleFailure=null
+                        bundleRefreshStarted=false
+                        statusKey=null
+                    } catch (_:Exception) {
+                        bundleFailure="start"
                         allPackagesRequested=false
-                        prefs.edit().remove("download_all_turkiye").apply()
                     }
                 }
                 fun loadMap() {
-                    if(mapReady)return
-                    if(connection==Connection.UNMETERED && onlineAllowed) beginDownload()
-                    else if(connection==Connection.METERED && onlineAllowed) showWifiDialog=true
-                    else importPicker.launch(arrayOf("application/zip","application/octet-stream","application/x-zip-compressed"))
+                    // This optional path imports USB files only; network uses WorkManager.
+                    importPicker.launch(arrayOf("application/zip","application/octet-stream",
+                        "application/x-zip-compressed"))
                 }
                 fun startDrive() {
                     if(!mapReady) {statusKey=TextKey.NO_MAP;return}
@@ -630,10 +633,14 @@ class MainActivity: ComponentActivity() {
                                         !(mapReady && router.installed() && searchReady)
                                 ) {requestAllPackages()}
                                 if(allPackagesRequested)
-                                    Text(TurkeyPackageUi.stage(language,mapReady,router.installed(),searchReady,
-                                        downloadId>=0L,downloadPercent,routingDownloadId>=0L,
-                                        routingInstallActive,searchDownloadId>=0L,searchInstalling),
+                                    Text(TurkeyPackageUi.workerStatus(language,bundleStep,bundlePercent,bundleWaiting),
                                         color=Ink,fontSize=12.sp,textAlign=TextAlign.Center)
+                                if(allPackagesRequested) LinearProgressIndicator(
+                                    progress={bundlePercent/100f},modifier=Modifier.fillMaxWidth())
+                                bundleFailure?.let {
+                                    Text(TurkeyPackageUi.error(language),
+                                        color=Color(0xFF9A3F35),fontSize=12.sp)
+                                }
                                 HomeAction(Icons.Default.LocationOn,t(TextKey.GRANT_PERMISSIONS)){askPermissions()}
                                 HomeAction(Icons.Default.PlayArrow,t(TextKey.START),enabled=mapReady){startDrive()}
                                 val detail=when {
@@ -672,10 +679,14 @@ class MainActivity: ComponentActivity() {
                                                 !(mapReady && router.installed() && searchReady)
                                         ){requestAllPackages()}
                                         if(allPackagesRequested)
-                                            Text(TurkeyPackageUi.stage(language,mapReady,router.installed(),searchReady,
-                                                downloadId>=0L,downloadPercent,routingDownloadId>=0L,
-                                                routingInstallActive,searchDownloadId>=0L,searchInstalling),
+                                            Text(TurkeyPackageUi.workerStatus(language,bundleStep,bundlePercent,bundleWaiting),
                                                 fontSize=11.sp,color=Ink)
+                                        if(allPackagesRequested) LinearProgressIndicator(
+                                            progress={bundlePercent/100f},modifier=Modifier.fillMaxWidth())
+                                        bundleFailure?.let {
+                                            Text(TurkeyPackageUi.error(language),
+                                                color=Color(0xFF9A3F35),fontSize=11.sp)
+                                        }
                                         HomeAction(Icons.Default.LocationOn,t(TextKey.GRANT_PERMISSIONS)){askPermissions()}
                                         HomeAction(Icons.Default.PlayArrow,t(TextKey.START),enabled=mapReady){startDrive()}
                                         if(installing || downloadId>=0L || checkingMap)
@@ -698,18 +709,10 @@ class MainActivity: ComponentActivity() {
                     title={Text(RoutingDownloadText.get(language,RoutingDownloadStatus.BUTTON))},
                     text={Text(RoutingDownloadText.get(language,RoutingDownloadStatus.EXPLANATION))},
                     confirmButton={TextButton(
-                        enabled=connection==Connection.UNMETERED && onlineAllowed &&
-                            routingDownloadId<0 && !routingInstallActive,
+                        enabled=!allPackagesRequested,
                         onClick={
                             showRoutingPrompt=false
-                            try{
-                                routingDownloadId=routingInstaller.beginWifiDownload()
-                                prefs.edit().putLong("routing_download_id",routingDownloadId).apply()
-                                routingMessage=RoutingDownloadStatus.DOWNLOADING
-                            }catch (_:Exception){
-                                routingMessage=RoutingDownloadStatus.ERROR
-                                showSettings=true
-                            }
+                            requestAllPackages()
                         }
                     ){Text(RoutingDownloadText.get(language,RoutingDownloadStatus.BUTTON))}},
                     dismissButton={TextButton(onClick={showRoutingPrompt=false}){
@@ -851,9 +854,8 @@ class MainActivity: ComponentActivity() {
                         }
                         if(!searchReady) {
                             OutlinedButton(
-                                enabled=connection==Connection.UNMETERED && onlineAllowed &&
-                                    searchDownloadId<0 && !searchInstalling,
-                                onClick={startPlaceSearchDownload()}
+                                enabled=!allPackagesRequested,
+                                onClick={requestAllPackages()}
                             ){Text(SearchWords.text(language,SearchNotice.DOWNLOAD))}
                         }
                         if(router.installed()){
@@ -861,17 +863,8 @@ class MainActivity: ComponentActivity() {
                                 color=Color(0xFF266443),fontSize=12.sp)
                         } else {
                             OutlinedButton(
-                                enabled=routingDownloadId<0L && !routingInstallActive &&
-                                    connection==Connection.UNMETERED && onlineAllowed,
-                                onClick={
-                                    try {
-                                        routingDownloadId=routingInstaller.beginWifiDownload()
-                                        prefs.edit().putLong("routing_download_id",routingDownloadId).apply()
-                                        routingMessage=RoutingDownloadStatus.DOWNLOADING
-                                    } catch (_:Exception) {
-                                        routingMessage=RoutingDownloadStatus.ERROR
-                                    }
-                                }
+                                enabled=!allPackagesRequested,
+                                onClick={requestAllPackages()}
                             ) {
                                 Text(RoutingDownloadText.get(language,RoutingDownloadStatus.BUTTON))
                             }
@@ -970,28 +963,19 @@ class MainActivity: ComponentActivity() {
     }
 
     private fun startPlaceSearchDownload() {
-        if(searchReady || searchDownloadId>=0L || searchInstalling)return
-        searchNotice=null
-        searchFailureCode=null
-        if(searchInstaller.cachedZipExists()){
-            searchInstalling=true
-            Thread {
-                val result=searchInstaller.installWithResult()
-                runOnUiThread {
-                    searchInstalling=false
-                    searchReady=result.installed || placeSearch.installed()
-                    searchFailureCode=if(searchReady)null else result.stage.name
-                    if(searchReady) {
-                        pendingSearchSpeech?.let { phrase->
-                            pendingSearchSpeech=null
-                            startDestinationSearch(phrase)
-                        }
-                    } else startPlaceSearchFresh()
-                }
-            }.start()
-            return
+        if(searchReady || allPackagesRequested)return
+        try {
+            TurkeyCountryPackWorker.enqueue(this,
+                getSharedPreferences("offline_first_settings",MODE_PRIVATE)
+                    .getBoolean("wifi_only",true))
+            allPackagesRequested=true
+            bundleWaiting=true
+            bundleFailure=null
+            bundleRefreshStarted=false
+            searchNotice=SearchNotice.DOWNLOADING
+        } catch (_:Exception) {
+            searchNotice=SearchNotice.DOWNLOAD_ERROR
         }
-        startPlaceSearchFresh()
     }
 
     private fun startPlaceSearchFresh() {
