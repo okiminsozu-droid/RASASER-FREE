@@ -30,7 +30,8 @@ class RouteGuidanceTest {
         assertFalse(s.advance(off,6f,6_000L).shouldReroute)
         assertFalse(s.advance(off,6f,7_000L).shouldReroute)
         assertFalse(s.advance(off,6f,50_000L).shouldReroute)
-        assertTrue(s.advance(off,6f,51_000L).shouldReroute)
+        assertFalse(s.advance(off,6f,51_000L).shouldReroute)
+        assertTrue(s.advance(off,6f,52_000L).shouldReroute)
     }
     @Test fun badGpsNeverCausesReroute() {
         val s=tracker()
