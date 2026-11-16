@@ -35,6 +35,15 @@ jobs:
           python3 tools/validate_app.py navigasyon false
       - name: Cevrimdisi yer adlari icin lisansli glyph kaynaklarini paketle
         run: python3 apps/navigasyon/tools/prepare_offline_glyphs.py --target "apps/navigasyon/app/src/main/assets/fonts/Noto Sans Regular"
+      - name: Noto Sans Arabic (SIL OFL) offline font
+        run: |
+          set -Eeuo pipefail
+          FONT="apps/navigasyon/app/src/main/assets/fonts/NotoSansArabic-Regular.ttf"
+          mkdir -p "$(dirname "$FONT")"
+          curl --proto '=https' --tlsv1.2 -fL --retry 4 --connect-timeout 25 \
+            --output "$FONT" \
+            "https://raw.githubusercontent.com/notofonts/noto-fonts/ffebf8c1ee449e544955a7e813c54f9b73848eac/hinted/ttf/NotoSansArabic/NotoSansArabic-Regular.ttf"
+          test "$(stat -c %s "$FONT")" -eq 240456
       - name: Kotlin unit tests ve Android APK derleme
         run: gradle --no-daemon --project-dir apps/navigasyon :app:testDebugUnitTest :app:assembleDebug
       # Public debug APK is intentionally not uploaded; release keys PRIVATE only.

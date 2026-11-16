@@ -87,6 +87,18 @@ class MapScene(private val context: Context, onPlace: (String, String, NavPoint)
         val raw=context.assets.open("maps/$file").bufferedReader().use { it.readText() }
             .replace("127.0.0.1:8765","127.0.0.1:${tileServer.port}")
         val json=JSONObject(raw)
+        // Arabic needs a script-aware Open Font License font (self-hosted loopback).
+        // Android MapLibre Native supports font-faces; Japanese CJK falls back
+        // to the device's own ideographic glyph renderer.
+        if(language==NavLanguage.AR) {
+            val arabic=JSONObject()
+                .put("url","http://127.0.0.1:${tileServer.port}/fonts/noto-arabic.ttf")
+                .put("unicode-range",JSONArray()
+                    .put("U+0600-06FF").put("U+0750-077F").put("U+08A0-08FF")
+                    .put("U+FB50-FDFF").put("U+FE70-FEFF"))
+            json.put("font-faces",JSONObject()
+                .put("Noto Sans Regular",JSONArray().put(arabic)))
+        }
         val layers=json.getJSONArray("layers")
         for(i in 0 until layers.length()) {
             val layer=layers.optJSONObject(i) ?:continue

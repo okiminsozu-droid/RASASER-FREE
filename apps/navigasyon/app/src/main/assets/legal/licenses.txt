@@ -23,3 +23,8 @@ Valhalla routing engine, © Valhalla contributors — MIT License.
 https://github.com/valhalla/valhalla
 Valhalla model libraries — inspect their individual license notices before publishing.
 All OpenStreetMap-derived routing data remains ODbL 1.0 with original attribution.
+
+Noto Sans Arabic Regular: SIL Open Font License 1.1,
+https://github.com/notofonts/arabic/blob/main/OFL.txt
+Pinned source revision: ffebf8c1ee449e544955a7e813c54f9b73848eac
+The font is embedded at build time and served only from 127.0.0.1.

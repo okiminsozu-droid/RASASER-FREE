@@ -54,6 +54,15 @@ class LocalTileServer(private val context: Context, mapFile: File) : AutoCloseab
                     send(conn, 405, "text/plain", "Method not allowed".toByteArray())
                     return
                 }
+                if (request[1] == "/fonts/noto-arabic.ttf") {
+                    val bytes=runCatching {
+                        context.assets.open("fonts/NotoSansArabic-Regular.ttf").use { it.readBytes() }
+                    }.getOrNull()
+                    if(bytes!=null && bytes.size>=200_000)
+                        send(conn,200,"font/ttf",bytes)
+                    else send(conn,404,"text/plain",byteArrayOf())
+                    return
+                }
                 val font = Regex("^/fonts/Noto(?:%20| )Sans(?:%20| )Regular/(\\d{1,5})-(\\d{1,5})\\.pbf$")
                     .matchEntire(request[1])
                 if (font!=null) {
