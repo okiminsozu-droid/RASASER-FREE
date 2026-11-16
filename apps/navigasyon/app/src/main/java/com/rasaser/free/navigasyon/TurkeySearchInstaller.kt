@@ -46,10 +46,17 @@ class TurkeySearchInstaller(private val context: Context) {
 
     fun installed():Boolean =
         index.isFile && index.length()==DB_BYTES && runCatching {
-            SQLiteDatabase.openDatabase(index.path,null,SQLiteDatabase.OPEN_READONLY).use {db->
-                db.rawQuery("SELECT value FROM info WHERE key='schema'",null).use {c->
+            SQLiteDatabase.openDatabase(
+                index.path,null,
+                SQLiteDatabase.OPEN_READONLY or SQLiteDatabase.NO_LOCALIZED_COLLATORS
+            ).use {db->
+                val schema=db.rawQuery("SELECT value FROM info WHERE key='schema' LIMIT 1",null).use {c->
                     c.moveToFirst() && c.getString(0)=="1"
                 }
+                val works=db.rawQuery(
+                    "SELECT 1 FROM places_fts WHERE places_fts MATCH 'ankara*' LIMIT 1",null
+                ).use {c->c.moveToFirst()}
+                schema && works
             }
         }.getOrDefault(false)
 
