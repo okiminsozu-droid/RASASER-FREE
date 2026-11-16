@@ -1,0 +1,83 @@
+name: Navigasyon Android Valhalla Gercek Rota Testi
+on:
+  pull_request:
+    paths:
+      - 'apps/navigasyon/**'
+      - '.github/workflows/20-navigasyon-android-valhalla-route-test.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  real-offline-valhalla:
+    runs-on: ubuntu-latest
+    timeout-minutes: 65
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v4
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
+      - name: Test fonts
+        run: |
+          set -Eeuo pipefail
+          python3 apps/navigasyon/tools/prepare_offline_glyphs.py --target "apps/navigasyon/app/src/main/assets/fonts/Noto Sans Regular"
+          FONT="apps/navigasyon/app/src/main/assets/fonts/NotoSansArabic-Regular.ttf"
+          mkdir -p "$(dirname "$FONT")"
+          curl --proto '=https' --tlsv1.2 -fL --retry 4 --output "$FONT" \
+            "https://raw.githubusercontent.com/notofonts/noto-fonts/ffebf8c1ee449e544955a7e813c54f9b73848eac/hinted/ttf/NotoSansArabic/NotoSansArabic-Regular.ttf"
+          test "$(stat -c %s "$FONT")" -eq 240456
+      - name: Pin real Turkey Valhalla graph and configs from Cloudflare
+        run: |
+          set -Eeuo pipefail
+          DIR="$RUNNER_TEMP/nav-route-graph"
+          mkdir -p "$DIR"
+          BASE="https://rasaser-turkiye-map-download.okiminsozu.workers.dev/v1"
+          curl --proto '=https' --tlsv1.2 -fL --retry 5 --retry-delay 10 \
+            --connect-timeout 25 -o "$DIR/valhalla_tiles.tar" "$BASE/valhalla_tiles.tar"
+          test "$(stat -c %s "$DIR/valhalla_tiles.tar")" -eq 1148661760
+          echo "bdfd9a67d8fdd0d5856013e889c6e48cd8a14560934cc5d2b6f3c16a8f6a554f  $DIR/valhalla_tiles.tar" | sha256sum -c -
+          curl --proto '=https' --tlsv1.2 -fL --retry 5 -o "$DIR/valhalla.json" "$BASE/valhalla.json"
+          echo "bc0bb95856c09c51b859bb2f18423b43a0353504bb8e26529f3aad71bbf98fc3  $DIR/valhalla.json" | sha256sum -c -
+          curl --proto '=https' --tlsv1.2 -fL --retry 5 -o "$DIR/valhalla-turkiye-manifest.json" "$BASE/valhalla-turkiye-manifest.json"
+          echo "ce663429563e556ac78e729e8d919b72993f587a2b8426e5d556007022924f26  $DIR/valhalla-turkiye-manifest.json" | sha256sum -c -
+          python3 - "$DIR/valhalla.json" <<'PY'
+          import json,sys
+          config=json.load(open(sys.argv[1],encoding="utf-8"))
+          print("Routing config root keys:", sorted(config.keys()),flush=True)
+          print("Mjolnir tile configuration fields:", sorted(config.get("mjolnir",{}).keys()),flush=True)
+          PY
+      - name: Android API 35 emulator KVM
+        run: |
+          if test -e /dev/kvm; then sudo chmod 666 /dev/kvm; fi
+      - name: Real Android 15 Valhalla JNI route Istanbul and Uşak-Ankara
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          target: default
+          profile: pixel_6
+          ram-size: 4096M
+          disk-size: 9G
+          emulator-boot-timeout: 600
+          disable-animations: true
+          script: |
+            set -Eeuo pipefail
+            gradle --no-daemon --project-dir apps/navigasyon :app:assembleDebug :app:assembleDebugAndroidTest
+            adb install -r apps/navigasyon/app/build/outputs/apk/debug/app-debug.apk
+            adb install -r apps/navigasyon/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
+            TEST_DIR="/sdcard/Android/data/com.rasaser.free.navigasyon/files/valhalla-fixture"
+            adb shell mkdir -p "$TEST_DIR"
+            adb push "$RUNNER_TEMP/nav-route-graph/valhalla_tiles.tar" "$TEST_DIR/valhalla_tiles.tar"
+            adb push "$RUNNER_TEMP/nav-route-graph/valhalla.json" "$TEST_DIR/valhalla.json"
+            adb push "$RUNNER_TEMP/nav-route-graph/valhalla-turkiye-manifest.json" "$TEST_DIR/valhalla-turkiye-manifest.json"
+            adb shell am instrument -w -r \
+              -e class com.rasaser.free.navigasyon.OfflineRouteEngineDeviceTest \
+              com.rasaser.free.navigasyon.test/androidx.test.runner.AndroidJUnitRunner \
+              | tee "$RUNNER_TEMP/route-test-output.txt"
+            grep -F "OK (1 test)" "$RUNNER_TEMP/route-test-output.txt"
