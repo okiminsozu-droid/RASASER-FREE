@@ -113,3 +113,13 @@ GitHub QA, Kotlin birim testleri, debug derleme ve **unsigned optimize release d
 - Ses tanıma cihazda yoksa kullanıcı yazıyla hedef arayabilir; rota hesaplaması Türkiye Valhalla grafiği kurulmuşsa çevrimdışı yapılır. GPS yoksa hedef saklanır, gerçek konum geldiğinde rota hesaplanır.
 - **v0.7 TEST paket adı** com.rasaser.free.navigasyon.fieldtest07; v0.6 test paketinin yanına kurulur ve daha önce yüklenmiş v0.6 dosyaları / haritaları **değiştirmez**. Ayrı test imzası ve paket, Google Play üretimine yönelik değildir.
 - Türkiye MBTiles 606MB, offline rota 1.15GB ve ad arama paketi 66MB birbirinden bağımsızdır; canlı trafik/radar verilmiş gibi gösterilmez.
+
+## v0.8 — Sesli hedef, 3D sürüş ve sadeleştirilmiş arayüz
+
+- **Hata onarımı:** Türkiye 66 MB arama ZIP'i GitHub SHA-256/boyut verisiyle doğrulanır; Android DownloadManager'ın içerik URI'sinden dosyaya güvenli alternatif erişim bulunur. Daha önce indirilen geçerli ZIP yeniden kullanılabilir; kurulum yarım kalırsa yerel dosya korunur. Adım kodu logcat'te `RaSaSeRSearchInstall` etiketiyle, konum veya ses kaydı olmadan raporlanır.
+- Sesle seçilen hedef, arama paketi yüklenirken saklanır; kurulum tamamlandığında aynı hedef otomatik yeniden aranır. İsim birden çok yerde eşleşiyorsa en yakın/uygun hedef seçimi kullanıcıya sunulur.
+- Android mikrofon izni eksikse uygulama izin ister. Çevrimdışı tanıyıcı varsa onu tercih eder. Yoksa cihazın ses hizmetinin internet kullanabileceğini **açık onayla** bildirir; onay verilirse sistem tanıyıcısı kullanılır, verilmezse yalnız yazıyla arama yapılır.
+- **Sürekli sürüş:** Harita hedef verilmeden de GPS konumunu izler; 18.3 yakınlaşma ve 70 derece MapLibre 3D eğim kullanır. Konum olmadan uydurma araç konumu gösterilmez; harita en son yerel görünümde yakın kalır.
+- **Arayüz:** Hedef aramasındaki örnek metinler, genel bilgi kutuları, indirme doğrulama/yineleme mesajları ve hız limiti bilinmiyor satırı sürüş ana görünümünden çıkarıldı. Gerçek hız sınırı/yol uyarıları varsa gösterilir.
+- **Koruma:** Test paketi `com.rasaser.free.navigasyon.fieldtest08`, v0.7 ve diğer RaSaSeR uygulamalarından bağımsızdır. Eski imzaya, veriye ve uygulama kaynaklarına dokunulmaz.
+- Bu bir cihaz/sürüş testi sürümüdür. Tamamen doğrulanmış sesli navigasyon veya resmî Play Console üretim paketi olduğu iddia edilmez.

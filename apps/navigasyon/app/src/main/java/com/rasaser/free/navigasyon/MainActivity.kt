@@ -178,7 +178,7 @@ class MainActivity: ComponentActivity() {
         voice=VoiceController(this, { key,extra ->
             statusKey=key
             statusExtra=extra
-            if(key==TextKey.VOICE_ERROR || key==TextKey.VOICE_UNAVAILABLE)
+            if(key==TextKey.VOICE_ERROR)
                 showSearchDialog=true
         }, { phrase -> handleVoiceNavigation(phrase) })
             .also { it.init(); it.setEnabled(voiceEnabled); it.setLanguage(language) }
