@@ -1,31 +1,22 @@
-# RaSaSeR Widget Studio — v0.1.0
+# VARYOK — RaSaSeR • APPS & TECHNOLOGY — v0.2.0
 
-Bağımsız Android widget uygulaması. **Çevrimdışı çalışma, reklam yok, izleme yok, üyelik yok.** Sadece bu klasör içinde geliştirilir; diğer RaSaSeR projelerine veya özel motora bağlanmaz.
+Bağımsız Android widget uygulaması; mevcut `apps/rasaserwidgets/` klasöründe geliştirilmeye devam eder. Paket kimliği `com.rasaser.free.rasaserwidgets` ve var olan widget motoru korunur. Diğer RaSaSeR uygulamalarına dokunulmaz.
 
-## Mevcut ilk sürüm işlevleri
-- Her ana ekran widget'ı için **ayrı ayar**: resim, etiket, görünürlük (0–100), dokunma eylemi.
-- Galeriden dosya seçme (Android'in sistem seçicisi), uygulama içi özel alana resim kopyalama. Geniş depolama izni yok.
-- Widget boyutlandırma, yeniden düzenleme, uygulama içinden bağlı widget yönetimi.
-- Dokunma eylemleri: uygulama açma, internet adresi (tarayıcı açılır; çevrimdışı olduğunda sayfa yüklenmeyebilir), telefon numarası arama ekranı, yerel not, Wi-Fi/Bluetooth/Sistem ayarları, izinli el feneri aracı.
-- 0 görünürlükte tamamen şeffaf dokunma alanı, 100'de görünen fotoğraf/widget.
-- Ağ, reklam, analitik, hesap veya bulut SDK'sı olmadan cihaz içi SharedPreferences + özel resim dosyaları.
-- Ana ekran Android sürümüne/launcher'a bağlıdır; görünmez widget uygulama çekmecesindeki gerçek uygulama simgesini gizlemez.
+## Ana ekran (yeni)
+- Pembe arka plan, açık pudra vurgular ve yalnızca **Widget Oluştur** ana butonu.
+- Widget Oluştur'a dokunulduğunda liste: Fotoğraflı Widget, Şeffaf Kısayol, Uygulama Kısayolu, Web Kısayolu, Hazır Şablonlar (başlangıç önayarları), Telefon Arama, Kişisel Not, Wi-Fi, Bluetooth, Sistem Ayarları, El Feneri.
+- Sağ üstte ayarlar simgesi ve bayraklı dil seçimi. Dil seçenekleri: Türkçe, İngilizce, Almanca, İspanyolca, Japonca, Arapça. Ana sayfa, widget düzenleyici ve yerel not/fener ekranı metinleri uygulama içinden değişir.
+- Ayarlar → Widget'larım, dil, gizlilik, hakkında. Mevcut widget'lar ana ekranda kalabalık oluşturmaz; **Widget'larım** içinden düzenlenir.
+- Alt kısımda dokunulabilir `www.okiminsozu.com` bağlantısı, harici tarayıcıda açılır.
+- Üç adet **başarıyla kaydedilen yeni widget** ücretsiz. Mevcut widget'ı düzenlemek ya da sistem tarafından ID geri yüklenmesi yeni hak harcamaz; silmek hak iadesi sağlamaz.
+- Dördüncü widget için Premium bilgilendirmesi gösterilir ve ekleme engellenir. **Google Play Billing henüz entegre edilmediğinden satın alma yapılamaz.** Gerçek ücretli dağıtım öncesi fiyat/ürün tanımı, satın alma onayı, işlem doğrulama ve geri yükleme zorunludur. Premium satışı çalışıyor gibi gösterilmez.
 
-## Kurulum
-Android Studio ile **bu klasörü** ayrı proje olarak açın. Alternatif: depoda `Android FREE Derleme` iş akışında `app_slug=rasaserwidgets`. **Bu iş akışı kullanıcı onayı olmadan çalıştırılmayacak.** JDK17 / Gradle8.9 / Android SDK35 / AGP8.7.3 / Kotlin2.0.21. Derleme sırasında Gradle bağımlılıklarını indirmek için internet gerekebilir; kurulu uygulama internet kullanmaz.
+## Korunan özellikler
+Fotoğraf seçme ve yalnız uygulama içinde saklama, 0–100 görünürlük, her widget için farklı etiket ve tıklama eylemi, uygulama/web/arama/not/Wi-Fi/Bluetooth/ayarlar/fener, widget yeniden boyutlandırma. `none` türü yalnız fotoğraflı, dokunma eylemi olmayan widget oluşturur.
 
-## Widget ekleme
-Uygulamayı aç → “Ana ekrana widget ekle”; launcher desteklemiyorsa ana ekrana uzun bas → Widget'lar → RaSaSeR Widget Studio. Android widget ayarlayıcıdan eylem, fotoğraf ve görünürlük seç → Kaydet. Uygulama içinden var olan widget'ı düzenleyebilirsiniz.
+İnternet, depolama, takip, reklam veya analitik izni/SDK yok. Yalnız isteğe bağlı fener özelliğinde kamera izni istenir. Web kısayolu kullanıcının haricî tarayıcısında açılır.
 
-## Güvenlik ve dürüst sınırlamalar
-- Manifest'te INTERNET izni yoktur. Yalnızca isteğe bağlı fener aracı için CAMERA izni kullanıcının işleminde istenir; arama `ACTION_DIAL` kullanır, CALL_PHONE izni yoktur.
-- Web bağlantısı haricî tarayıcı açar. Ağ gerektiğinde bu bağlantı çevrimdışı çalışmaz.
-- Android launcher widget boyutu/özellikleri ve şeffaf dokunma davranışı cihazlara göre farklılık gösterebilir.
-- Uygulama gizlilik modu veya sistem düzeyinde uygulama gizleme aracı değildir.
-- APK/AAB henüz derlenmedi veya cihaz testinden geçmedi; kararlı sürüm olduğu iddia edilmez.
-- Başkalarının uygulama kodu, markası, görseli veya ekranları kullanılmamıştır.
-- Genel kaynak deposu otomatik olarak açık kaynak lisansı vermez. Yayın öncesi lisans ve veri güvenliği beyanı gözden geçirilecek.
-- İmzalama ve Play Store release işlemleri PRIVATE ortamda yapılır.
+## Kurulum ve QA
+Android Studio ile `apps/rasaserwidgets/` ayrı proje olarak açılır. JDK 17 / Android SDK 35 / Kotlin 2.0.21. Mevcut GitHub Actions derlemesi yalnızca kullanıcı onayından sonra çalıştırılabilir. Kaynak dosyalarının GitHub'a yüklenmiş olması **APK/AAB'nin derlendiği veya cihaz üzerinde test edildiği anlamına gelmez**.
 
-## Kalite kontrol planı
-Android 8–17 testleri, widget oluşturma/silme ve telefon yeniden başlatma, yeniden boyutlandırma, fotoğraf izni, farklı üretici launcher'ları, fener izni ve yanlış URL/numara doğrulaması. Bu kontroller henüz cihaz üzerinde doğrulanmadı.
+Yayın öncesi: Android cihazlarda dil geçişi, 3 ücretsiz hak, oluşturma/silme/düzenleme, Android launcher sabitleme, ekran döndürme, ödeme altyapısı ve Play Store politikaları ayrıca doğrulanmalıdır.
