@@ -54,7 +54,7 @@ class OfflineContractTests(unittest.TestCase):
         home = (base / "MainActivity.kt").read_text(encoding="utf-8")
         ui = (base / "VaryokText.kt").read_text(encoding="utf-8")
         editor = (base / "WidgetEditorActivity.kt").read_text(encoding="utf-8")
-        for required in ('tx("create")', 'showWidgetTypes()', 'showLanguagePicker()', 'showSettings()',
+        for required in ('tx("create")', 'showWidgetTypes()', 'showLanguagePicker()',
                          'https://www.okiminsozu.com', 'WidgetStore.creationCount'):
             self.assertIn(required, home)
         self.assertNotIn("KISAYOL TİPLERİ", home)
@@ -91,7 +91,6 @@ class OfflineContractTests(unittest.TestCase):
         self.assertNotIn("QUERY_ALL_PACKAGES", catalog)
         self.assertIn("WidgetCreateActivity::class.java", main)
         self.assertIn('tx("privacy_desc")', main)
-        self.assertIn('SettingsActivity::class.java', main)
         self.assertIn('text("ⓘ", 26f, true)', main)
 
     def test_fresh_media_picker_and_nonblocking_decode(self):
@@ -120,25 +119,48 @@ class OfflineContractTests(unittest.TestCase):
         self.assertIn("getApplicationIcon(packageName)", icon)
         self.assertIn("LruCache<String, Bitmap>", icon)
 
-    def test_settings_only_created_widgets_and_delete(self):
+    def test_pin_success_callback_persists_real_widget_id_and_photo(self):
         base = ROOT / "app/src/main/java/com/rasaser/free/rasaserwidgets"
-        screen = (base / "SettingsActivity.kt").read_text(encoding="utf-8")
+        picker = (base / "WidgetCreateActivity.kt").read_text(encoding="utf-8")
+        callback = (base / "PinResultReceiver.kt").read_text(encoding="utf-8")
+        provider = (base / "ActionWidgetProvider.kt").read_text(encoding="utf-8")
+        store = (base / "WidgetStore.kt").read_text(encoding="utf-8")
+        self.assertIn("manager.requestPinAppWidget(provider, null, onSuccess)", picker)
+        self.assertNotIn("manager.requestPinAppWidget(provider, null, null)", picker)
+        self.assertIn("PinResultReceiver.callback(", picker)
+        self.assertIn("PendingIntent.FLAG_MUTABLE", callback)
+        self.assertIn("AppWidgetManager.EXTRA_APPWIDGET_ID", callback)
+        self.assertIn("WidgetStore.attachStagedPhoto(context, token, widgetId)", callback)
+        self.assertIn("WidgetStore.commitPending(context, widgetId)", callback)
+        self.assertIn("WidgetStore.save(", callback)
+        self.assertIn("ActionWidgetProvider.render(context, widgetId)", callback)
+        self.assertIn("WidgetStore.attachStagedPhoto(this, stagingId, token)", picker)
+        self.assertIn("fun attachStagedPhoto(", store)
+        self.assertIn("AppIconKit.bitmap(", provider)
+
+    def test_widget_click_opens_chosen_app_and_no_settings(self):
+        base = ROOT / "app/src/main/java/com/rasaser/free/rasaserwidgets"
         home = (base / "MainActivity.kt").read_text(encoding="utf-8")
         provider = (base / "ActionWidgetProvider.kt").read_text(encoding="utf-8")
-        editor = (base / "WidgetEditorActivity.kt").read_text(encoding="utf-8")
-        self.assertIn("filter { WidgetStore.exists(this, it) }", screen)
-        self.assertIn("R.drawable.ic_delete", screen)
-        self.assertIn("WidgetStore.delete(this, id)", screen)
-        self.assertIn("ActionWidgetProvider.render(this, id)", screen)
-        self.assertNotIn('tx("about")', screen)
-        self.assertNotIn('tx("privacy")', screen)
-        self.assertIn('SettingsActivity::class.java', home)
+        launcher = (base / "AppShortcutActivity.kt").read_text(encoding="utf-8")
+        manifest = ET.parse(ROOT / "app/src/main/AndroidManifest.xml").getroot()
+        self.assertNotIn("showSettings()", home)
+        self.assertNotIn("SettingsActivity::class.java", home)
+        self.assertNotIn('text("⚙"', home)
         self.assertIn('setOnClickListener { info(tx("privacy"), tx("privacy_desc")) }', home)
-        self.assertIn('data.kind == "app"', provider)
-        self.assertIn("WidgetStore.attachStagedPhoto(this, -48047, widgetId)", editor)
-        xml = ET.parse(ROOT / "app/src/main/AndroidManifest.xml").getroot()
-        activities = [a.attrib.get(f"{{{ANDROID}}}name") for a in xml.find("application").findall("activity")]
-        self.assertIn(".SettingsActivity", activities)
+        self.assertIn('Intent(context, AppShortcutActivity::class.java)', provider)
+        self.assertIn('putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, id)', provider)
+        self.assertIn("packageManager.getLaunchIntentForPackage(widget.target)", launcher)
+        self.assertIn("startActivity(it)", launcher)
+        self.assertIn("R.drawable.varyok_app_icon", provider)
+        self.assertIn('rv.setViewVisibility(R.id.widget_image, View.VISIBLE)', provider)
+        self.assertFalse((base / "SettingsActivity.kt").exists())
+        app = manifest.find("application")
+        activities = [a.attrib.get(f"{{{ANDROID}}}name") for a in app.findall("activity")]
+        receivers = [r.attrib.get(f"{{{ANDROID}}}name") for r in app.findall("receiver")]
+        self.assertNotIn(".SettingsActivity", activities)
+        self.assertIn(".AppShortcutActivity", activities)
+        self.assertIn(".PinResultReceiver", receivers)
 
 if __name__ == "__main__":
     unittest.main()
