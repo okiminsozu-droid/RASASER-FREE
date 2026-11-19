@@ -2,7 +2,7 @@ package com.rasaser.free.rasaserwidgets
 
 import android.app.Activity
 import android.app.AlertDialog
-import android.app.BroadcastReceiver
+import android.content.BroadcastReceiver
 import android.appwidget.AppWidgetManager
 import android.content.ComponentName
 import android.content.Context
