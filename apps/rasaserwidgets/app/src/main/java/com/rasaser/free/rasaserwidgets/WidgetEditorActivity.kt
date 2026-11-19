@@ -17,9 +17,9 @@ import android.widget.Toast
 
 class WidgetEditorActivity : Activity() {
     private var widgetId = AppWidgetManager.INVALID_APPWIDGET_ID
-    private val codes = listOf("app", "url", "dial", "note", "wifi", "bluetooth", "settings", "torch")
-    private val titles = listOf("Uygulama aç", "Web bağlantısı", "Telefon arama ekranı", "Yerel not",
-        "Wi-Fi ayarları", "Bluetooth ayarları", "Telefon ayarları", "El feneri")
+    private val codes = listOf("none", "app", "url", "dial", "note", "wifi", "bluetooth", "settings", "torch")
+    private val titles get() = listOf("none", "open_app", "web_link", "dial_screen", "local_note",
+        "wifi_settings", "bt_settings", "phone_settings", "flashlight").map { wt(it) }
     private lateinit var kinds: Spinner
     private lateinit var target: android.widget.EditText
     private lateinit var caption: android.widget.EditText
@@ -28,6 +28,7 @@ class WidgetEditorActivity : Activity() {
     private lateinit var percent: TextView
     private var clearImage = false
     private var saved = false
+    private fun wt(key: String) = WidgetText.t(this, key)
     private val pictureRequest = 724
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -38,35 +39,43 @@ class WidgetEditorActivity : Activity() {
         if (widgetId == AppWidgetManager.INVALID_APPWIDGET_ID ||
             !AppWidgetManager.getInstance(this).getAppWidgetIds(
                 ComponentName(this, ActionWidgetProvider::class.java)).contains(widgetId)) {
-            Toast.makeText(this, "Widget kimliği geçerli değil.", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, wt("invalid_id"), Toast.LENGTH_LONG).show()
             finish()
+            return
+        }
+        if (!WidgetStore.exists(this, widgetId) && !WidgetStore.canCreate(this)) {
+            AlertDialog.Builder(this).setTitle(VaryokText.t(this, "premium"))
+                .setMessage(VaryokText.t(this, "premium_desc"))
+                .setPositiveButton(VaryokText.t(this, "ok")) { _, _ -> finish() }
+                .setOnCancelListener { finish() }.show()
             return
         }
         buildEditor()
     }
     private fun buildEditor() {
         val existing = WidgetStore.load(this, widgetId)
+        val preset = if (WidgetStore.exists(this, widgetId)) null else VaryokText.takePreset(this)
         val root = UiKit.page(this)
-        UiKit.label(this, root, "RaSaSeR", 29f, UiKit.GOLD, true)
-        UiKit.label(this, root, "WIDGET TASARIM ATÖLYESİ", 19f, UiKit.WHITE, true)
-        UiKit.label(this, root, "Fotoğraf, dokunma eylemi ve görünürlük tamamen sana ait.", 14f, UiKit.MUTED)
+        UiKit.label(this, root, "VARYOK", 29f, UiKit.GOLD, true)
+        UiKit.label(this, root, wt("editor_name"), 19f, UiKit.WHITE, true)
+        UiKit.label(this, root, wt("editor_desc"), 14f, UiKit.MUTED)
         val options = UiKit.panel(this, root)
-        UiKit.label(this, options, "DOKUNMA EYLEMİ", 13f, UiKit.GOLD, true)
+        UiKit.label(this, options, wt("tap_action"), 13f, UiKit.GOLD, true)
         kinds = Spinner(this)
         val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, titles)
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         kinds.adapter = adapter
-        kinds.setSelection(codes.indexOf(existing.kind).coerceAtLeast(0))
+        kinds.setSelection(codes.indexOf(preset?.first ?: existing.kind).coerceAtLeast(0))
         options.addView(kinds, LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT, UiKit.dp(this, 48)))
-        UiKit.label(this, options, "HEDEF / NOT / ADRES", 13f, UiKit.GOLD, true)
-        target = UiKit.input(this, options, "Uygulama paketi, URL, numara veya not", existing.target)
-        UiKit.button(this, options, "Yüklü uygulamalardan seç", false) { pickApp() }
-        UiKit.label(this, options, "KISA ETİKET (İSTEĞE BAĞLI)", 13f, UiKit.GOLD, true)
-        caption = UiKit.input(this, options, "Ana ekranda görünen yazı", existing.caption)
+        UiKit.label(this, options, wt("target_label"), 13f, UiKit.GOLD, true)
+        target = UiKit.input(this, options, wt("target_hint"), existing.target)
+        UiKit.button(this, options, wt("pick_apps"), false) { pickApp() }
+        UiKit.label(this, options, wt("caption_label"), 13f, UiKit.GOLD, true)
+        caption = UiKit.input(this, options, wt("caption_hint"), existing.caption)
 
         val imageBox = UiKit.panel(this, root)
-        UiKit.label(this, imageBox, "WIDGET FOTOĞRAFI", 13f, UiKit.GOLD, true)
+        UiKit.label(this, imageBox, wt("photo_label"), 13f, UiKit.GOLD, true)
         preview = ImageView(this).apply {
             scaleType = ImageView.ScaleType.CENTER_INSIDE
             setBackgroundColor(0xFF25252C.toInt())
@@ -74,28 +83,28 @@ class WidgetEditorActivity : Activity() {
         imageBox.addView(preview, LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT, UiKit.dp(this, 175)))
         refreshPreview()
-        UiKit.button(this, imageBox, "Galeriden fotoğraf seç") {
+        UiKit.button(this, imageBox, wt("choose_photo")) {
             val pick = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
                 type = "image/*"
                 addCategory(Intent.CATEGORY_OPENABLE)
             }
             startActivityForResult(pick, pictureRequest)
         }
-        UiKit.button(this, imageBox, "Fotoğrafı kaldır", false) {
+        UiKit.button(this, imageBox, wt("remove_photo"), false) {
             clearImage = true
             WidgetStore.discardPending(this, widgetId)
             refreshPreview()
         }
 
         val visibility = UiKit.panel(this, root)
-        UiKit.label(this, visibility, "GÖRÜNÜRLÜK / ŞEFFAFLIK", 13f, UiKit.GOLD, true)
-        percent = UiKit.label(this, visibility, "%${existing.opacity} görünür", 16f)
+        UiKit.label(this, visibility, wt("visibility_label"), 13f, UiKit.GOLD, true)
+        percent = UiKit.label(this, visibility, WidgetText.percent(this, preset?.second ?: existing.opacity), 16f)
         opacity = SeekBar(this).apply {
             max = 100
-            progress = existing.opacity
+            progress = preset?.second ?: existing.opacity
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(bar: SeekBar?, progress: Int, fromUser: Boolean) {
-                    percent.text = "%$progress görünür"
+                    percent.text = WidgetText.percent(this@WidgetEditorActivity, progress)
                     preview.imageAlpha = (progress * 255 / 100)
                 }
                 override fun onStartTrackingTouch(bar: SeekBar?) {}
@@ -103,9 +112,9 @@ class WidgetEditorActivity : Activity() {
             })
         }
         visibility.addView(opacity)
-        UiKit.label(this, visibility, "%0: tamamen görünmez ama dokunulabilir. %100: tam görünür.", 13f, UiKit.MUTED)
-        UiKit.button(this, root, "✓  Widget'ı kaydet") { saveAndFinish() }
-        UiKit.button(this, root, "Vazgeç", false) { finish() }
+        UiKit.label(this, visibility, wt("visibility_help"), 13f, UiKit.MUTED)
+        UiKit.button(this, root, wt("save")) { saveAndFinish() }
+        UiKit.button(this, root, wt("cancel"), false) { finish() }
     }
     private fun refreshPreview() {
         val bitmap = if (clearImage) null else WidgetStore.bitmap(this, widgetId, 400, usePending = true)
@@ -119,25 +128,25 @@ class WidgetEditorActivity : Activity() {
             .distinctBy { it.activityInfo.packageName }
             .sortedBy { it.loadLabel(packageManager).toString().lowercase() }
         if (results.isEmpty()) {
-            Toast.makeText(this, "Uygulama listesi alınamadı.", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, wt("no_apps"), Toast.LENGTH_LONG).show()
             return
         }
         val labels = results.map { "${it.loadLabel(packageManager)}  •  ${it.activityInfo.packageName}" }
-        AlertDialog.Builder(this).setTitle("Uygulama seç")
+        AlertDialog.Builder(this).setTitle(wt("choose_app"))
             .setItems(labels.toTypedArray()) { _, position ->
                 target.setText(results[position].activityInfo.packageName)
                 kinds.setSelection(0)
-            }.setNegativeButton("İptal", null).show()
+            }.setNegativeButton(wt("cancel"), null).show()
     }
     private fun saveAndFinish() {
         val kind = codes[kinds.selectedItemPosition]
         var value = target.text.toString().trim()
         if (kind in listOf("app", "url", "dial", "note") && value.isBlank()) {
-            Toast.makeText(this, "Bu işlem için hedef veya not gir.", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, wt("need_target"), Toast.LENGTH_LONG).show()
             return
         }
         if (kind == "app" && packageManager.getLaunchIntentForPackage(value) == null) {
-            Toast.makeText(this, "Yüklü uygulamalardan geçerli bir hedef seç.", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, wt("invalid_app"), Toast.LENGTH_LONG).show()
             return
         }
         if (kind == "url") {
@@ -146,12 +155,12 @@ class WidgetEditorActivity : Activity() {
             }
             val parsed = android.net.Uri.parse(value)
             if (parsed.host.isNullOrBlank()) {
-                Toast.makeText(this, "Geçerli bir web adresi gir.", Toast.LENGTH_LONG).show()
+                Toast.makeText(this, wt("invalid_url"), Toast.LENGTH_LONG).show()
                 return
             }
         }
         if (kind == "dial" && !value.matches(Regex("[+0-9() .-]{3,32}"))) {
-            Toast.makeText(this, "Geçerli bir telefon numarası gir.", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, wt("invalid_phone"), Toast.LENGTH_LONG).show()
             return
         }
         try {
@@ -165,7 +174,7 @@ class WidgetEditorActivity : Activity() {
             setResult(RESULT_OK, Intent().putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId))
             finish()
         } catch (_: Exception) {
-            Toast.makeText(this, "Kaydedilemedi, tekrar dene.", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, wt("failed_save"), Toast.LENGTH_LONG).show()
         }
     }
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -174,7 +183,7 @@ class WidgetEditorActivity : Activity() {
             if (WidgetStore.stageSelectedPhoto(this, widgetId, data.data!!)) {
                 clearImage = false
                 refreshPreview()
-            } else Toast.makeText(this, "Fotoğraf okunamadı.", Toast.LENGTH_LONG).show()
+            } else Toast.makeText(this, wt("failed_photo"), Toast.LENGTH_LONG).show()
         }
     }
     override fun onDestroy() {
