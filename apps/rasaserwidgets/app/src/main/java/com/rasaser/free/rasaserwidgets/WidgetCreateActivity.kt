@@ -223,12 +223,6 @@ class WidgetCreateActivity : Activity() {
         adapter.notifyDataSetChanged()
     }
     private fun showCustomize(app: AppEntry) {
-        if (!WidgetStore.canCreate(this)) {
-            AlertDialog.Builder(this).setTitle(VaryokText.t(this, "premium"))
-                .setMessage(VaryokText.t(this, "premium_desc"))
-                .setPositiveButton(VaryokText.t(this, "ok"), null).show()
-            return
-        }
         current = app
         opacity = 100
         isCustom = false
