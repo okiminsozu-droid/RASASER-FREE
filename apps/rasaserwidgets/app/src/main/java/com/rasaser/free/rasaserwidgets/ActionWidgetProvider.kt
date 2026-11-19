@@ -64,9 +64,11 @@ class ActionWidgetProvider : AppWidgetProvider() {
                     .putExtra(ActionActivity.EXTRA_ACTION, data.kind)
                 else -> Intent(context, MainActivity::class.java)
             }.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            val pending = PendingIntent.getActivity(context, id, clickIntent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-            rv.setOnClickPendingIntent(R.id.widget_root, pending)
+            if (data.kind != "none") {
+                val pending = PendingIntent.getActivity(context, id, clickIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+                rv.setOnClickPendingIntent(R.id.widget_root, pending)
+            }
             manager.updateAppWidget(id, rv)
         }
     }
