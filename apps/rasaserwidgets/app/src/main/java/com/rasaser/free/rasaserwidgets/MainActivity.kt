@@ -139,10 +139,7 @@ class MainActivity : Activity() {
             .setPositiveButton(tx("ok"), null).show()
     }
     private fun showWidgetTypes() {
-        if (!WidgetStore.canCreate(this)) {
-            info(tx("premium"), tx("premium_desc"))
-            return
-        }
+        // Even after three distinct apps, existing app shortcuts remain free.
         startActivity(Intent(this, WidgetCreateActivity::class.java))
     }
 
