@@ -120,9 +120,30 @@ class MainActivity : Activity() {
 
         val tools = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.END or Gravity.CENTER_VERTICAL
+            gravity = Gravity.CENTER_VERTICAL
         }
-        root.addView(tools, LinearLayout.LayoutParams(-1, dp(55)))
+        root.addView(tools, LinearLayout.LayoutParams(-1, dp(72)))
+        // One compact Premium action only; no change to VARYOK's original logo.
+        val premium = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER
+            contentDescription = PremiumInfoText.t(this@MainActivity, "headline")
+            isClickable = true
+            isFocusable = true
+            setOnClickListener { showPremiumInfo() }
+        }
+        premium.addView(ImageView(this).apply {
+            setImageResource(R.drawable.ic_premium_crown)
+            scaleType = ImageView.ScaleType.FIT_CENTER
+            contentDescription = null
+            importantForAccessibility = android.view.View.IMPORTANT_FOR_ACCESSIBILITY_NO
+        }, LinearLayout.LayoutParams(dp(36), dp(37)))
+        premium.addView(text("Premium", 12f, true).apply {
+            setTextColor(0xFF926616.toInt())
+            letterSpacing = 0.02f
+        }, LinearLayout.LayoutParams(-1, dp(22)))
+        tools.addView(premium, LinearLayout.LayoutParams(dp(88), dp(68)))
+        tools.addView(android.view.View(this), LinearLayout.LayoutParams(0, dp(1), 1f))
         val languageIndex = VaryokText.codes.indexOf(VaryokText.language(this)).coerceAtLeast(0)
         val language = text(VaryokText.names[languageIndex] + "  ▾", 15f, true).apply {
             background = surface()
@@ -190,6 +211,53 @@ class MainActivity : Activity() {
             setOnClickListener { info(tx("privacy"), tx("privacy_desc")) }
         }, LinearLayout.LayoutParams(dp(47), dp(48)))
         root.addView(footer)
+    }
+
+    /** Informational only: Google Play Billing product and entitlement are not yet wired. */
+    private fun showPremiumInfo() {
+        val content = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(22), dp(12), dp(22), dp(20))
+        }
+        content.addView(text(PremiumInfoText.t(this, "price"), 25f, true).apply {
+            setTextColor(0xFFAD8128.toInt())
+        }, LinearLayout.LayoutParams(-1, dp(53)))
+
+        for (prefix in listOf("billing", "access", "expiration")) {
+            val heading = text(PremiumInfoText.t(this, prefix + "Title"), 16f, true).apply {
+                gravity = Gravity.START
+            }
+            content.addView(heading, LinearLayout.LayoutParams(-1, -2).apply {
+                topMargin = dp(15)
+            })
+            val description = text(PremiumInfoText.t(this, prefix + "Body"), 14f).apply {
+                gravity = Gravity.START
+                setLineSpacing(dp(3).toFloat(), 1f)
+            }
+            content.addView(description, LinearLayout.LayoutParams(-1, -2).apply {
+                topMargin = dp(6)
+            })
+        }
+
+        val status = text(PremiumInfoText.t(this, "status"), 12.5f).apply {
+            gravity = Gravity.START
+            setTextColor(0xFF845C52.toInt())
+            background = surface()
+            setPadding(dp(13), dp(13), dp(13), dp(13))
+        }
+        content.addView(status, LinearLayout.LayoutParams(-1, -2).apply {
+            topMargin = dp(21)
+        })
+
+        val scroll = ScrollView(this).apply {
+            isFillViewport = false
+            addView(content)
+        }
+        AlertDialog.Builder(this)
+            .setTitle(PremiumInfoText.t(this, "headline"))
+            .setView(scroll)
+            .setPositiveButton(PremiumInfoText.t(this, "close"), null)
+            .show()
     }
 
     private fun showLanguagePicker() {
