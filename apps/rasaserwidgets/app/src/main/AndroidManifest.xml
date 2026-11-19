@@ -14,8 +14,8 @@
   <uses-feature android:name="android.hardware.camera.flash" android:required="false"/>
   <application
     android:label="@string/app_name"
-    android:icon="@drawable/ic_brand"
-    android:roundIcon="@drawable/ic_brand"
+    android:icon="@drawable/varyok_app_icon"
+    android:roundIcon="@drawable/varyok_app_icon"
     android:theme="@style/Theme.RaSaSeR"
     android:allowBackup="false"
     android:fullBackupContent="false"
