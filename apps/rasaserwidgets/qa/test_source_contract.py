@@ -73,5 +73,35 @@ class OfflineContractTests(unittest.TestCase):
         self.assertIn("countCreation = false", store)
         self.assertIn("!WidgetStore.exists(this, widgetId) && !WidgetStore.canCreate(this)", editor)
 
+    def test_offline_catalog_auto_refresh_and_no_inventory_retention(self):
+        base = ROOT / "app/src/main/java/com/rasaser/free/rasaserwidgets"
+        catalog = (base / "WidgetCreateActivity.kt").read_text(encoding="utf-8")
+        main = (base / "MainActivity.kt").read_text(encoding="utf-8")
+        manifest = ET.parse(ROOT / "app/src/main/AndroidManifest.xml").getroot()
+        app = manifest.find("application")
+        activities = [a.attrib.get(f"{{{ANDROID}}}name") for a in app.findall("activity")]
+        self.assertIn(".WidgetCreateActivity", activities)
+        self.assertIn("Thread {", catalog)
+        self.assertIn("Intent.ACTION_PACKAGE_ADDED", catalog)
+        self.assertIn("Intent.ACTION_PACKAGE_REMOVED", catalog)
+        self.assertIn("Intent.ACTION_PACKAGE_REPLACED", catalog)
+        self.assertIn("pm.queryIntentActivities(query, 0)", catalog)
+        self.assertIn("private val apps = mutableListOf<AppEntry>()", catalog)
+        self.assertNotIn("getInstalledPackages", catalog)
+        self.assertNotIn("QUERY_ALL_PACKAGES", catalog)
+        self.assertIn("WidgetCreateActivity::class.java", main)
+        self.assertIn('tx("privacy_desc")', main)
+        self.assertLess(main.index('tx("about")'), main.index('tx("privacy_desc")'))
+
+    def test_fresh_media_picker_and_nonblocking_decode(self):
+        base = ROOT / "app/src/main/java/com/rasaser/free/rasaserwidgets"
+        editor = (base / "WidgetEditorActivity.kt").read_text(encoding="utf-8")
+        self.assertIn("MediaStore.ACTION_PICK_IMAGES", editor)
+        self.assertIn("Intent.ACTION_OPEN_DOCUMENT", editor)
+        self.assertIn("Thread {", editor)
+        self.assertIn('preset?.target', editor)
+        self.assertIn('preset?.caption', editor)
+        self.assertIn('kinds.setSelection(codes.indexOf("app"))', editor)
+
 if __name__ == "__main__":
     unittest.main()
