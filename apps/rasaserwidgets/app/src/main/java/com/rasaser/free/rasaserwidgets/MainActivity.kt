@@ -113,13 +113,23 @@ class MainActivity : Activity() {
             setPadding(dp(10), dp(14), dp(10), dp(14))
         }, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(12) })
         root.addView(TextView(this), LinearLayout.LayoutParams(1, dp(26)))
-        root.addView(text(tx("site"), 16f, true).apply {
+        val footer = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+        footer.addView(text(tx("site"), 16f, true).apply {
             paintFlags = paintFlags or Paint.UNDERLINE_TEXT_FLAG
             contentDescription = tx("site")
             setOnClickListener {
                 startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://www.okiminsozu.com")))
             }
-        })
+        }, LinearLayout.LayoutParams(0, dp(48), 1f))
+        footer.addView(text("ⓘ", 26f, true).apply {
+            gravity = Gravity.CENTER
+            contentDescription = tx("privacy")
+            setOnClickListener { info(tx("privacy"), tx("privacy_desc")) }
+        }, LinearLayout.LayoutParams(dp(47), dp(48)))
+        root.addView(footer)
     }
 
     private fun showLanguagePicker() {
@@ -133,60 +143,12 @@ class MainActivity : Activity() {
     }
 
     private fun showSettings() {
-        val holder = ScrollView(this)
-        val content = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(dp(22), dp(12), dp(22), dp(18))
-        }
-        holder.addView(content)
-        val dialog = AlertDialog.Builder(this)
-            .setTitle(tx("settings"))
-            .setView(holder)
-            .setNegativeButton(tx("cancel"), null)
-            .create()
-        val sections = listOf(
-            tx("manage") to { manageWidgets() },
-            tx("lang") to { showLanguagePicker() },
-            tx("about") to { info(tx("about"), "VARYOK • RaSaSeR • APPS & TECHNOLOGY") }
-        )
-        sections.forEach { (name, action) ->
-            val item = text(name, 18f, true).apply {
-                gravity = Gravity.START or Gravity.CENTER_VERTICAL
-                background = surface()
-                setPadding(dp(18), dp(7), dp(18), dp(7))
-                setOnClickListener { dialog.dismiss(); action() }
-            }
-            content.addView(item, LinearLayout.LayoutParams(-1, dp(54)).apply {
-                bottomMargin = dp(9)
-            })
-        }
-        // Always last: precise, visible explanation instead of an inaccurate 'no data stored' claim.
-        content.addView(text(tx("privacy"), 17f, true).apply {
-            gravity = Gravity.START
-            setPadding(dp(8), dp(18), dp(8), dp(5))
-        })
-        content.addView(text(tx("privacy_desc"), 14f).apply {
-            gravity = Gravity.START
-            setPadding(dp(8), dp(4), dp(8), dp(12))
-        })
-        dialog.show()
+        // No other settings controls: only saved widget rows, icons and delete actions.
+        startActivity(Intent(this, SettingsActivity::class.java))
     }
     private fun info(title: String, body: String) {
         AlertDialog.Builder(this).setTitle(title).setMessage(body)
             .setPositiveButton(tx("ok"), null).show()
-    }
-    private fun manageWidgets() {
-        val ids = AppWidgetManager.getInstance(this)
-            .getAppWidgetIds(ComponentName(this, ActionWidgetProvider::class.java)).sorted()
-        if (ids.isEmpty()) { info(tx("manage"), tx("empty")); return }
-        val labels = ids.map { id ->
-            WidgetStore.load(this, id).caption.ifBlank { "Widget #$id" } + " • " + tx("edit")
-        }
-        AlertDialog.Builder(this).setTitle(tx("manage"))
-            .setItems(labels.toTypedArray()) { _, index ->
-                startActivity(Intent(this, WidgetEditorActivity::class.java)
-                    .putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, ids[index]))
-            }.setNegativeButton(tx("cancel"), null).show()
     }
     private fun showWidgetTypes() {
         if (!WidgetStore.canCreate(this)) {
