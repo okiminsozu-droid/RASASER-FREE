@@ -2,10 +2,10 @@
   "slug": "rasaserwidgets",
   "display_name": "VARYOK",
   "package_id": "com.rasaser.free.rasaserwidgets",
-  "version_code": 3,
-  "version_name": "0.3.0",
+  "version_code": 4,
+  "version_name": "0.3.1",
   "private_engine_required": false,
-  "allow_public_debug_artifacts": false,
+  "allow_public_debug_artifacts": true,
   "license_review_completed": false,
   "release_signing_location": "PRIVATE_ONLY"
 }
