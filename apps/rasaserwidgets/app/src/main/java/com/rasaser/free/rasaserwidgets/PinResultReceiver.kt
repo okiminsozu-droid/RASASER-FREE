@@ -52,7 +52,8 @@ class PinResultReceiver : BroadcastReceiver() {
             if (widgetId == AppWidgetManager.INVALID_APPWIDGET_ID) return
             val packageName = intent.getStringExtra(EXTRA_TARGET)?.trim().orEmpty()
             if (packageName.isBlank()) return
-            if (!WidgetStore.canCreate(context) && !WidgetStore.exists(context, widgetId)) return
+            if (!WidgetStore.canCreateFor(context, packageName) &&
+                !WidgetStore.exists(context, widgetId)) return
 
             // Restore optional custom photo before creating the widget's RemoteViews.
             if (intent.getBooleanExtra(EXTRA_PHOTO, false)) {
