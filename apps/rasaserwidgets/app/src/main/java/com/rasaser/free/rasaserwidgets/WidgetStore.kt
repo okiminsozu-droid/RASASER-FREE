@@ -31,20 +31,62 @@ object WidgetStore {
             opacity = pref.getInt(key(id, "opacity"), 100).coerceIn(0, 100)
         )
     }
-    /** Count only successful new creations, not edits or system widget ID restorations. */
-    fun creationCount(ctx: Context): Int = p(ctx).getInt("total_created", 0).coerceAtLeast(0)
-    fun canCreate(ctx: Context) = creationCount(ctx) < 3
+    /**
+     * Free entitlement is for THREE DIFFERENT INSTALLED APPLICATIONS, not three
+     * shortcuts. A second widget for the same app never spends another slot.
+     * Migration reads the old successful widget records because earlier builds
+     * stored only an aggregate count, which cannot tell repeated apps apart.
+     */
+    @Synchronized
+    private fun usedApplicationPackages(ctx: Context): Set<String> {
+        val prefs = p(ctx)
+        val field = "free_distinct_app_packages"
+        val current = prefs.getStringSet(field, emptySet())?.toSet().orEmpty()
+        if (prefs.getBoolean("free_distinct_migrated", false)) return current
+        val matcher = Regex("^widget_([0-9]+)_exists$")
+        val activeTargets = prefs.all.keys.mapNotNull { fieldKey ->
+            val id = matcher.matchEntire(fieldKey)?.groupValues?.get(1)?.toIntOrNull()
+                ?: return@mapNotNull null
+            if (!exists(ctx, id)) return@mapNotNull null
+            val widget = load(ctx, id)
+            if (widget.kind == "app") widget.target.trim().lowercase(java.util.Locale.ROOT)
+                .takeIf { it.isNotBlank() }
+            else null
+        }.toSet()
+        val migrated = current + activeTargets
+        prefs.edit().putStringSet(field, migrated).putBoolean("free_distinct_migrated", true).commit()
+        return migrated
+    }
+
+    fun creationCount(ctx: Context): Int = usedApplicationPackages(ctx).size
+    fun canCreate(ctx: Context): Boolean = creationCount(ctx) < 3
+
+    fun canCreateFor(ctx: Context, targetPackage: String): Boolean {
+        val target = targetPackage.trim().lowercase(java.util.Locale.ROOT)
+        return target.isNotBlank() &&
+            (target in usedApplicationPackages(ctx) || creationCount(ctx) < 3)
+    }
+
+    @Synchronized
     fun save(ctx: Context, id: Int, data: WidgetConfig, countCreation: Boolean = true) {
         val firstSave = countCreation && !exists(ctx, id)
-        if (firstSave && !canCreate(ctx)) throw IllegalStateException("Premium required")
-        val edit = p(ctx).edit()
+        val target = data.target.trim().lowercase(java.util.Locale.ROOT)
+        if (firstSave && data.kind == "app" && !canCreateFor(ctx, target))
+            throw IllegalStateException("Premium required")
+        if (firstSave && data.kind != "app" && !canCreate(ctx))
+            throw IllegalStateException("Premium required")
+
+        val existingPackages = usedApplicationPackages(ctx)
+        val editor = p(ctx).edit()
             .putBoolean(key(id, "exists"), true)
             .putString(key(id, "kind"), data.kind)
             .putString(key(id, "target"), data.target)
             .putString(key(id, "caption"), data.caption)
             .putInt(key(id, "opacity"), data.opacity.coerceIn(0, 100))
-        if (firstSave) edit.putInt("total_created", creationCount(ctx) + 1)
-        edit.apply()
+        if (firstSave && data.kind == "app" && target.isNotBlank()) {
+            editor.putStringSet("free_distinct_app_packages", existingPackages + target)
+        }
+        if (!editor.commit()) throw IllegalStateException("Unable to save widget")
     }
     fun delete(ctx: Context, id: Int) {
         p(ctx).edit()
