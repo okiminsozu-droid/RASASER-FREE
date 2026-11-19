@@ -1,4 +1,5 @@
 name: VARYOK 0.3.4 Test APK
+# Retry after Android biometric platform constant fix.
 on:
   push:
     branches:
