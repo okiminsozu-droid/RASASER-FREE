@@ -89,8 +89,7 @@ class WidgetEditorActivity : Activity() {
         UiKit.button(this, imageBox, wt("choose_photo")) {
             // The system picker lists newly added gallery photos each time it opens.
             // No storage-wide or media-library read permission is requested.
-            val pick = if (Build.VERSION.SDK_INT >= 33 &&
-                MediaStore.isPhotoPickerAvailable()) {
+            val pick = if (Build.VERSION.SDK_INT >= 33) {
                 Intent(MediaStore.ACTION_PICK_IMAGES).apply { type = "image/*" }
             } else Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
                 type = "image/*"
