@@ -29,9 +29,63 @@ class MainActivity : Activity() {
         super.onCreate(savedInstanceState)
         // onResume builds the home once; avoid redundant UI inflation on launch.
     }
+    private var unlockedUntil = 0L
+    private var authenticationShowing = false
+    private val deviceUnlockRequest = 8271
+
     override fun onResume() {
         super.onResume()
-        render()
+        if (AppSecurity.isEnabled(this) &&
+            android.os.SystemClock.elapsedRealtime() >= unlockedUntil) {
+            showLockedScreen()
+            if (!authenticationShowing) {
+                authenticationShowing = true
+                AppLockUi.unlock(
+                    this,
+                    success = { grantAccess() },
+                    cancel = { authenticationShowing = false; finish() },
+                    useDeviceCredential = { usePhoneLock() }
+                )
+            }
+        } else render()
+    }
+    private fun grantAccess() {
+        authenticationShowing = false
+        unlockedUntil = android.os.SystemClock.elapsedRealtime() + 180_000L
+        if (!isFinishing && !isDestroyed) render()
+    }
+    private fun showLockedScreen() {
+        val container = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER
+            setBackgroundColor(pink)
+        }
+        container.addView(text("VARYOK", 40f, true))
+        container.addView(text(AppLockText.t(this, "locked"), 20f, true))
+        setContentView(container)
+    }
+    private fun usePhoneLock() {
+        val intent = AppLockUi.deviceCredential(this)
+        if (intent != null) {
+            try {
+                @Suppress("DEPRECATION")
+                startActivityForResult(intent, deviceUnlockRequest)
+            } catch (_: Exception) {
+                authenticationShowing = false
+                finish()
+            }
+        } else {
+            authenticationShowing = false
+            finish()
+        }
+    }
+    @Deprecated("Device-credential result uses the Android activity result API")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == deviceUnlockRequest) {
+            if (resultCode == RESULT_OK) grantAccess()
+            else { authenticationShowing = false; finish() }
+        }
     }
     private fun surface() = GradientDrawable().apply {
         setColor(powder)
@@ -96,6 +150,20 @@ class MainActivity : Activity() {
             setOnClickListener { showWidgetTypes() }
         }
         root.addView(create, LinearLayout.LayoutParams(-1, dp(78)))
+
+        // One-time security enrollment; disappears after a PIN or fingerprint is set.
+        if (!AppSecurity.isEnabled(this)) {
+            val security = text(AppLockText.t(this, "setup"), 18f, true).apply {
+                background = surface()
+                contentDescription = AppLockText.t(this@MainActivity, "setup")
+                setOnClickListener {
+                    AppLockUi.setup(this@MainActivity) { grantAccess() }
+                }
+            }
+            root.addView(security, LinearLayout.LayoutParams(-1, dp(56)).apply {
+                topMargin = dp(12)
+            })
+        }
 
         root.addView(TextView(this), LinearLayout.LayoutParams(1, 0, 1f))
         root.addView(text(tx("premium_note"), 14f))
