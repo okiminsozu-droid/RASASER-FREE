@@ -46,13 +46,9 @@ class WidgetEditorActivity : Activity() {
             finish()
             return
         }
-        if (!WidgetStore.exists(this, widgetId) && !WidgetStore.canCreate(this)) {
-            AlertDialog.Builder(this).setTitle(VaryokText.t(this, "premium"))
-                .setMessage(VaryokText.t(this, "premium_desc"))
-                .setPositiveButton(VaryokText.t(this, "ok")) { _, _ -> finish() }
-                .setOnCancelListener { finish() }.show()
-            return
-        }
+        // Allow editing existing shortcuts and choosing one of the already free
+        // applications even after the three distinct app slots are occupied.
+        // The final permission check happens inside WidgetStore.save().
         buildEditor()
     }
     private fun buildEditor() {
@@ -195,6 +191,10 @@ class WidgetEditorActivity : Activity() {
             saved = true
             setResult(RESULT_OK, Intent().putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId))
             finish()
+        } catch (_: IllegalStateException) {
+            AlertDialog.Builder(this).setTitle(VaryokText.t(this, "premium"))
+                .setMessage(VaryokText.t(this, "premium_desc"))
+                .setPositiveButton(VaryokText.t(this, "ok"), null).show()
         } catch (_: Exception) {
             Toast.makeText(this, wt("failed_save"), Toast.LENGTH_LONG).show()
         }
