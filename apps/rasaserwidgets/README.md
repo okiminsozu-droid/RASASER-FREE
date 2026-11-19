@@ -1,36 +1,52 @@
-# VARYOK — RaSaSeR • APPS & TECHNOLOGY — 0.3.0
+# VARYOK — RaSaSeR • APPS & TECHNOLOGY — 0.3.2
 
-Bağımsız Android widget uygulaması. Yalnız `apps/rasaserwidgets/` klasöründe sürdürülür; başka RaSaSeR uygulamalarına, web sitesine veya Cloudflare'a dokunulmaz. Android paket kimliği **com.rasaser.free.rasaserwidgets** korunur.
+Bu sürüm, `RASASER-FREE/apps/rasaserwidgets/` projesi içinde önceki Android paket kimliği
+`com.rasaser.free.rasaserwidgets` korunarak geliştirildi. Diğer RaSaSeR uygulamalarına,
+Cloudflare'a ve www.okiminsozu.com sitesine dokunulmadı.
 
-## Ana ekran
-- Yumuşak pembe arka plan, açık pudra renkli kontroller ve yalnızca büyük **Widget Oluştur** düğmesi.
-- Sağ üst: bayraklı TR / EN / DE / ES / JA / AR dil menüsü ve ayarlar.
-- En altta `www.okiminsozu.com` bağlantısı; cihazın tarayıcısına yönlendirilir.
-- Ayarlar'ın **en sonunda** gizlilik ve veri saklama açıklaması tüm altı dilde görünür.
+## Onaylanan ana sayfa
+Pembe arka plan, açık pudra tonlu ana **Widget Oluştur** butonu ve gönderilen
+orijinal siyah-altın VARYOK / RaSaSeR logosu korunur. Sağ üstte bayraklı altı dil
+(TR/EN/DE/ES/JA/AR) ve ayarlar simgesi vardır. En altta www.okiminsozu.com ve
+**ⓘ gizlilik** ikonu bulunur. Gizlilik ikonu seçilen dilde doğru veri açıklamasını gösterir.
 
-## Widget oluşturma — yeni canlı katalog
-- **Widget Oluştur**, bütün widget türlerini ve altında **telefonda açılabilir uygulamaların güncel listesini** tek kaydırılabilir ekranda sunar.
-- Uygulamalar isim ve paket kimliğiyle listelenir, arama yapılır; seçilen uygulama widget düzenleyicisinde otomatik hedef ve etiket olarak doldurulur.
-- Uygulama listesi açılışta gerektiğinde, ana iş parçacığını engellemeden hazırlanır. Yeni uygulama kurulması, kaldırılması veya güncellenmesi sırasında ekran açıkken sistem bildirimiyle yenilenir; ekran yeniden açıldığında da tekrar sorgulanır. Uygulama envanteri diske yazılmaz.
-- Android'in gizlilik ve paket görünürlüğü kuralları nedeniyle **sistem arka plan servisleri veya açılabilir ekranı bulunmayan paketler** listede görünmez. `QUERY_ALL_PACKAGES` izni istenmez.
-- Fotoğraflı widget'ta Android Photo Picker (uygunsa) veya sistem dosya seçicisi kullanılır. **Yeni fotoğraflar, galeri seçicisi tekrar açıldığında görünür**; galeri topluca okunmaz, yeni fotoğraflar kullanıcıdan habersiz bir widget'a eklenmez.
-- Fotoğrafın boyutlandırılarak uygulamanın özel alanına alınması artık arka planda yapılır, ana arayüz bloke edilmez.
-- Diğer widget türleri: şeffaf kısayol (%0–100), web bağlantısı, hazır başlangıç şablonları, telefon arama ekranı, not, Wi-Fi, Bluetooth, sistem ayarları, isteğe bağlı el feneri.
-- Her widget ayrı etiket, görsel, opaklık ve işlem taşır. Mevcut widget'lar Ayarlar > Widget'larım içinden düzenlenir.
+## Widget Oluştur — yalnız telefondaki uygulamalar
+Arama ve alfabetik liste vardır. Her sırada telefondaki uygulamanın **gerçek ikonu,
+adı ve sağ ok** yer alır. Fotoğraf, şeffaflık, web ve araç seçenekleri artık üst üste
+tuş olarak listelenmez. Android'in LAUNCHER görünürlük kurallarına uygun uygulamalar,
+yeni kurulum/kaldırma sonrası ve ekran yeniden açılınca güncellenir; liste saklanmaz.
+Uygulamaya geniş paket envanteri izni eklenmemiştir.
 
-## Gizlilik (ayarlarda gösterilen açıklamanın özü)
-**Kişisel veriler sunucularımıza gönderilmez. Üyelik, reklam takibi ve analitik yoktur.** Fakat widget'ların çalışması için kullanıcı tarafından seçilen görseller, widget etiketleri, hedefleri, görünürlük değerleri ve üç ücretsiz widget sayacı cihaz içinde yerel olarak saklanır. Bunlar için bir sunucu hesabı veya ağ servisi kullanılmaz. INTERNET izni yoktur. Web bağlantısı kullanıcının haricî tarayıcısında açılır. İsteğe bağlı fener için kamera izni gerekebilir.
+Uygulamaya dokunulduğunda alttan özelleştirme penceresi açılır:
+- Uygulamanın gerçek ikonu ve adıyla ön izleme
+- Varsayılan simge / **Özel Fotoğraf** seçimi (Android sistem fotoğraf seçicisi)
+- %0–100 şeffaflık / görünürlük kaydırıcısı
+- Oluştur → cihazın ana ekranına widget ekleme isteği; Android'in onayı gerekir
 
-## Ücretsiz ve Premium modeli
-İlk **üç başarılı widget oluşturma** ücretsizdir. Aynı widget'ı düzenlemek yeni hak tüketmez; silinen widget hak iadesi sağlamaz. Dördüncü deneme bir Premium açıklamasıyla engellenir. **Google Play Billing henüz eklenmediği için ödeme işlemi aktif değildir.** Yayın öncesi gerçek satın alma, işlem doğrulama ve satın alma geri yükleme sistemi tamamlanmalıdır.
+Özel fotoğraf, widget ID oluşturulmadan önce yalnız geçici dosyada tutulur ve
+kullanıcı kaydettiğinde ilgili widget'ın cihaz-içi özel dosyasına taşınır.
+Uygulama ikonu varsayılan widget görüntüsüdür. Düzenleyicinin mevcut araçları
+(uygulama/web/arama/not/Wi-Fi/Bluetooth/ayarlar/fener, etiket, fotoğraf ve
+opaklık) **korunur** ve cihazın sistem Widget'lar menüsünden de kullanılabilir.
 
-## Performans ve kalite sınırları
-- Uygulama verileri yereldir; yeni uygulama listesini taramak için ağ, arka plan servisi veya kalıcı uygulama envanteri kullanılmaz.
-- Büyük fotoğraflar küçültülerek alınır ve asenkron olarak işlenir.
-- Aynı ana ekranın açılışta iki kez çizilmesi önlendi.
-- Kaynakta regresyon ve gizlilik sözleşmesi kontrolleri vardır.
+## Ayarlar
+Ayarlar simgesi **yalnız oluşturulmuş widget'ların sıralı listesini** açar.
+Her satırda widget ikonu/fotoğrafı, adı ve yanında çöp kutusu bulunur.
+Satıra dokunarak mevcut widget düzenlenebilir. Ayarlarda başka menü,
+gizlilik yazısı veya ek buton bulunmaz. Silmek, yerel widget ayarlarını ve
+fotoğrafını temizler, widget'ı boş hale getirir. **Android ana ekranındaki
+widget kutucuğunu programatik olarak kaldırma iznimiz yoktur**: onun kaldırılması
+ana ekranda uzun bas → Kaldır işlemi ile yapılır; silme onayında belirtilir.
 
-**Henüz fiziksel cihazda derleme / performans / stabilite doğrulaması yapılmadı.** GitHub Actions derlemesi kullanıcı onayı olmadan başlatılmayacak. Android Studio ile bu klasör ayrı proje olarak açılır; JDK 17 / Android SDK 35.
+## Çevrimdışı ve ücretsiz model
+INTERNET, genel depolama, takip ve reklam izni/SDK'sı yoktur. Yalnız seçilen
+fotoğraflar, hedefler, başlıklar, opaklık ve üç ücretsiz widget sayacı cihazda
+saklanır. Üç başarılı yeni widget oluşturma ücretsizdir; mevcut widget'ı
+düzenlemek hak tüketmez, silmek hakkı geri kazandırmaz.
+**Google Play ödeme altyapısı henüz bağlı değildir**; Premium kilidi gerçek
+satın alma gibi gösterilmez.
 
-## Uygulama ekleme sınırları
-Android cihazın farklı kullanıcı/iş profillerindeki uygulamalar, başlangıç ekranı bulunmayan sistem servisleri ve bazı üreticiye özel gizlenmiş uygulamalar Android izin kuralları sebebiyle listelenmeyebilir. "Bütün uygulamalar" ifadesi cihazın izin verdiği **başlatılabilir uygulamalar** anlamına gelir.
+## Test ve yayın
+Sürüm 0.3.2 bir debug/test kaynağıdır. Gerçek Android cihaz testi, animasyon
+ve çeşitli launcher uyumluluğu ayrıca doğrulanmalıdır. Release imza anahtarı
+PUBLIC depoya eklenmez. GitHub test iş akışı sadece VARYOK modülünü derler.
