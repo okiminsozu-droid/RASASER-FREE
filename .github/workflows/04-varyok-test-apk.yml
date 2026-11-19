@@ -1,4 +1,4 @@
-name: VARYOK 0.3.2 Test APK
+name: VARYOK 0.3.3 Test APK
 on:
   push:
     branches:
@@ -52,7 +52,7 @@ jobs:
       - name: Upload VARYOK test APK
         uses: actions/upload-artifact@v4
         with:
-          name: VARYOK-0.3.2-TEST-APK
+          name: VARYOK-0.3.3-TEST-APK
           path: apps/rasaserwidgets/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           retention-days: 7
