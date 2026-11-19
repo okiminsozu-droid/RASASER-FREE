@@ -76,15 +76,7 @@ class MainActivity : Activity() {
             contentDescription = tx("lang")
             setOnClickListener { showLanguagePicker() }
         }
-        tools.addView(language, LinearLayout.LayoutParams(0, dp(51), 1f))
-        val settings = text("⚙", 28f, true).apply {
-            background = surface()
-            contentDescription = tx("settings")
-            setOnClickListener { showSettings() }
-        }
-        tools.addView(settings, LinearLayout.LayoutParams(dp(52), dp(51)).apply {
-            leftMargin = dp(12)
-        })
+        tools.addView(language, LinearLayout.LayoutParams(dp(168), dp(51)))
 
         root.addView(TextView(this), LinearLayout.LayoutParams(1, 0, 1f))
         // The exact user-approved VARYOK / RaSaSeR logo, with its black-gold identity.
@@ -142,10 +134,6 @@ class MainActivity : Activity() {
             }.setNegativeButton(tx("cancel"), null).show()
     }
 
-    private fun showSettings() {
-        // No other settings controls: only saved widget rows, icons and delete actions.
-        startActivity(Intent(this, SettingsActivity::class.java))
-    }
     private fun info(title: String, body: String) {
         AlertDialog.Builder(this).setTitle(title).setMessage(body)
             .setPositiveButton(tx("ok"), null).show()
