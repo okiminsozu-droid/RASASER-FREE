@@ -28,12 +28,15 @@
     </activity>
     <!-- Picker has no exported entry or access to background app inventory. -->
     <activity android:name=".WidgetCreateActivity" android:exported="false"/>
-    <activity android:name=".SettingsActivity" android:exported="false"/>
     <activity android:name=".WidgetEditorActivity" android:exported="true">
       <intent-filter>
         <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE"/>
       </intent-filter>
     </activity>
+    <activity android:name=".AppShortcutActivity"
+        android:exported="false"
+        android:theme="@android:style/Theme.Translucent.NoTitleBar"/>
+    <receiver android:name=".PinResultReceiver" android:exported="false"/>
     <activity android:name=".ActionActivity" android:exported="false"/>
     <receiver android:name=".ActionWidgetProvider" android:exported="true">
       <intent-filter>
