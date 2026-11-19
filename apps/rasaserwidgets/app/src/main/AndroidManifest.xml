@@ -26,6 +26,8 @@
         <category android:name="android.intent.category.LAUNCHER"/>
       </intent-filter>
     </activity>
+    <!-- Picker has no exported entry or access to background app inventory. -->
+    <activity android:name=".WidgetCreateActivity" android:exported="false"/>
     <activity android:name=".WidgetEditorActivity" android:exported="true">
       <intent-filter>
         <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE"/>
