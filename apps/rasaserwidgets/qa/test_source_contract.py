@@ -23,7 +23,7 @@ class OfflineContractTests(unittest.TestCase):
         self.assertNotIn("android.permission.MANAGE_EXTERNAL_STORAGE", permissions)
         self.assertNotIn("android.permission.QUERY_ALL_PACKAGES", permissions)
         self.assertNotIn("android.permission.CALL_PHONE", permissions)
-        self.assertEqual(permissions, {"android.permission.CAMERA"})
+        self.assertEqual(permissions, {"android.permission.CAMERA", "android.permission.USE_BIOMETRIC"})
         app = root.find("application")
         self.assertEqual(app.attrib.get(f"{{{ANDROID}}}allowBackup"), "false")
         self.assertEqual(app.attrib.get(f"{{{ANDROID}}}usesCleartextTraffic"), "false")
@@ -68,10 +68,12 @@ class OfflineContractTests(unittest.TestCase):
         base = ROOT / "app/src/main/java/com/rasaser/free/rasaserwidgets"
         store = (base / "WidgetStore.kt").read_text(encoding="utf-8")
         editor = (base / "WidgetEditorActivity.kt").read_text(encoding="utf-8")
-        self.assertIn("fun canCreate(ctx: Context) = creationCount(ctx) < 3", store)
-        self.assertIn('if (firstSave) edit.putInt("total_created"', store)
+        self.assertIn("fun canCreate(ctx: Context): Boolean = creationCount(ctx) < 3", store)
+        self.assertIn("fun canCreateFor(ctx: Context, targetPackage: String): Boolean", store)
+        self.assertIn('putStringSet("free_distinct_app_packages"', store)
+        self.assertIn('putBoolean("free_distinct_migrated", true)', store)
         self.assertIn("countCreation = false", store)
-        self.assertIn("!WidgetStore.exists(this, widgetId) && !WidgetStore.canCreate(this)", editor)
+        self.assertNotIn("!WidgetStore.exists(this, widgetId) && !WidgetStore.canCreate(this)", editor)
 
     def test_offline_catalog_auto_refresh_and_no_inventory_retention(self):
         base = ROOT / "app/src/main/java/com/rasaser/free/rasaserwidgets"
@@ -161,6 +163,46 @@ class OfflineContractTests(unittest.TestCase):
         self.assertNotIn(".SettingsActivity", activities)
         self.assertIn(".AppShortcutActivity", activities)
         self.assertIn(".PinResultReceiver", receivers)
+
+    def test_three_distinct_apps_and_legacy_migration(self):
+        base = ROOT / "app/src/main/java/com/rasaser/free/rasaserwidgets"
+        store = (base / "WidgetStore.kt").read_text(encoding="utf-8")
+        home = (base / "MainActivity.kt").read_text(encoding="utf-8")
+        picker = (base / "WidgetCreateActivity.kt").read_text(encoding="utf-8")
+        receiver = (base / "PinResultReceiver.kt").read_text(encoding="utf-8")
+        self.assertIn("free_distinct_app_packages", store)
+        self.assertIn('Regex("^widget_([0-9]+)_exists$")', store)
+        self.assertIn("current + activeTargets", store)
+        self.assertIn('target in usedApplicationPackages(ctx)', store)
+        self.assertIn('editor.putStringSet("free_distinct_app_packages", existingPackages + target)', store)
+        self.assertIn('startActivity(Intent(this, WidgetCreateActivity::class.java))', home)
+        self.assertNotIn('if (!WidgetStore.canCreate(this))', home)
+        self.assertIn('WidgetStore.canCreateFor(this, app.packageName)', picker)
+        self.assertIn('WidgetStore.canCreateFor(context, packageName)', receiver)
+
+    def test_offline_security_pin_fingerprint_and_one_time_button(self):
+        base = ROOT / "app/src/main/java/com/rasaser/free/rasaserwidgets"
+        security = (base / "AppSecurity.kt").read_text(encoding="utf-8")
+        ui = (base / "AppLockUi.kt").read_text(encoding="utf-8")
+        local = (base / "AppLockText.kt").read_text(encoding="utf-8")
+        main = (base / "MainActivity.kt").read_text(encoding="utf-8")
+        self.assertIn('SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256")', security)
+        self.assertIn("SecureRandom().nextBytes(it)", security)
+        self.assertIn("MessageDigest.isEqual", security)
+        self.assertIn('getSharedPreferences(PREFS, Context.MODE_PRIVATE)', security)
+        self.assertIn("BiometricPrompt.Builder(activity)", ui)
+        self.assertIn("onAuthenticationSucceeded(", ui)
+        self.assertIn("AppSecurity.enableBiometric(activity)", ui)
+        self.assertIn("AppSecurity.enablePin(activity, pin)", ui)
+        self.assertIn("AppSecurity.checkPin(activity, submitted)", ui)
+        self.assertIn("AppSecurity.isEnabled(this)", main)
+        self.assertIn('AppLockText.t(this, "setup")', main)
+        self.assertIn("AppLockUi.setup(this@MainActivity)", main)
+        self.assertIn("AppLockUi.unlock(", main)
+        self.assertIn("deviceUnlockRequest", main)
+        self.assertIn("showLockedScreen()", main)
+        for locale in ('tr', 'en', 'de', 'es', 'ja', 'ar'):
+            self.assertIn(f'"{locale}" to listOf(', local)
 
 if __name__ == "__main__":
     unittest.main()
