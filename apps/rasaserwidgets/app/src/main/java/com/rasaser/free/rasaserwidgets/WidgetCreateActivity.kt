@@ -2,56 +2,79 @@ package com.rasaser.free.rasaserwidgets
 
 import android.app.Activity
 import android.app.AlertDialog
-import android.content.BroadcastReceiver
+import android.app.Dialog
 import android.appwidget.AppWidgetManager
+import android.content.BroadcastReceiver
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.os.Build
 import android.os.Bundle
+import android.provider.MediaStore
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
-import android.view.inputmethod.InputMethodManager
 import android.widget.BaseAdapter
 import android.widget.EditText
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ListView
+import android.widget.SeekBar
 import android.widget.TextView
 import android.widget.Toast
 import java.util.Locale
+import java.util.concurrent.Executors
 
 /**
- * Widget catalog: on-demand, in-memory listing of the current user's launchable apps.
- * No app inventory is written to disk and no package-wide or storage permission is needed.
+ * Widget Oluştur: only phone apps, with their real icons. Lightweight bottom sheet
+ * for selected app's icon style, preview and transparency, per supplied screenshots.
  */
 class WidgetCreateActivity : Activity() {
     private data class AppEntry(val title: String, val packageName: String)
-    private data class Entry(val type: String, val title: String, val subtitle: String = "", val packageName: String = "")
-
     private val pink = 0xFFF5C8D5.toInt()
     private val powder = 0xFFFFE8EF.toInt()
     private val ink = 0xFF812643.toInt()
-    private val secondary = 0xFF98516B.toInt()
+    private val soft = 0xFF90546B.toInt()
     private val apps = mutableListOf<AppEntry>()
-    private val visible = mutableListOf<Entry>()
+    private val filtered = mutableListOf<AppEntry>()
+    private val iconWorkers = Executors.newFixedThreadPool(2)
+    private lateinit var adapter: BaseAdapter
     private lateinit var list: ListView
     private lateinit var search: EditText
-    private lateinit var adapter: BaseAdapter
-    private var requestSerial = 0
-    private var listening = false
-    private val kinds = listOf("photo", "transparent", "app", "web", "templates",
-        "dial", "note", "wifi", "bt", "system", "torch")
-    private fun tx(key: String) = VaryokText.t(this, key)
+    private var serial = 0
+    private var registered = false
+    private var current: AppEntry? = null
+    private var bottomSheet: Dialog? = null
+    private var iconPreview: ImageView? = null
+    private var defaultIcon: TextView? = null
+    private var customIcon: TextView? = null
+    private var opacity = 100
+    private var isCustom = false
+    private var selectingImage = false
+    private var pinRequested = false
+    private val photoRequest = 971
+    private val stagingId = -48047
     private fun dp(n: Int) = (n * resources.displayMetrics.density).toInt()
-
-    private val changedPackages = object : BroadcastReceiver() {
-        override fun onReceive(context: Context, intent: Intent) { refreshApps() }
+    private fun tt(key: String) = CatalogText.t(this, key)
+    private val appChanges = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) = refreshApps()
+    }
+    private fun shape(color: Int = powder, radius: Int = 16) = GradientDrawable().apply {
+        setColor(color)
+        cornerRadius = dp(radius).toFloat()
+    }
+    private fun label(value: String, size: Float, bold: Boolean = false) = TextView(this).apply {
+        text = value
+        textSize = size
+        setTextColor(ink)
+        typeface = Typeface.create("sans-serif", if (bold) Typeface.BOLD else Typeface.NORMAL)
+        gravity = Gravity.CENTER_VERTICAL
     }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -59,77 +82,78 @@ class WidgetCreateActivity : Activity() {
         window.navigationBarColor = pink
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(17), dp(16), dp(17), dp(12))
+            setPadding(dp(19), dp(16), dp(19), dp(8))
             setBackgroundColor(pink)
         }
         setContentView(root)
-        root.addView(TextView(this).apply {
-            text = "VARYOK  •  " + tx("create")
-            textSize = 24f
-            setTextColor(ink)
-            typeface = Typeface.DEFAULT_BOLD
-            setPadding(dp(6), dp(7), dp(6), dp(12))
-        })
+        root.addView(label(tt("title"), 24f, true), LinearLayout.LayoutParams(-1, dp(66)))
         search = EditText(this).apply {
-            isSingleLine = true
-            hint = tx("apps_search")
+            setSingleLine(true)
+            hint = tt("search")
+            textSize = 17f
             setTextColor(ink)
-            setHintTextColor(secondary)
-            background = GradientDrawable().apply {
-                setColor(powder)
-                cornerRadius = dp(17).toFloat()
-            }
-            setPadding(dp(16), dp(9), dp(16), dp(9))
+            setHintTextColor(soft)
+            background = shape()
+            setPadding(dp(18), dp(12), dp(18), dp(12))
             addTextChangedListener(object : TextWatcher {
                 override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-                override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-                    updateVisible()
-                }
+                override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = filterApps()
                 override fun afterTextChanged(s: Editable?) {}
             })
         }
-        root.addView(search, LinearLayout.LayoutParams(-1, dp(52)))
-        root.addView(TextView(this).apply {
-            text = tx("apps_hint")
-            setTextColor(secondary)
-            textSize = 12f
-            setPadding(dp(6), dp(8), dp(6), dp(8))
-        })
+        root.addView(search, LinearLayout.LayoutParams(-1, dp(57)))
         list = ListView(this).apply {
-            dividerHeight = dp(6)
-            setBackgroundColor(pink)
+            divider = null
+            dividerHeight = dp(5)
             isFastScrollEnabled = true
+            setBackgroundColor(pink)
+            setOnItemClickListener { _, _, position, _ ->
+                if (position in filtered.indices) showCustomize(filtered[position])
+            }
         }
         adapter = object : BaseAdapter() {
-            override fun getCount() = visible.size
-            override fun getItem(position: Int): Any = visible[position]
+            override fun getCount() = filtered.size
+            override fun getItem(position: Int): Any = filtered[position]
             override fun getItemId(position: Int) = position.toLong()
-            override fun isEnabled(position: Int) = visible[position].type != "header"
-            override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
-                val item = visible[position]
-                val v = (convertView as? TextView) ?: TextView(this@WidgetCreateActivity).apply {
-                    setPadding(dp(14), dp(9), dp(14), dp(9))
-                    minHeight = dp(52)
+            override fun getView(position: Int, old: View?, parent: ViewGroup): View {
+                val row = (old as? LinearLayout) ?: LinearLayout(this@WidgetCreateActivity).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    gravity = Gravity.CENTER_VERTICAL
+                    setPadding(dp(8), dp(6), dp(9), dp(6))
+                    background = shape()
+                    val icon = ImageView(this@WidgetCreateActivity).apply {
+                        id = android.R.id.icon
+                        scaleType = ImageView.ScaleType.FIT_CENTER
+                    }
+                    addView(icon, LinearLayout.LayoutParams(dp(49), dp(49)))
+                    val name = label("", 17f, true).apply {
+                        id = android.R.id.text1
+                        maxLines = 1
+                        ellipsize = android.text.TextUtils.TruncateAt.END
+                    }
+                    addView(name, LinearLayout.LayoutParams(0, -2, 1f).apply { leftMargin = dp(15) })
+                    addView(label("›", 30f, true), LinearLayout.LayoutParams(dp(24), -2))
                 }
-                v.text = if (item.subtitle.isEmpty()) item.title
-                    else item.title + "\n" + item.subtitle
-                v.textSize = if (item.type == "header") 15f else 16f
-                v.typeface = Typeface.create("sans-serif",
-                    if (item.type == "header") Typeface.BOLD else Typeface.NORMAL)
-                v.setTextColor(if (item.type == "header") secondary else ink)
-                v.background = if (item.type == "header") null else GradientDrawable().apply {
-                    setColor(powder)
-                    cornerRadius = dp(14).toFloat()
+                val entry = filtered[position]
+                val image = row.findViewById<ImageView>(android.R.id.icon)
+                image.tag = entry.packageName
+                image.setImageResource(R.drawable.ic_brand)
+                row.findViewById<TextView>(android.R.id.text1).text = entry.title
+                // Keep installed-app enumeration and icon decoding off the UI thread.
+                iconWorkers.execute {
+                    val icon = AppIconKit.bitmap(this@WidgetCreateActivity, entry.packageName, 96)
+                    runOnUiThread {
+                        if (!isFinishing && !isDestroyed && image.tag == entry.packageName && icon != null)
+                            image.setImageBitmap(icon)
+                    }
                 }
-                return v
+                return row
             }
         }
         list.adapter = adapter
-        list.setOnItemClickListener { _, _, position, _ -> onSelected(visible[position]) }
         root.addView(list, LinearLayout.LayoutParams(-1, 0, 1f))
-        updateVisible()
+        filterApps()
     }
-
     override fun onStart() {
         super.onStart()
         val filter = IntentFilter().apply {
@@ -139,117 +163,242 @@ class WidgetCreateActivity : Activity() {
             addDataScheme("package")
         }
         try {
-            if (Build.VERSION.SDK_INT >= 33) {
-                registerReceiver(changedPackages, filter, Context.RECEIVER_NOT_EXPORTED)
-            } else {
+            if (Build.VERSION.SDK_INT >= 33)
+                registerReceiver(appChanges, filter, Context.RECEIVER_NOT_EXPORTED)
+            else {
                 @Suppress("DEPRECATION")
-                registerReceiver(changedPackages, filter)
+                registerReceiver(appChanges, filter)
             }
-            listening = true
-        } catch (_: RuntimeException) { listening = false }
+            registered = true
+        } catch (_: RuntimeException) { registered = false }
     }
     override fun onResume() {
         super.onResume()
         refreshApps()
     }
     override fun onStop() {
-        requestSerial++
-        if (listening) {
-            try { unregisterReceiver(changedPackages) } catch (_: IllegalArgumentException) { }
-            listening = false
+        serial++
+        if (registered) {
+            try { unregisterReceiver(appChanges) } catch (_: IllegalArgumentException) {}
+            registered = false
         }
         super.onStop()
     }
-
-    /** Async enumeration avoids locking the main thread on devices with many apps. */
+    override fun onDestroy() {
+        bottomSheet?.dismiss()
+        iconWorkers.shutdownNow()
+        super.onDestroy()
+    }
     private fun refreshApps() {
-        val serial = ++requestSerial
+        val sequence = ++serial
         val pm = packageManager
         Thread {
-            val found = try {
-                val query = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
+            val result = try {
+                val intent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
                 @Suppress("DEPRECATION")
-                pm.queryIntentActivities(query, 0)
+                pm.queryIntentActivities(intent, 0)
                     .asSequence()
-                    .filter { it.activityInfo?.packageName != null }
+                    .filter { !it.activityInfo.packageName.isNullOrBlank() }
                     .distinctBy { it.activityInfo.packageName }
                     .map { AppEntry(it.loadLabel(pm).toString(), it.activityInfo.packageName) }
                     .sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.title })
                     .toList()
             } catch (_: Exception) { emptyList() }
             runOnUiThread {
-                if (!isFinishing && !isDestroyed && serial == requestSerial) {
+                if (!isFinishing && !isDestroyed && sequence == serial) {
                     apps.clear()
-                    apps.addAll(found)
-                    updateVisible()
+                    apps.addAll(result)
+                    filterApps()
                 }
             }
         }.start()
     }
-    private fun updateVisible() {
-        if (!::adapter.isInitialized || !::search.isInitialized) return
+    private fun filterApps() {
+        if (!::search.isInitialized || !::adapter.isInitialized) return
         val query = search.text.toString().trim().lowercase(Locale.ROOT)
-        visible.clear()
-        if (query.isEmpty()) {
-            visible.add(Entry("header", tx("choose")))
-            kinds.forEach { key -> visible.add(Entry("kind", tx(key), "", key)) }
-        }
-        visible.add(Entry("header", tx("apps_all")))
-        apps.asSequence()
-            .filter { query.isEmpty() || it.title.lowercase(Locale.ROOT).contains(query) ||
-                it.packageName.lowercase(Locale.ROOT).contains(query) }
-            .forEach { visible.add(Entry("installed", it.title, it.packageName, it.packageName)) }
-        if (apps.isEmpty()) visible.add(Entry("header", tx("apps_empty")))
+        filtered.clear()
+        apps.filterTo(filtered) { query.isEmpty() ||
+            it.title.lowercase(Locale.ROOT).contains(query) ||
+            it.packageName.lowercase(Locale.ROOT).contains(query) }
         adapter.notifyDataSetChanged()
     }
-    private fun onSelected(entry: Entry) {
+    private fun showCustomize(app: AppEntry) {
         if (!WidgetStore.canCreate(this)) {
-            AlertDialog.Builder(this).setTitle(tx("premium"))
-                .setMessage(tx("premium_desc")).setPositiveButton(tx("ok"), null).show()
+            AlertDialog.Builder(this).setTitle(VaryokText.t(this, "premium"))
+                .setMessage(VaryokText.t(this, "premium_desc"))
+                .setPositiveButton(VaryokText.t(this, "ok"), null).show()
             return
         }
-        if (entry.type == "installed") {
-            pin("app", 100, entry.packageName, entry.title)
-            return
-        }
-        when (entry.packageName) {
-            "photo" -> pin("none")
-            "transparent" -> pin("app", 0)
-            "app" -> {
-                search.requestFocus()
-                val keyboard = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
-                keyboard.showSoftInput(search, InputMethodManager.SHOW_IMPLICIT)
-                list.smoothScrollToPosition(kinds.size + 1)
+        current = app
+        opacity = 100
+        isCustom = false
+        selectingImage = false
+        pinRequested = false
+        WidgetStore.discardPending(this, stagingId)
+        val dialog = Dialog(this)
+        bottomSheet = dialog
+        val page = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(22), dp(17), dp(22), dp(24))
+            background = GradientDrawable().apply {
+                setColor(0xFFFFF9FB.toInt())
+                cornerRadii = floatArrayOf(dp(28).toFloat(), dp(28).toFloat(),
+                    dp(28).toFloat(), dp(28).toFloat(), 0f, 0f, 0f, 0f)
             }
-            "web" -> pin("url")
-            "templates" -> showTemplates()
-            "dial" -> pin("dial")
-            "note" -> pin("note")
-            "wifi" -> pin("wifi")
-            "bt" -> pin("bluetooth")
-            "system" -> pin("settings")
-            "torch" -> pin("torch")
         }
+        val heading = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+        heading.addView(label(tt("customize") + " “" + app.title + "”", 20f, true).apply {
+            maxLines = 2
+        }, LinearLayout.LayoutParams(0, -2, 1f))
+        heading.addView(label("×", 28f, true).apply {
+            gravity = Gravity.CENTER
+            contentDescription = tt("close")
+            setOnClickListener { dialog.dismiss() }
+        }, LinearLayout.LayoutParams(dp(40), dp(44)))
+        page.addView(heading)
+        page.addView(label(tt("preview"), 17f, true), LinearLayout.LayoutParams(-1, dp(48)))
+        val previewPanel = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER
+            setPadding(dp(14), dp(10), dp(14), dp(10))
+            background = shape(0xFF33303B.toInt(), 19)
+        }
+        iconPreview = ImageView(this).apply {
+            scaleType = ImageView.ScaleType.FIT_CENTER
+            val ico = AppIconKit.bitmap(this@WidgetCreateActivity, app.packageName, 124)
+            if (ico != null) setImageBitmap(ico) else setImageResource(R.drawable.ic_brand)
+        }
+        previewPanel.addView(iconPreview, LinearLayout.LayoutParams(dp(86), dp(86)))
+        val caption = TextView(this).apply {
+            text = app.title
+            textSize = 16f
+            setTextColor(Color.WHITE)
+            gravity = Gravity.CENTER
+            maxLines = 1
+        }
+        previewPanel.addView(caption)
+        page.addView(previewPanel, LinearLayout.LayoutParams(-1, dp(143)))
+        page.addView(label(tt("iconStyle"), 16f, true), LinearLayout.LayoutParams(-1, dp(48)))
+        val options = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        defaultIcon = label(tt("default"), 16f, true).apply {
+            gravity = Gravity.CENTER
+            setOnClickListener {
+                isCustom = false
+                WidgetStore.discardPending(this@WidgetCreateActivity, stagingId)
+                renderStyle(app)
+            }
+        }
+        customIcon = label(tt("custom"), 16f, true).apply {
+            gravity = Gravity.CENTER
+            setOnClickListener { chooseCustomPhoto() }
+        }
+        options.addView(defaultIcon, LinearLayout.LayoutParams(0, dp(49), 1f))
+        options.addView(customIcon, LinearLayout.LayoutParams(0, dp(49), 1f).apply { leftMargin = dp(8) })
+        page.addView(options)
+        renderStyle(app)
+        page.addView(label(tt("transparency"), 16f, true),
+            LinearLayout.LayoutParams(-1, dp(45)))
+        val slider = SeekBar(this).apply {
+            max = 100
+            progress = 100
+            setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                    opacity = progress
+                    iconPreview?.imageAlpha = progress * 255 / 100
+                    caption.alpha = progress / 100f
+                }
+                override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+                override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+            })
+        }
+        page.addView(slider)
+        val create = label(tt("create"), 19f, true).apply {
+            gravity = Gravity.CENTER
+            background = shape(0xFFF0BAD0.toInt(), 18)
+            setOnClickListener {
+                if (selectingImage) {
+                    Toast.makeText(this@WidgetCreateActivity, tt("photoLoading"), Toast.LENGTH_SHORT).show()
+                } else {
+                    pinApp(app)
+                    if (pinRequested) dialog.dismiss()
+                }
+            }
+        }
+        page.addView(create, LinearLayout.LayoutParams(-1, dp(62)).apply { topMargin = dp(20) })
+        dialog.setContentView(page)
+        dialog.window?.apply {
+            setBackgroundDrawableResource(android.R.color.transparent)
+            addFlags(android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND)
+            setDimAmount(0.42f)
+            setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+            setGravity(Gravity.BOTTOM)
+        }
+        dialog.setOnDismissListener {
+            if (!pinRequested) WidgetStore.discardPending(this, stagingId)
+            if (bottomSheet === dialog) bottomSheet = null
+        }
+        dialog.show()
+        dialog.window?.setLayout(-1, -2)
     }
-    private fun showTemplates() {
-        AlertDialog.Builder(this).setTitle(tx("template_name"))
-            .setItems(arrayOf(tx("simple"), tx("photo"), tx("transparent"))) { _, index ->
-                if (index == 2) pin("none", 0) else pin("none")
-            }.setNegativeButton(tx("cancel"), null).show()
+    private fun renderStyle(app: AppEntry) {
+        val selected = shape(0xFFEDAFC6.toInt(), 14)
+        val unselected = shape(0xFFF4E1E9.toInt(), 14)
+        defaultIcon?.background = if (!isCustom) selected else unselected
+        customIcon?.background = if (isCustom) selected else unselected
+        val ico = if (isCustom) WidgetStore.bitmap(this, stagingId, 200, true) else null
+        if (ico != null) iconPreview?.setImageBitmap(ico)
+        else {
+            val icon = AppIconKit.bitmap(this, app.packageName, 124)
+            if (icon != null) iconPreview?.setImageBitmap(icon)
+        }
+        iconPreview?.imageAlpha = opacity * 255 / 100
     }
-    private fun pin(kind: String, opacity: Int = 100, target: String = "", caption: String = "") {
+    private fun chooseCustomPhoto() {
+        val select = if (Build.VERSION.SDK_INT >= 33)
+            Intent(MediaStore.ACTION_PICK_IMAGES).apply { type = "image/*" }
+        else Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+            type = "image/*"
+            addCategory(Intent.CATEGORY_OPENABLE)
+        }
+        startActivityForResult(select, photoRequest)
+    }
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode != photoRequest || resultCode != RESULT_OK || data?.data == null) return
+        selectingImage = true
+        val uri = data.data!!
+        val app = current ?: return
+        Thread {
+            val okay = WidgetStore.stageSelectedPhoto(this@WidgetCreateActivity, stagingId, uri)
+            runOnUiThread {
+                selectingImage = false
+                if (!isFinishing && !isDestroyed && bottomSheet?.isShowing == true && current == app && okay) {
+                    isCustom = true
+                    renderStyle(app)
+                } else if (!okay) {
+                    Toast.makeText(this, tt("photoError"), Toast.LENGTH_SHORT).show()
+                }
+            }
+        }.start()
+    }
+    private fun pinApp(app: AppEntry) {
         if (!WidgetStore.canCreate(this)) return
         val manager = AppWidgetManager.getInstance(this)
         val provider = ComponentName(this, ActionWidgetProvider::class.java)
-        VaryokText.rememberPreset(this, kind, opacity, target, caption)
-        if (manager.isRequestPinAppWidgetSupported) {
-            if (!manager.requestPinAppWidget(provider, null, null)) {
-                VaryokText.clearPreset(this)
-                Toast.makeText(this, tx("pin_fail"), Toast.LENGTH_LONG).show()
-            }
+        VaryokText.rememberPreset(this, "app", opacity, app.packageName, app.title)
+        pinRequested = if (manager.isRequestPinAppWidgetSupported) {
+            manager.requestPinAppWidget(provider, null, null)
         } else {
-            AlertDialog.Builder(this).setTitle(tx("create")).setMessage(tx("pin_help"))
-                .setPositiveButton(tx("ok"), null).show()
+            AlertDialog.Builder(this).setMessage(VaryokText.t(this, "pin_help"))
+                .setPositiveButton(VaryokText.t(this, "ok"), null).show()
+            false
+        }
+        if (!pinRequested) {
+            VaryokText.clearPreset(this)
+            Toast.makeText(this, VaryokText.t(this, "pin_fail"), Toast.LENGTH_SHORT).show()
         }
     }
 }
