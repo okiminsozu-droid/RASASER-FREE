@@ -1,4 +1,4 @@
-# VARYOK — RaSaSeR • APPS & TECHNOLOGY (0.3.4 TEST)
+# VARYOK — RaSaSeR • APPS & TECHNOLOGY (0.3.5 TEST)
 
 Mevcut Android uygulaması **sadece** `apps/rasaserwidgets/` klasöründe geliştirilir.
 Paket kimliği `com.rasaser.free.rasaserwidgets`, kullanıcının seçtiği
@@ -59,3 +59,10 @@ doğrulamaz. Testte: 1) Önceden 3 aynı uygulamanın hakkı tüketmesi hatası,
 
 Uygulamayı kaldırmak uygulama-içi PIN'i, farklı paket sayacını ve yerel widget
 verilerini de silebilir. Güncellemede mümkünse aynı test imzasını koruyun.
+
+## 0.3.5 — Premium bilgilendirme simgesi
+- Ana ekran sol üstte **altın renkli taç ve altında Premium**; sağ üstteki bayraklı dil seçici, VARYOK logosu, Widget Oluştur, bir defalık Şifre Oluştur, ücretsiz hak göstergesi ve alt site/gizlilik bağlantısı korunur.
+- Premium simgesine dokununca altı dilde bilgi penceresi açılır: **99 TL/yıl Google Play Billing ile otomatik yenileme planı**, aktif abonelikte farklı uygulamalar için sınırsız widget hakkı, abonelik bitince yeni Premium widget oluşturmanın durması ve eski widget'ların çalışmaya devam etmesi.
+- Türkçe, İngilizce, Almanca, İspanyolca, Japonca ve Arapça metinler çevrimdışı yerel dosyada bulunur; dil değiştiğinde pencere seçili dili kullanır.
+- **Ödeme ve abonelik hakkı doğrulaması bu sürümde etkin değildir.** Premium ekranı açıkça bunun bir bilgilendirme olduğunu bildirir, kullanıcıyı ödeme yapılıyormuş gibi yanıltmaz, ödeme butonu göstermez. Türkiye 99 TL/yıl tutarı bir ürün planıdır; canlı fiyat ve diğer ülke para birimleri gelecekte Google Play ürün ayrıntılarından alınmalıdır.
+- Gerçek satın alma için Google Play Console'da VARYOK paketine yıllık otomatik yenilenen abonelik ürünü oluşturulması, Play Billing Library entegrasyonu, satın alma doğrulaması, abonelik durum yönetimi ve eski widget'ların korunması gerekir. Bu aşama mevcut test APK'sında yapılmamıştır.
