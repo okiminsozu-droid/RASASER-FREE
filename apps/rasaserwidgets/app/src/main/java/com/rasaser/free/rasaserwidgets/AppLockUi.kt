@@ -106,9 +106,10 @@ object AppLockUi {
                         }
                     }
                     override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
+                        // Android platform has no public NEGATIVE_BUTTON constant.
+                        // A canceled prompt must not enable the lock.
                         if (errorCode != BiometricPrompt.BIOMETRIC_ERROR_USER_CANCELED &&
-                            errorCode != BiometricPrompt.BIOMETRIC_ERROR_NEGATIVE_BUTTON)
-                            unavailable(activity)
+                            errorCode != 13) unavailable(activity)
                     }
                 })
         } catch (_: Exception) { unavailable(activity) }
