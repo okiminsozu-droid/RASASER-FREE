@@ -19,6 +19,7 @@ class ActionActivity : Activity() {
         const val EXTRA_ACTION = "widget_action"
         private const val CAMERA_REQUEST = 123
     }
+    private fun wt(key: String) = WidgetText.t(this, key)
     private var camera: CameraManager? = null
     private var torchId: String? = null
     private var torchOn = false
@@ -31,19 +32,19 @@ class ActionActivity : Activity() {
         if (id < 0) { finish(); return }
         val data = WidgetStore.load(this, id)
         val root = UiKit.page(this)
-        UiKit.label(this, root, "RaSaSeR", 30f, UiKit.GOLD, true)
+        UiKit.label(this, root, "VARYOK", 30f, UiKit.GOLD, true)
         if (intent.getStringExtra(EXTRA_ACTION) == "note") {
-            UiKit.label(this, root, "KİŞİSEL NOT", 20f, UiKit.WHITE, true)
+            UiKit.label(this, root, wt("personal_note"), 20f, UiKit.WHITE, true)
             val panel = UiKit.panel(this, root)
             UiKit.label(this, panel, data.target, 20f, UiKit.WHITE)
-            UiKit.button(this, root, "Notu kopyala") {
+            UiKit.button(this, root, wt("copy_note")) {
                 val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
                 clipboard.setPrimaryClip(android.content.ClipData.newPlainText("RaSaSeR notu", data.target))
-                Toast.makeText(this, "Not kopyalandı.", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, wt("copied"), Toast.LENGTH_SHORT).show()
             }
         } else {
-            UiKit.label(this, root, "EL FENERİ", 20f, UiKit.WHITE, true)
-            status = UiKit.label(this, root, "Hazır değil", 17f, UiKit.MUTED)
+            UiKit.label(this, root, wt("torch_title"), 20f, UiKit.WHITE, true)
+            status = UiKit.label(this, root, wt("not_ready"), 17f, UiKit.MUTED)
             val cm = getSystemService(Context.CAMERA_SERVICE) as CameraManager
             camera = cm
             torchId = cm.cameraIdList.firstOrNull { cameraId ->
@@ -51,25 +52,25 @@ class ActionActivity : Activity() {
                 c.get(CameraCharacteristics.FLASH_INFO_AVAILABLE) == true &&
                     c.get(CameraCharacteristics.LENS_FACING) == CameraCharacteristics.LENS_FACING_BACK
             }
-            if (torchId == null) status.text = "Bu cihazda uygun el feneri bulunamadı."
+            if (torchId == null) status.text = wt("no_torch")
             else {
                 val observer = object : CameraManager.TorchCallback() {
                     override fun onTorchModeChanged(cameraId: String, enabled: Boolean) {
                         if (cameraId == torchId) runOnUiThread {
                             torchOn = enabled
-                            status.text = if (enabled) "Fener açık" else "Fener kapalı"
+                            status.text = if (enabled) wt("torch_on") else wt("torch_off")
                         }
                     }
                     override fun onTorchModeUnavailable(cameraId: String) {
-                        if (cameraId == torchId) runOnUiThread { status.text = "Fener şu anda kullanılamıyor." }
+                        if (cameraId == torchId) runOnUiThread { status.text = wt("torch_unavailable") }
                     }
                 }
                 callback = observer
                 cm.registerTorchCallback(observer, null)
-                UiKit.button(this, root, "Feneri aç / kapat") { requestToggle() }
+                UiKit.button(this, root, wt("torch_toggle")) { requestToggle() }
             }
         }
-        UiKit.button(this, root, "Kapat", false) { finish() }
+        UiKit.button(this, root, wt("close"), false) { finish() }
     }
     private fun requestToggle() {
         if (checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
@@ -80,7 +81,7 @@ class ActionActivity : Activity() {
         try {
             camera?.setTorchMode(torchId ?: return, !torchOn)
         } catch (_: Exception) {
-            status.text = "Fener başlatılamadı. Kamera başka uygulamada olabilir."
+            status.text = wt("torch_failed")
         }
     }
     override fun onRequestPermissionsResult(
@@ -89,7 +90,7 @@ class ActionActivity : Activity() {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == CAMERA_REQUEST) {
             if (grantResults.firstOrNull() == PackageManager.PERMISSION_GRANTED) toggleTorch()
-            else status.text = "El feneri için kamera izni gerekli."
+            else status.text = wt("torch_permission")
         }
     }
     override fun onDestroy() {
