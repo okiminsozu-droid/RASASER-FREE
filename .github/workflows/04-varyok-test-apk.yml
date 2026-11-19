@@ -1,4 +1,5 @@
 name: VARYOK Test APK
+# Rebuild after correcting Android BroadcastReceiver import.
 on:
   push:
     branches:
