@@ -58,6 +58,10 @@ class WidgetEditorActivity : Activity() {
     private fun buildEditor() {
         val existing = WidgetStore.load(this, widgetId)
         val preset = if (WidgetStore.exists(this, widgetId)) null else VaryokText.takePreset(this)
+        // Apply a custom photo selected on the preview sheet before the launcher assigned the ID.
+        if (preset?.kind == "app" && preset.target.isNotBlank()) {
+            WidgetStore.attachStagedPhoto(this, -48047, widgetId)
+        }
         val root = UiKit.page(this)
         UiKit.label(this, root, "VARYOK", 29f, UiKit.GOLD, true)
         UiKit.label(this, root, wt("editor_name"), 19f, UiKit.WHITE, true)
@@ -125,8 +129,15 @@ class WidgetEditorActivity : Activity() {
     }
     private fun refreshPreview() {
         val bitmap = if (clearImage) null else WidgetStore.bitmap(this, widgetId, 400, usePending = true)
-        if (bitmap == null) preview.setImageResource(R.drawable.ic_brand)
-        else preview.setImageBitmap(bitmap)
+        if (bitmap != null) {
+            preview.setImageBitmap(bitmap)
+        } else {
+            val kind = if (::kinds.isInitialized) codes[kinds.selectedItemPosition] else "none"
+            val app = if (::target.isInitialized) target.text.toString().trim() else ""
+            val icon = if (kind == "app") AppIconKit.bitmap(this, app, 160) else null
+            if (icon != null) preview.setImageBitmap(icon)
+            else preview.setImageResource(R.drawable.ic_brand)
+        }
         if (::opacity.isInitialized) preview.imageAlpha = (opacity.progress * 255 / 100)
     }
     private fun pickApp() {
