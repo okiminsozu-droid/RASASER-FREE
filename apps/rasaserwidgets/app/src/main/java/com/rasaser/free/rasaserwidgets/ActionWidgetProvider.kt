@@ -39,11 +39,17 @@ class ActionWidgetProvider : AppWidgetProvider() {
             val manager = AppWidgetManager.getInstance(context)
             val rv = RemoteViews(context.packageName, R.layout.widget_tile)
             if (!WidgetStore.exists(context, id)) {
-                // Android owns the launcher tile itself; clear content and click target
-                // when its local widget configuration is deleted.
-                rv.setViewVisibility(R.id.widget_image, View.INVISIBLE)
+                // A widget from an older, broken build has no saved settings.
+                // Show the VARYOK icon rather than leaving an invisible home tile.
+                rv.setImageViewResource(R.id.widget_image, R.drawable.varyok_app_icon)
+                rv.setInt(R.id.widget_image, "setImageAlpha", 255)
+                rv.setViewVisibility(R.id.widget_image, View.VISIBLE)
                 rv.setViewVisibility(R.id.widget_label, View.GONE)
-                rv.setOnClickPendingIntent(R.id.widget_root, null)
+                val fallback = PendingIntent.getActivity(
+                    context, id, Intent(context, MainActivity::class.java),
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                )
+                rv.setOnClickPendingIntent(R.id.widget_root, fallback)
                 manager.updateAppWidget(id, rv)
                 return
             }
@@ -64,8 +70,8 @@ class ActionWidgetProvider : AppWidgetProvider() {
             rv.setViewVisibility(R.id.widget_label, if (data.caption.isBlank()) View.GONE else View.VISIBLE)
             rv.setTextColor(R.id.widget_label, Color.argb(alpha, 244, 235, 213))
             val clickIntent = when (data.kind) {
-                "app" -> context.packageManager.getLaunchIntentForPackage(data.target)
-                    ?: Intent(context, MainActivity::class.java)
+                "app" -> Intent(context, AppShortcutActivity::class.java)
+                    .putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, id)
                 "url" -> Intent(Intent.ACTION_VIEW, Uri.parse(data.target))
                 "dial" -> Intent(Intent.ACTION_DIAL, Uri.parse("tel:" + Uri.encode(data.target)))
                 "wifi" -> Intent(Settings.ACTION_WIFI_SETTINGS)
