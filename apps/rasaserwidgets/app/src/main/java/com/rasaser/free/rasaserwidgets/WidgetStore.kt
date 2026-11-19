@@ -31,14 +31,20 @@ object WidgetStore {
             opacity = pref.getInt(key(id, "opacity"), 100).coerceIn(0, 100)
         )
     }
-    fun save(ctx: Context, id: Int, data: WidgetConfig) {
-        p(ctx).edit()
+    /** Count only successful new creations, not edits or system widget ID restorations. */
+    fun creationCount(ctx: Context): Int = p(ctx).getInt("total_created", 0).coerceAtLeast(0)
+    fun canCreate(ctx: Context) = creationCount(ctx) < 3
+    fun save(ctx: Context, id: Int, data: WidgetConfig, countCreation: Boolean = true) {
+        val firstSave = countCreation && !exists(ctx, id)
+        if (firstSave && !canCreate(ctx)) throw IllegalStateException("Premium required")
+        val edit = p(ctx).edit()
             .putBoolean(key(id, "exists"), true)
             .putString(key(id, "kind"), data.kind)
             .putString(key(id, "target"), data.target)
             .putString(key(id, "caption"), data.caption)
             .putInt(key(id, "opacity"), data.opacity.coerceIn(0, 100))
-            .apply()
+        if (firstSave) edit.putInt("total_created", creationCount(ctx) + 1)
+        edit.apply()
     }
     fun delete(ctx: Context, id: Int) {
         p(ctx).edit()
@@ -53,7 +59,7 @@ object WidgetStore {
     }
     fun restore(ctx: Context, oldId: Int, newId: Int) {
         if (!exists(ctx, oldId)) return
-        save(ctx, newId, load(ctx, oldId))
+        save(ctx, newId, load(ctx, oldId), countCreation = false)
         val old = photo(ctx, oldId)
         if (old.exists()) {
             old.copyTo(photo(ctx, newId), overwrite = true)
