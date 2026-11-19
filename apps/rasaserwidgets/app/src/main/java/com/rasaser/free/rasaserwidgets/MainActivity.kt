@@ -26,7 +26,7 @@ class MainActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        render()
+        // onResume builds the home once; avoid redundant UI inflation on launch.
     }
     override fun onResume() {
         super.onResume()
@@ -128,15 +128,43 @@ class MainActivity : Activity() {
     }
 
     private fun showSettings() {
-        AlertDialog.Builder(this).setTitle(tx("settings"))
-            .setItems(arrayOf(tx("manage"), tx("lang"), tx("privacy"), tx("about"))) { _, index ->
-                when (index) {
-                    0 -> manageWidgets()
-                    1 -> showLanguagePicker()
-                    2 -> info(tx("privacy"), tx("privacy_desc"))
-                    3 -> info(tx("about"), "VARYOK • RaSaSeR • APPS & TECHNOLOGY")
-                }
-            }.setNegativeButton(tx("cancel"), null).show()
+        val holder = ScrollView(this)
+        val content = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(22), dp(12), dp(22), dp(18))
+        }
+        holder.addView(content)
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(tx("settings"))
+            .setView(holder)
+            .setNegativeButton(tx("cancel"), null)
+            .create()
+        val sections = listOf(
+            tx("manage") to { manageWidgets() },
+            tx("lang") to { showLanguagePicker() },
+            tx("about") to { info(tx("about"), "VARYOK • RaSaSeR • APPS & TECHNOLOGY") }
+        )
+        sections.forEach { (name, action) ->
+            val item = text(name, 18f, true).apply {
+                gravity = Gravity.START or Gravity.CENTER_VERTICAL
+                background = surface()
+                setPadding(dp(18), dp(7), dp(18), dp(7))
+                setOnClickListener { dialog.dismiss(); action() }
+            }
+            content.addView(item, LinearLayout.LayoutParams(-1, dp(54)).apply {
+                bottomMargin = dp(9)
+            })
+        }
+        // Always last: precise, visible explanation instead of an inaccurate 'no data stored' claim.
+        content.addView(text(tx("privacy"), 17f, true).apply {
+            gravity = Gravity.START
+            setPadding(dp(8), dp(18), dp(8), dp(5))
+        })
+        content.addView(text(tx("privacy_desc"), 14f).apply {
+            gravity = Gravity.START
+            setPadding(dp(8), dp(4), dp(8), dp(12))
+        })
+        dialog.show()
     }
     private fun info(title: String, body: String) {
         AlertDialog.Builder(this).setTitle(title).setMessage(body)
@@ -156,44 +184,11 @@ class MainActivity : Activity() {
             }.setNegativeButton(tx("cancel"), null).show()
     }
     private fun showWidgetTypes() {
-        if (!WidgetStore.canCreate(this)) { info(tx("premium"), tx("premium_desc")); return }
-        val choices = arrayOf("photo", "transparent", "app", "web", "templates", "dial",
-            "note", "wifi", "bt", "system", "torch")
-        AlertDialog.Builder(this).setTitle(tx("choose"))
-            .setItems(choices.map { tx(it) }.toTypedArray()) { _, index ->
-                when (choices[index]) {
-                    "photo" -> pin("none")
-                    "transparent" -> pin("app", 0)
-                    "app" -> pin("app")
-                    "web" -> pin("url")
-                    "templates" -> showTemplates()
-                    "dial" -> pin("dial")
-                    "note" -> pin("note")
-                    "wifi" -> pin("wifi")
-                    "bt" -> pin("bluetooth")
-                    "system" -> pin("settings")
-                    "torch" -> pin("torch")
-                }
-            }.setNegativeButton(tx("cancel"), null).show()
+        if (!WidgetStore.canCreate(this)) {
+            info(tx("premium"), tx("premium_desc"))
+            return
+        }
+        startActivity(Intent(this, WidgetCreateActivity::class.java))
     }
-    private fun showTemplates() {
-        AlertDialog.Builder(this).setTitle(tx("template_name"))
-            .setItems(arrayOf(tx("simple"), tx("photo"), tx("transparent"))) { _, index ->
-                when (index) {
-                    0 -> pin("none")
-                    1 -> pin("none")
-                    2 -> pin("none", 0)
-                }
-            }.setNegativeButton(tx("cancel"), null).show()
-    }
-    private fun pin(kind: String, opacity: Int = 100) {
-        if (!WidgetStore.canCreate(this)) { info(tx("premium"), tx("premium_desc")); return }
-        val manager = AppWidgetManager.getInstance(this)
-        val provider = ComponentName(this, ActionWidgetProvider::class.java)
-        VaryokText.rememberPreset(this, kind, opacity)
-        if (manager.isRequestPinAppWidgetSupported) {
-            if (!manager.requestPinAppWidget(provider, null, null))
-                Toast.makeText(this, tx("pin_fail"), Toast.LENGTH_LONG).show()
-        } else info(tx("create"), tx("pin_help"))
-    }
+
 }
