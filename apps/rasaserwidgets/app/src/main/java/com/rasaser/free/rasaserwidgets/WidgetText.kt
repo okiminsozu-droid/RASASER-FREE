@@ -4,6 +4,14 @@ import android.content.Context
 
 /** Offline translated text for widget editor and local utility screen. */
 object WidgetText {
+    private val statusText = mapOf(
+        "tr" to "Fotoğraf hazırlanıyor...",
+        "en" to "Preparing the photo...",
+        "de" to "Foto wird vorbereitet...",
+        "es" to "Preparando la foto...",
+        "ja" to "写真を処理しています...",
+        "ar" to "جارٍ تجهيز الصورة..."
+    )
     private val keys = listOf("editor_name", "editor_desc", "tap_action", "none", "open_app", "web_link", "dial_screen", "local_note", "wifi_settings", "bt_settings", "phone_settings", "flashlight", "target_label", "target_hint", "pick_apps", "caption_label", "caption_hint", "photo_label", "choose_photo", "remove_photo", "visibility_label", "visible", "visibility_help", "save", "cancel", "invalid_id", "no_apps", "choose_app", "need_target", "invalid_app", "invalid_url", "invalid_phone", "failed_save", "failed_photo", "personal_note", "copy_note", "copied", "torch_title", "not_ready", "no_torch", "torch_on", "torch_off", "torch_unavailable", "torch_toggle", "close", "torch_failed", "torch_permission")
     private val content = mapOf(
         "tr" to listOf("WIDGET TASARIM ATÖLYESİ", "Fotoğraf, dokunma eylemi ve görünürlük tamamen sana ait.", "DOKUNMA EYLEMİ", "İşlem yok / yalnız fotoğraf", "Uygulama aç", "Web bağlantısı", "Telefon arama ekranı", "Yerel not", "Wi-Fi ayarları", "Bluetooth ayarları", "Telefon ayarları", "El feneri", "HEDEF / NOT / ADRES", "Uygulama paketi, URL, numara veya not", "Yüklü uygulamalardan seç", "KISA ETİKET (İSTEĞE BAĞLI)", "Ana ekranda görünen yazı", "WIDGET FOTOĞRAFI", "Galeriden fotoğraf seç", "Fotoğrafı kaldır", "GÖRÜNÜRLÜK / ŞEFFAFLIK", "%d% görünür", "%0: tamamen görünmez ama dokunulabilir. %100: tam görünür.", "✓  Widget'ı kaydet", "Vazgeç", "Widget kimliği geçerli değil.", "Uygulama listesi alınamadı.", "Uygulama seç", "Bu işlem için hedef veya not gir.", "Yüklü uygulamalardan geçerli bir hedef seç.", "Geçerli bir web adresi gir.", "Geçerli bir telefon numarası gir.", "Kaydedilemedi, tekrar dene.", "Fotoğraf okunamadı.", "KİŞİSEL NOT", "Notu kopyala", "Not kopyalandı.", "EL FENERİ", "Hazır değil", "Bu cihazda uygun el feneri bulunamadı.", "Fener açık", "Fener kapalı", "Fener şu anda kullanılamıyor.", "Feneri aç / kapat", "Kapat", "Fener başlatılamadı. Kamera başka uygulamada olabilir.", "El feneri için kamera izni gerekli."),
@@ -14,6 +22,7 @@ object WidgetText {
         "ar" to listOf("استوديو تصميم الويدجت", "خصص الصورة والإجراء والشفافية.", "الإجراء عند الضغط", "بدون إجراء / صورة فقط", "فتح التطبيق", "رابط ويب", "لوحة الاتصال", "ملاحظة محلية", "إعدادات Wi-Fi", "إعدادات البلوتوث", "إعدادات الهاتف", "المصباح", "الهدف / الملاحظة / العنوان", "تطبيق أو رابط أو رقم أو ملاحظة", "اختر تطبيقًا مثبتًا", "عنوان قصير (اختياري)", "نص يظهر على الشاشة", "صورة الويدجت", "اختر صورة من المعرض", "حذف الصورة", "الظهور / الشفافية", "ظاهر بنسبة %d%", "0%: شفاف وقابل للمس، 100%: ظاهر.", "✓  حفظ الويدجت", "إلغاء", "معرّف الويدجت غير صالح.", "تعذر جلب التطبيقات.", "اختر التطبيق", "أدخل الهدف أو الملاحظة.", "اختر تطبيقًا صالحًا.", "أدخل رابطًا صالحًا.", "أدخل رقم هاتف صالحًا.", "تعذر الحفظ، حاول مجددًا.", "تعذر قراءة الصورة.", "ملاحظة شخصية", "نسخ الملاحظة", "تم النسخ.", "المصباح", "غير جاهز", "لا يوجد مصباح مناسب.", "المصباح يعمل", "المصباح مغلق", "المصباح غير متاح.", "تشغيل / إيقاف", "إغلاق", "تعذر تشغيل المصباح.", "يلزم إذن الكاميرا للمصباح.")
     )
     fun t(ctx: Context, key: String): String {
+        if (key == "loading_photo") return statusText[VaryokText.language(ctx)] ?: statusText["tr"]!!
         val index = keys.indexOf(key)
         if (index < 0) return key
         return content[VaryokText.language(ctx)]?.get(index) ?: content["tr"]!![index]
