@@ -49,5 +49,29 @@ class OfflineContractTests(unittest.TestCase):
         self.assertIn("inSampleSize = sample", source)
         self.assertIn("maxSide", source)
 
+    def test_varyok_single_action_and_languages(self):
+        base = ROOT / "app/src/main/java/com/rasaser/free/rasaserwidgets"
+        home = (base / "MainActivity.kt").read_text(encoding="utf-8")
+        ui = (base / "VaryokText.kt").read_text(encoding="utf-8")
+        editor = (base / "WidgetEditorActivity.kt").read_text(encoding="utf-8")
+        for required in ('tx("create")', 'showWidgetTypes()', 'showLanguagePicker()', 'showSettings()',
+                         'https://www.okiminsozu.com', 'WidgetStore.creationCount'):
+            self.assertIn(required, home)
+        self.assertNotIn("KISAYOL TİPLERİ", home)
+        self.assertNotIn("EKLENEN WIDGET'LAR", home)
+        self.assertIn('val codes = listOf("tr", "en", "de", "es", "ja", "ar")', ui)
+        for locale in ('tr', 'en', 'de', 'es', 'ja', 'ar'):
+            self.assertIn(f'"{locale}" to listOf(', ui)
+        self.assertIn("VaryokText.takePreset(this)", editor)
+
+    def test_three_creations_and_existing_editor(self):
+        base = ROOT / "app/src/main/java/com/rasaser/free/rasaserwidgets"
+        store = (base / "WidgetStore.kt").read_text(encoding="utf-8")
+        editor = (base / "WidgetEditorActivity.kt").read_text(encoding="utf-8")
+        self.assertIn("fun canCreate(ctx: Context) = creationCount(ctx) < 3", store)
+        self.assertIn('if (firstSave) edit.putInt("total_created"', store)
+        self.assertIn("countCreation = false", store)
+        self.assertIn("!WidgetStore.exists(this, widgetId) && !WidgetStore.canCreate(this)", editor)
+
 if __name__ == "__main__":
     unittest.main()
