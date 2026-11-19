@@ -388,16 +388,28 @@ class WidgetCreateActivity : Activity() {
         if (!WidgetStore.canCreate(this)) return
         val manager = AppWidgetManager.getInstance(this)
         val provider = ComponentName(this, ActionWidgetProvider::class.java)
-        VaryokText.rememberPreset(this, "app", opacity, app.packageName, app.title)
-        pinRequested = if (manager.isRequestPinAppWidgetSupported) {
-            manager.requestPinAppWidget(provider, null, null)
-        } else {
-            AlertDialog.Builder(this).setMessage(VaryokText.t(this, "pin_help"))
-                .setPositiveButton(VaryokText.t(this, "ok"), null).show()
-            false
+        // Pinning skips the configure activity. Attach all values to a unique,
+        // mutable success callback; the launcher fills in the real appWidgetId.
+        val token = (android.os.SystemClock.elapsedRealtimeNanos() and 0x7fffffffL).toInt()
+        val hasPhoto = isCustom
+        if (hasPhoto) {
+            WidgetStore.attachStagedPhoto(this, stagingId, token)
         }
+        val onSuccess = PinResultReceiver.callback(
+            this, token, app.packageName, app.title, opacity, hasPhoto
+        )
+        pinRequested = try {
+            if (manager.isRequestPinAppWidgetSupported) {
+                manager.requestPinAppWidget(provider, null, onSuccess)
+            } else {
+                AlertDialog.Builder(this).setMessage(VaryokText.t(this, "pin_help"))
+                    .setPositiveButton(VaryokText.t(this, "ok"), null).show()
+                false
+            }
+        } catch (_: Exception) { false }
         if (!pinRequested) {
-            VaryokText.clearPreset(this)
+            WidgetStore.discardPending(this, token)
+            onSuccess.cancel()
             Toast.makeText(this, VaryokText.t(this, "pin_fail"), Toast.LENGTH_SHORT).show()
         }
     }
