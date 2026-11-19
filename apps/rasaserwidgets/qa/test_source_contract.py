@@ -204,5 +204,33 @@ class OfflineContractTests(unittest.TestCase):
         for locale in ('tr', 'en', 'de', 'es', 'ja', 'ar'):
             self.assertIn(f'"{locale}" to listOf(', local)
 
+
+    def test_premium_gold_top_left_and_six_language_information(self):
+        base = ROOT / "app/src/main/java/com/rasaser/free/rasaserwidgets"
+        home = (base / "MainActivity.kt").read_text(encoding="utf-8")
+        info = (base / "PremiumInfoText.kt").read_text(encoding="utf-8")
+        crown = ROOT / "app/src/main/res/drawable/ic_premium_crown.xml"
+        ET.parse(crown)
+        self.assertIn("R.drawable.ic_premium_crown", home)
+        self.assertIn('text("Premium", 12f, true)', home)
+        self.assertIn('setOnClickListener { showPremiumInfo() }', home)
+        self.assertIn("premium.addView(ImageView(this)", home)
+        self.assertIn("tools.addView(premium", home)
+        self.assertIn("showLanguagePicker()", home)
+        self.assertIn("PremiumInfoText.t(this, prefix + \"Title\")", home)
+        self.assertIn("PremiumInfoText.t(this, prefix + \"Body\")", home)
+        self.assertIn("PremiumInfoText.t(this, \"status\")", home)
+        self.assertIn('for (prefix in listOf("billing", "access", "expiration"))', home)
+        self.assertIn("99 TL / yıl", info)
+        self.assertIn("Google Play Billing", info)
+        self.assertIn("daha önce oluşturulan widget'lar çalışmaya devam", info)
+        self.assertIn("Bu ekran ödeme almaz", info)
+        for language in ("tr", "en", "de", "es", "ja", "ar"):
+            self.assertIn(f'"{language}" to listOf(', info)
+        # No fake purchase button: this is read-only until the Play product exists.
+        self.assertNotIn("launchBillingFlow", home)
+        self.assertNotIn("BillingClient", home)
+        self.assertIn('setPositiveButton(PremiumInfoText.t(this, "close"), null)', home)
+
 if __name__ == "__main__":
     unittest.main()
