@@ -9,6 +9,8 @@
   </queries>
   <!-- INTERNET and tracking permissions are deliberately absent. -->
   <!-- CAMERA is requested at runtime only for the optional flashlight tool. -->
+  <!-- System BiometricPrompt handles fingerprints; biometric templates never enter the app. -->
+  <uses-permission android:name="android.permission.USE_BIOMETRIC"/>
   <uses-permission android:name="android.permission.CAMERA"/>
   <uses-feature android:name="android.hardware.camera" android:required="false"/>
   <uses-feature android:name="android.hardware.camera.flash" android:required="false"/>
