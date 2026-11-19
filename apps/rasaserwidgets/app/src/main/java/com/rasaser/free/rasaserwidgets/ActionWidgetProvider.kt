@@ -38,12 +38,24 @@ class ActionWidgetProvider : AppWidgetProvider() {
             val data = WidgetStore.load(context, id)
             val manager = AppWidgetManager.getInstance(context)
             val rv = RemoteViews(context.packageName, R.layout.widget_tile)
+            if (!WidgetStore.exists(context, id)) {
+                // Android owns the launcher tile itself; clear content and click target
+                // when its local widget configuration is deleted.
+                rv.setViewVisibility(R.id.widget_image, View.INVISIBLE)
+                rv.setViewVisibility(R.id.widget_label, View.GONE)
+                rv.setOnClickPendingIntent(R.id.widget_root, null)
+                manager.updateAppWidget(id, rv)
+                return
+            }
+            rv.setViewVisibility(R.id.widget_image, View.VISIBLE)
             val options = manager.getAppWidgetOptions(id)
             val wDp = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 80)
             val hDp = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 80)
             val side = (minOf(wDp, hDp) * context.resources.displayMetrics.density)
                 .toInt().coerceIn(48, 300)
+            // Real installed-app icon is the default; custom gallery photo overrides it.
             val picture = WidgetStore.bitmap(context, id, side)
+                ?: if (data.kind == "app") AppIconKit.bitmap(context, data.target, side) else null
             if (picture != null) rv.setImageViewBitmap(R.id.widget_image, picture)
             else rv.setImageViewResource(R.id.widget_image, R.drawable.ic_brand)
             val alpha = (data.opacity.coerceIn(0, 100) * 255 / 100)
