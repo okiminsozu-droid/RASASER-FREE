@@ -11,6 +11,7 @@ import android.graphics.drawable.GradientDrawable
 import android.net.Uri
 import android.os.Bundle
 import android.view.Gravity
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
@@ -86,10 +87,14 @@ class MainActivity : Activity() {
         })
 
         root.addView(TextView(this), LinearLayout.LayoutParams(1, 0, 1f))
-        root.addView(text("▦", 72f, true))
-        root.addView(text("VARYOK", 44f, true))
-        root.addView(text("RaSaSeR", 21f))
-        root.addView(text("APPS & TECHNOLOGY", 12f).apply { letterSpacing = 0.13f })
+        // The exact user-approved VARYOK / RaSaSeR logo, with its black-gold identity.
+        val brand = ImageView(this).apply {
+            setImageResource(R.drawable.varyok_brand_full)
+            scaleType = ImageView.ScaleType.FIT_CENTER
+            adjustViewBounds = true
+            contentDescription = "VARYOK • RaSaSeR • APPS & TECHNOLOGY"
+        }
+        root.addView(brand, LinearLayout.LayoutParams(-1, dp(296)))
         root.addView(TextView(this), LinearLayout.LayoutParams(1, dp(35)))
 
         val create = text("＋  " + tx("create"), 23f, true).apply {
