@@ -181,8 +181,8 @@ object AppLockUi {
                     }
                     override fun onAuthenticationError(code: Int, message: CharSequence) {
                         if (!fallback) {
-                            // The system may return this when fingerprints are removed or locked.
-                            // Preserve recovery through the phone's device credential.
+                            // System credentials provide recovery if fingerprint access fails.
+                            fallback = true
                             useDeviceCredential()
                         }
                     }
