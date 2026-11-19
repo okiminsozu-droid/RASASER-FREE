@@ -1,52 +1,29 @@
-# VARYOK — RaSaSeR • APPS & TECHNOLOGY — 0.3.2
+# VARYOK — RaSaSeR • APPS & TECHNOLOGY (0.3.3 TEST)
 
-Bu sürüm, `RASASER-FREE/apps/rasaserwidgets/` projesi içinde önceki Android paket kimliği
-`com.rasaser.free.rasaserwidgets` korunarak geliştirildi. Diğer RaSaSeR uygulamalarına,
-Cloudflare'a ve www.okiminsozu.com sitesine dokunulmadı.
+Android / RaSaSeR FREE bağımsız modülü:
+`apps/rasaserwidgets/`, paket `com.rasaser.free.rasaserwidgets`.
+Diğer uygulamalar, web sitesi ve Cloudflare değiştirilmedi.
 
-## Onaylanan ana sayfa
-Pembe arka plan, açık pudra tonlu ana **Widget Oluştur** butonu ve gönderilen
-orijinal siyah-altın VARYOK / RaSaSeR logosu korunur. Sağ üstte bayraklı altı dil
-(TR/EN/DE/ES/JA/AR) ve ayarlar simgesi vardır. En altta www.okiminsozu.com ve
-**ⓘ gizlilik** ikonu bulunur. Gizlilik ikonu seçilen dilde doğru veri açıklamasını gösterir.
+## Kullanıcı akışı
+- Pembe-pudra ana ekran, kullanıcı onaylı siyah-altın VARYOK logosu, 6 dil, tek **Widget Oluştur** butonu.
+- Telefonda başlatılabilir uygulamalar, kendi ikonlarıyla alfabetik listelenir; yeni kurulum/kaldırmalar ekrana yeniden girildiğinde veya paket değişikliği bildirildiğinde görünür.
+- Bir uygulama seçilince gerçek ikonu, adı, varsayılan/özel fotoğraf ve %0–100 görünürlük kaydırıcısı ile önizleme açılır.
+- **Oluştur** ile Android başlatıcısına widget ekleme isteği gönderilir. Android onay verip yeni widget kimliğini oluşturduğunda özel bir **mutable PendingIntent** callback tetiklenir. Callback gerçek widget kimliğine `kind=app`, uygulama paketi, başlık ve opaklığı kaydeder. Varsa özel fotoğrafı geçici dosyadan o widget'a aktarır ve `RemoteViews` görünümünü günceller.
+- Widget'ın tamamına dokunmak özel, uygulama-içi kısayol yönlendiricisini çağırır; yönlendirici kaydedilen paket için başlatma Intent'ini bulup uygulamayı açar. İkon ile kullanıcı fotoğrafı aynı dokunma eylemine sahiptir.
+- Android'in widget pinleme yöntemi **WidgetEditorActivity'yi otomatik açmaz**. Önceki 0.3.2 kodundaki görselin görünmemesi / dokunmanın çalışmamasının kök nedeni buydu.
+- Önceki sürümden kalan **yapılandırılmamış widget'lar** artık görünmez yerine VARYOK simgesini gösterir ve VARYOK'u açar. Doğru hedefi yüklemek için eski boş widget'ı ana ekrandan kaldırıp yeniden oluşturmak gerekir; kullanıcı seçimi bilinmeyen widget otomatik onarılamaz.
 
-## Widget Oluştur — yalnız telefondaki uygulamalar
-Arama ve alfabetik liste vardır. Her sırada telefondaki uygulamanın **gerçek ikonu,
-adı ve sağ ok** yer alır. Fotoğraf, şeffaflık, web ve araç seçenekleri artık üst üste
-tuş olarak listelenmez. Android'in LAUNCHER görünürlük kurallarına uygun uygulamalar,
-yeni kurulum/kaldırma sonrası ve ekran yeniden açılınca güncellenir; liste saklanmaz.
-Uygulamaya geniş paket envanteri izni eklenmemiştir.
+## Ayarlar kaldırıldı
+Ana ekrandaki sağ üst **ayarlar ikonu**, `SettingsActivity` ve gereksiz silme ekranı kaldırıldı. Bayraklı dil seçimi sağ üstte, gizlilik ⓘ simgesi ve `www.okiminsozu.com` ana sayfa altındadır.
 
-Uygulamaya dokunulduğunda alttan özelleştirme penceresi açılır:
-- Uygulamanın gerçek ikonu ve adıyla ön izleme
-- Varsayılan simge / **Özel Fotoğraf** seçimi (Android sistem fotoğraf seçicisi)
-- %0–100 şeffaflık / görünürlük kaydırıcısı
-- Oluştur → cihazın ana ekranına widget ekleme isteği; Android'in onayı gerekir
+## Değişmeyen kurallar
+- Offline-first, internetsiz widget oluşturma; reklam / takip / analitik SDK ve INTERNET izni yok.
+- Fotoğraflar, widget etiket/hedef/görünürlük ayarları ve ücretsiz hak sayacı **yalnız cihazda** tutulur; kullanıcı hesabı ve sunucu kayıt sistemi yok.
+- İlk üç başarıyla kaydedilmiş widget ücretsiz. Silmek hak iadesi sağlamaz. Gerçek Premium / Play Billing henüz bağlı değildir.
+- Fotoğraf seçimi Android sistem seçicisi üzerinden, arka planda ve boyut sınırıyla yapılır.
+- Diğer sistem widget işlevleri, mevcut `WidgetEditorActivity` üzerinden korunmuştur.
+- Test APK'sı **debug** imzalıdır; Play Store üretim sürümü değildir. Gerçek cihaz ve farklı başlatıcılarda işlevsel test ayrıca gereklidir.
 
-Özel fotoğraf, widget ID oluşturulmadan önce yalnız geçici dosyada tutulur ve
-kullanıcı kaydettiğinde ilgili widget'ın cihaz-içi özel dosyasına taşınır.
-Uygulama ikonu varsayılan widget görüntüsüdür. Düzenleyicinin mevcut araçları
-(uygulama/web/arama/not/Wi-Fi/Bluetooth/ayarlar/fener, etiket, fotoğraf ve
-opaklık) **korunur** ve cihazın sistem Widget'lar menüsünden de kullanılabilir.
-
-## Ayarlar
-Ayarlar simgesi **yalnız oluşturulmuş widget'ların sıralı listesini** açar.
-Her satırda widget ikonu/fotoğrafı, adı ve yanında çöp kutusu bulunur.
-Satıra dokunarak mevcut widget düzenlenebilir. Ayarlarda başka menü,
-gizlilik yazısı veya ek buton bulunmaz. Silmek, yerel widget ayarlarını ve
-fotoğrafını temizler, widget'ı boş hale getirir. **Android ana ekranındaki
-widget kutucuğunu programatik olarak kaldırma iznimiz yoktur**: onun kaldırılması
-ana ekranda uzun bas → Kaldır işlemi ile yapılır; silme onayında belirtilir.
-
-## Çevrimdışı ve ücretsiz model
-INTERNET, genel depolama, takip ve reklam izni/SDK'sı yoktur. Yalnız seçilen
-fotoğraflar, hedefler, başlıklar, opaklık ve üç ücretsiz widget sayacı cihazda
-saklanır. Üç başarılı yeni widget oluşturma ücretsizdir; mevcut widget'ı
-düzenlemek hak tüketmez, silmek hakkı geri kazandırmaz.
-**Google Play ödeme altyapısı henüz bağlı değildir**; Premium kilidi gerçek
-satın alma gibi gösterilmez.
-
-## Test ve yayın
-Sürüm 0.3.2 bir debug/test kaynağıdır. Gerçek Android cihaz testi, animasyon
-ve çeşitli launcher uyumluluğu ayrıca doğrulanmalıdır. Release imza anahtarı
-PUBLIC depoya eklenmez. GitHub test iş akışı sadece VARYOK modülünü derler.
+## Test
+`python3 apps/rasaserwidgets/qa/test_source_contract.py` kaynak sözleşmelerini;
+GitHub Actions `VARYOK Test APK` Gradle `:app:assembleDebug` ve unit testleri çalıştırır.
