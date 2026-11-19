@@ -379,7 +379,12 @@ class WidgetCreateActivity : Activity() {
         }.start()
     }
     private fun pinApp(app: AppEntry) {
-        if (!WidgetStore.canCreate(this)) return
+        if (!WidgetStore.canCreateFor(this, app.packageName)) {
+            AlertDialog.Builder(this).setTitle(VaryokText.t(this, "premium"))
+                .setMessage(VaryokText.t(this, "premium_desc"))
+                .setPositiveButton(VaryokText.t(this, "ok"), null).show()
+            return
+        }
         val manager = AppWidgetManager.getInstance(this)
         val provider = ComponentName(this, ActionWidgetProvider::class.java)
         // Pinning skips the configure activity. Attach all values to a unique,
