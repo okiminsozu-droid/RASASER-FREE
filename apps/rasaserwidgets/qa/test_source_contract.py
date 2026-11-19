@@ -85,13 +85,14 @@ class OfflineContractTests(unittest.TestCase):
         self.assertIn("Intent.ACTION_PACKAGE_ADDED", catalog)
         self.assertIn("Intent.ACTION_PACKAGE_REMOVED", catalog)
         self.assertIn("Intent.ACTION_PACKAGE_REPLACED", catalog)
-        self.assertIn("pm.queryIntentActivities(query, 0)", catalog)
+        self.assertIn("pm.queryIntentActivities(intent, 0)", catalog)
         self.assertIn("private val apps = mutableListOf<AppEntry>()", catalog)
         self.assertNotIn("getInstalledPackages", catalog)
         self.assertNotIn("QUERY_ALL_PACKAGES", catalog)
         self.assertIn("WidgetCreateActivity::class.java", main)
         self.assertIn('tx("privacy_desc")', main)
-        self.assertLess(main.index('tx("about")'), main.index('tx("privacy_desc")'))
+        self.assertIn('SettingsActivity::class.java', main)
+        self.assertIn('text("ⓘ", 26f, true)', main)
 
     def test_fresh_media_picker_and_nonblocking_decode(self):
         base = ROOT / "app/src/main/java/com/rasaser/free/rasaserwidgets"
@@ -102,6 +103,42 @@ class OfflineContractTests(unittest.TestCase):
         self.assertIn('preset?.target', editor)
         self.assertIn('preset?.caption', editor)
         self.assertIn('kinds.setSelection(codes.indexOf("app"))', editor)
+
+    def test_only_installed_apps_with_icons_and_customization(self):
+        base = ROOT / "app/src/main/java/com/rasaser/free/rasaserwidgets"
+        catalog = (base / "WidgetCreateActivity.kt").read_text(encoding="utf-8")
+        icon = (base / "AppIconKit.kt").read_text(encoding="utf-8")
+        self.assertIn("AppIconKit.bitmap(", catalog)
+        self.assertIn("iconWorkers = Executors.newFixedThreadPool(2)", catalog)
+        self.assertIn("pm.queryIntentActivities(intent, 0)", catalog)
+        self.assertIn("showCustomize(filtered[position])", catalog)
+        self.assertIn("WidgetStore.stageSelectedPhoto(", catalog)
+        self.assertIn("SeekBar(this)", catalog)
+        self.assertIn('pinApp(app)', catalog)
+        self.assertNotIn('kinds.forEach', catalog)
+        self.assertNotIn('showTemplates()', catalog)
+        self.assertIn("getApplicationIcon(packageName)", icon)
+        self.assertIn("LruCache<String, Bitmap>", icon)
+
+    def test_settings_only_created_widgets_and_delete(self):
+        base = ROOT / "app/src/main/java/com/rasaser/free/rasaserwidgets"
+        screen = (base / "SettingsActivity.kt").read_text(encoding="utf-8")
+        home = (base / "MainActivity.kt").read_text(encoding="utf-8")
+        provider = (base / "ActionWidgetProvider.kt").read_text(encoding="utf-8")
+        editor = (base / "WidgetEditorActivity.kt").read_text(encoding="utf-8")
+        self.assertIn("filter { WidgetStore.exists(this, it) }", screen)
+        self.assertIn("R.drawable.ic_delete", screen)
+        self.assertIn("WidgetStore.delete(this, id)", screen)
+        self.assertIn("ActionWidgetProvider.render(this, id)", screen)
+        self.assertNotIn('tx("about")', screen)
+        self.assertNotIn('tx("privacy")', screen)
+        self.assertIn('SettingsActivity::class.java', home)
+        self.assertIn('setOnClickListener { info(tx("privacy"), tx("privacy_desc")) }', home)
+        self.assertIn('data.kind == "app"', provider)
+        self.assertIn("WidgetStore.attachStagedPhoto(this, -48047, widgetId)", editor)
+        xml = ET.parse(ROOT / "app/src/main/AndroidManifest.xml").getroot()
+        activities = [a.attrib.get(f"{{{ANDROID}}}name") for a in xml.find("application").findall("activity")]
+        self.assertIn(".SettingsActivity", activities)
 
 if __name__ == "__main__":
     unittest.main()
