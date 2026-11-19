@@ -86,7 +86,7 @@ object VaryokText {
         val p = prefs(ctx)
         val kind = p.getString("pending_kind", null) ?: return null
         val age = android.os.SystemClock.elapsedRealtime() - p.getLong("pending_created_at", 0L)
-        val result = if (age in 0..600000) {
+        val result = if (age >= 0L && age <= 600_000L) {
             Preset(kind, p.getInt("pending_opacity", 100).coerceIn(0, 100),
                 p.getString("pending_target", "") ?: "", p.getString("pending_caption", "") ?: "")
         } else null
