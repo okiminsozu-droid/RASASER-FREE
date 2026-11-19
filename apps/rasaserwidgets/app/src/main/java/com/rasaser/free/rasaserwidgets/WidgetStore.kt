@@ -74,11 +74,11 @@ object WidgetStore {
     fun discardPending(ctx: Context, id: Int) { pending(ctx, id).delete() }
 
     /** Decode selected URI twice to cap memory; write only into app-private storage. */
-    fun stageSelectedPhoto(ctx: Context, id: Int, uri: Uri): Boolean = try {
+    fun stageSelectedPhoto(ctx: Context, id: Int, uri: Uri): Boolean {
+        return try {
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-        ctx.contentResolver.openInputStream(uri)?.use {
-            BitmapFactory.decodeStream(it, null, bounds)
-        } ?: return false
+        val probe = ctx.contentResolver.openInputStream(uri) ?: return false
+        probe.use { BitmapFactory.decodeStream(it, null, bounds) }
         if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return false
         var sample = 1
         while (bounds.outWidth / sample > 768 || bounds.outHeight / sample > 768) {
@@ -101,7 +101,8 @@ object WidgetStore {
         if (bitmap !== decoded) bitmap.recycle()
         decoded.recycle()
         ok
-    } catch (_: Exception) { false }
+        } catch (_: Exception) { false }
+    }
 
     fun bitmap(ctx: Context, id: Int, maxSide: Int = 300, usePending: Boolean = false): Bitmap? {
         val file = if (usePending && pending(ctx, id).exists()) pending(ctx, id) else photo(ctx, id)
