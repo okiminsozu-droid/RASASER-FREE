@@ -78,6 +78,17 @@ object WidgetStore {
         }
     }
     fun discardPending(ctx: Context, id: Int) { pending(ctx, id).delete() }
+    /** Single-use photo chosen in the preview sheet before Android allocates a widget ID. */
+    fun attachStagedPhoto(ctx: Context, sourceId: Int, newWidgetId: Int) {
+        val src = pending(ctx, sourceId)
+        if (!src.exists()) return
+        try {
+            src.copyTo(pending(ctx, newWidgetId), overwrite = true)
+        } finally {
+            src.delete()
+        }
+    }
+
 
     /** Decode selected URI twice to cap memory; write only into app-private storage. */
     fun stageSelectedPhoto(ctx: Context, id: Int, uri: Uri): Boolean {
