@@ -6,6 +6,8 @@ import android.appwidget.AppWidgetManager
 import android.content.ComponentName
 import android.content.Intent
 import android.os.Bundle
+import android.os.Build
+import android.provider.MediaStore
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import android.widget.ImageView
@@ -28,6 +30,7 @@ class WidgetEditorActivity : Activity() {
     private lateinit var percent: TextView
     private var clearImage = false
     private var saved = false
+    @Volatile private var photoLoading = false
     private fun wt(key: String) = WidgetText.t(this, key)
     private val pictureRequest = 724
 
@@ -65,14 +68,14 @@ class WidgetEditorActivity : Activity() {
         val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, titles)
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         kinds.adapter = adapter
-        kinds.setSelection(codes.indexOf(preset?.first ?: existing.kind).coerceAtLeast(0))
+        kinds.setSelection(codes.indexOf(preset?.kind ?: existing.kind).coerceAtLeast(0))
         options.addView(kinds, LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT, UiKit.dp(this, 48)))
         UiKit.label(this, options, wt("target_label"), 13f, UiKit.GOLD, true)
-        target = UiKit.input(this, options, wt("target_hint"), existing.target)
+        target = UiKit.input(this, options, wt("target_hint"), preset?.target?.ifBlank { existing.target } ?: existing.target)
         UiKit.button(this, options, wt("pick_apps"), false) { pickApp() }
         UiKit.label(this, options, wt("caption_label"), 13f, UiKit.GOLD, true)
-        caption = UiKit.input(this, options, wt("caption_hint"), existing.caption)
+        caption = UiKit.input(this, options, wt("caption_hint"), preset?.caption?.ifBlank { existing.caption } ?: existing.caption)
 
         val imageBox = UiKit.panel(this, root)
         UiKit.label(this, imageBox, wt("photo_label"), 13f, UiKit.GOLD, true)
@@ -84,7 +87,12 @@ class WidgetEditorActivity : Activity() {
             ViewGroup.LayoutParams.MATCH_PARENT, UiKit.dp(this, 175)))
         refreshPreview()
         UiKit.button(this, imageBox, wt("choose_photo")) {
-            val pick = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+            // The system picker lists newly added gallery photos each time it opens.
+            // No storage-wide or media-library read permission is requested.
+            val pick = if (Build.VERSION.SDK_INT >= 33 &&
+                MediaStore.isPhotoPickerAvailable()) {
+                Intent(MediaStore.ACTION_PICK_IMAGES).apply { type = "image/*" }
+            } else Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
                 type = "image/*"
                 addCategory(Intent.CATEGORY_OPENABLE)
             }
@@ -98,10 +106,10 @@ class WidgetEditorActivity : Activity() {
 
         val visibility = UiKit.panel(this, root)
         UiKit.label(this, visibility, wt("visibility_label"), 13f, UiKit.GOLD, true)
-        percent = UiKit.label(this, visibility, WidgetText.percent(this, preset?.second ?: existing.opacity), 16f)
+        percent = UiKit.label(this, visibility, WidgetText.percent(this, preset?.opacity ?: existing.opacity), 16f)
         opacity = SeekBar(this).apply {
             max = 100
-            progress = preset?.second ?: existing.opacity
+            progress = preset?.opacity ?: existing.opacity
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(bar: SeekBar?, progress: Int, fromUser: Boolean) {
                     percent.text = WidgetText.percent(this@WidgetEditorActivity, progress)
@@ -135,10 +143,14 @@ class WidgetEditorActivity : Activity() {
         AlertDialog.Builder(this).setTitle(wt("choose_app"))
             .setItems(labels.toTypedArray()) { _, position ->
                 target.setText(results[position].activityInfo.packageName)
-                kinds.setSelection(0)
+                kinds.setSelection(codes.indexOf("app"))
             }.setNegativeButton(wt("cancel"), null).show()
     }
     private fun saveAndFinish() {
+        if (photoLoading) {
+            Toast.makeText(this, wt("loading_photo"), Toast.LENGTH_SHORT).show()
+            return
+        }
         val kind = codes[kinds.selectedItemPosition]
         var value = target.text.toString().trim()
         if (kind in listOf("app", "url", "dial", "note") && value.isBlank()) {
@@ -180,10 +192,24 @@ class WidgetEditorActivity : Activity() {
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode == pictureRequest && resultCode == RESULT_OK && data?.data != null) {
-            if (WidgetStore.stageSelectedPhoto(this, widgetId, data.data!!)) {
-                clearImage = false
-                refreshPreview()
-            } else Toast.makeText(this, wt("failed_photo"), Toast.LENGTH_LONG).show()
+            if (photoLoading) return
+            photoLoading = true
+            val selected = data.data!!
+            val id = widgetId
+            Thread {
+                val result = WidgetStore.stageSelectedPhoto(this@WidgetEditorActivity, id, selected)
+                runOnUiThread {
+                    photoLoading = false
+                    if (isFinishing || isDestroyed) {
+                        WidgetStore.discardPending(this@WidgetEditorActivity, id)
+                    } else if (result) {
+                        clearImage = false
+                        refreshPreview()
+                    } else {
+                        Toast.makeText(this@WidgetEditorActivity, wt("failed_photo"), Toast.LENGTH_LONG).show()
+                    }
+                }
+            }.start()
         }
     }
     override fun onDestroy() {
