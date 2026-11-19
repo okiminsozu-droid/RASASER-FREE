@@ -69,8 +69,14 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - name: Configure Android SDK
-        uses: android-actions/setup-android@v3
+      - name: Use preinstalled Android SDK (avoid obsolete sdkmanager 'tools')
+        run: |
+          set -euo pipefail
+          echo "ANDROID_HOME=${ANDROID_HOME:-unset}"
+          command -v sdkmanager || true
+          SDKMGR="${ANDROID_HOME:-/usr/local/lib/android/sdk}/cmdline-tools/16.0/bin/sdkmanager"
+          if [ -x "$SDKMGR" ]; then echo "$(dirname "$SDKMGR")" >> "$GITHUB_PATH"; fi
+          yes | "$SDKMGR" --licenses >/dev/null || true
       - name: Install SDK 35
         run: sdkmanager --install "platforms;android-35" "build-tools;35.0.0"
       - name: Set up Gradle 8.9
