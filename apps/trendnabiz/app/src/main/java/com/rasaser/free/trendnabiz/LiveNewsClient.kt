@@ -13,17 +13,17 @@ import java.util.LinkedHashMap
 import java.util.concurrent.TimeUnit
 
 /**
- * App-visible live websocket connection. Does not retain news on disk.
- * Android can suspend or terminate this connection in the background.
- * Lock-screen SLA requires a compliant separately-tested push receiver.
+ * WebSocket reader, only factual transient notices. It does not save any article to disk.
+ * Android can suspend network activity even when the user enabled live foreground monitoring.
  */
 class LiveNewsClient(
     private val onEvent: (NewsItem) -> Unit,
-    private val onConnected: (Boolean) -> Unit
+    private val onConnected: (Boolean) -> Unit,
+    private val onState: (String) -> Unit = {}
 ) {
     private val main = Handler(Looper.getMainLooper())
     private val http = OkHttpClient.Builder()
-        .pingInterval(30, TimeUnit.SECONDS)
+        .pingInterval(25, TimeUnit.SECONDS)
         .connectTimeout(12, TimeUnit.SECONDS)
         .retryOnConnectionFailure(true)
         .build()
@@ -31,61 +31,69 @@ class LiveNewsClient(
     private var socket: WebSocket? = null
     private var started = false
     private var attempt = 0
+    private var generation = 0
     private val seen = LinkedHashMap<String, Long>()
-    private val reconnect = Runnable { if(started) connect() }
+    private val reconnect = Runnable { if (started) connect() }
 
     fun start() {
-        if (started) return
-        started = true
+        if(started) return
+        started=true
+        onState("connecting")
         connect()
     }
-
     private fun connect() {
         if(!started) return
+        val g=++generation
+        onState("connecting")
         try {
-            socket = http.newWebSocket(Request.Builder().url(target).build(), object : WebSocketListener() {
-                override fun onOpen(webSocket: WebSocket, response: Response) {
+            socket = http.newWebSocket(Request.Builder().url(target).build(), object:WebSocketListener() {
+                override fun onOpen(ws:WebSocket, response:Response) {
                     main.post {
-                        if (started) {
-                            attempt = 0
-                            onConnected(true)
-                        } else webSocket.close(1000, null)
+                        if(!started || g!=generation) { ws.close(1000,null); return@post }
+                        attempt=0
+                        onState("connected")
+                        onConnected(true)
+                        ws.send("ping")
                     }
                 }
-                override fun onMessage(webSocket: WebSocket, text: String) {
-                    if(text.length > 4096) return
-                    val obj = try { JSONObject(text) } catch (_: Exception) { return }
-                    if(obj.optString("type") != "event") return
-                    val item = parse(obj) ?: return
+                override fun onMessage(ws:WebSocket, text:String) {
+                    if(text.length>4096) return
+                    val obj=try { JSONObject(text) } catch (_:Exception) { return }
+                    if(obj.optString("type")=="pong" || obj.optString("type")=="hello"){
+                        main.post { if(g==generation&&started)onState("connected") }
+                        return
+                    }
+                    if(obj.optString("type")!="event") return
+                    val item=parse(obj) ?: return
                     main.post {
-                        if(!started) return@post
-                        val now = System.currentTimeMillis()
-                        seen.entries.removeAll { it.value <= now }
+                        if(!started||g!=generation)return@post
+                        val now=System.currentTimeMillis()
+                        seen.entries.removeAll{it.value<=now}
                         if(seen.containsKey(item.id)) return@post
-                        seen[item.id] = now + 180_000L // In-memory ID only, no retained article content
+                        seen[item.id]=now+180000L
                         onEvent(item)
                     }
                 }
-                override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
-                    webSocket.close(1000,null)
+                override fun onClosing(ws:WebSocket, code:Int, reason:String) { ws.close(1000,null) }
+                override fun onClosed(ws:WebSocket, code:Int, reason:String) {
+                    main.post { if(started&&g==generation){ onConnected(false);onState("closed:$code");retry() } }
                 }
-                override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
-                    main.post { if(started) { onConnected(false); retry() } }
-                }
-                override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
-                    main.post { if(started) { onConnected(false); retry() } }
+                override fun onFailure(ws:WebSocket, error:Throwable, response:Response?) {
+                    val state="error:"+(response?.code?.toString()?:error.javaClass.simpleName)
+                    main.post { if(started&&g==generation){onConnected(false);onState(state);retry()} }
                 }
             })
-        } catch (_: Exception) { retry() }
+        } catch(t:Exception) {
+            onState("error:"+t.javaClass.simpleName)
+            retry()
+        }
     }
-
     private fun retry() {
         main.removeCallbacks(reconnect)
-        val delay = minOf(60_000L, 2000L * (1L shl minOf(attempt++, 5)))
-        main.postDelayed(reconnect, delay)
+        val delay=minOf(60000L,2000L*(1L shl minOf(attempt++,5)))
+        main.postDelayed(reconnect,delay)
     }
-
-    private fun parse(obj: JSONObject): NewsItem? {
+    private fun parse(obj:JSONObject):NewsItem? {
         val id=obj.optString("id").take(180)
         val title=obj.optString("title").take(200)
         val description=obj.optString("summary").take(340)
@@ -93,24 +101,22 @@ class LiveNewsClient(
         val sourceUrl=obj.optString("sourceUrl")
         val issuedAt=obj.optLong("issuedAt")
         val now=System.currentTimeMillis()
-        if(id.isBlank() || title.isBlank() || source.isBlank()) return null
-        if(issuedAt < now-180_000L || issuedAt > now+30_000L) return null
-        val url=try { URI(sourceUrl) } catch(_:Exception){return null}
-        if(url.scheme!="https" || url.host.isNullOrBlank() || url.userInfo!=null) return null
-        val magnitude=Regex("M([0-9]+(?:\\.[0-9]+)?)").find(title)?.groupValues?.get(1)?.toDoubleOrNull() ?: 0.0
-        return NewsItem(
-            id=id,title=title,description=description,source=source,
-            sourceUrl=sourceUrl,publishedAt=issuedAt,magnitude=magnitude,
-            category=obj.optString("category","world"),severity=obj.optString("priority","normal")
-        )
+        if(id.isBlank()||title.isBlank()||source.isBlank())return null
+        if(issuedAt<=now-180000L||issuedAt>now+30000L)return null
+        val url=try{URI(sourceUrl)}catch(_:Exception){return null}
+        if(url.scheme!="https"||url.host.isNullOrBlank()||url.userInfo!=null)return null
+        val magnitude=Regex("M([0-9]+(?:\\.[0-9]+)?)").find(title)?.groupValues?.get(1)?.toDoubleOrNull()?:0.0
+        return NewsItem(id,title,description,source,sourceUrl,issuedAt,magnitude,
+            obj.optString("category","world"),obj.optString("priority","normal"))
     }
-
     fun stop() {
-        started = false
+        started=false
+        generation++
         main.removeCallbacks(reconnect)
-        socket?.close(1000, "app_not_visible")
-        socket = null
+        socket?.close(1000,"disconnect")
+        socket=null
         seen.clear()
         onConnected(false)
+        onState("stopped")
     }
 }
