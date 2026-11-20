@@ -22,6 +22,7 @@ class MainActivity : Activity() {
     private val pink = 0xFFF5C8D5.toInt()
     private val powder = 0xFFFFE8EF.toInt()
     private val ink = 0xFF812643.toInt()
+    private val ownerLogin by lazy { OwnerBrowserLogin(this) { render() } }
     private fun dp(value: Int) = (value * resources.displayMetrics.density).toInt()
     private fun tx(key: String) = VaryokText.t(this, key)
 
@@ -47,12 +48,18 @@ class MainActivity : Activity() {
                     useDeviceCredential = { usePhoneLock() }
                 )
             }
-        } else render()
+        } else {
+            render()
+            ownerLogin.onAppResumed()
+        }
     }
     private fun grantAccess() {
         authenticationShowing = false
         unlockedUntil = android.os.SystemClock.elapsedRealtime() + 180_000L
-        if (!isFinishing && !isDestroyed) render()
+        if (!isFinishing && !isDestroyed) {
+            render()
+            ownerLogin.onAppResumed()
+        }
     }
     private fun showLockedScreen() {
         val container = LinearLayout(this).apply {
@@ -160,6 +167,9 @@ class MainActivity : Activity() {
             scaleType = ImageView.ScaleType.FIT_CENTER
             adjustViewBounds = true
             contentDescription = "VARYOK • RaSaSeR • APPS & TECHNOLOGY"
+            isClickable = true
+            isFocusable = true
+            setOnClickListener { ownerLogin.onBrandTap() }
         }
         root.addView(brand, LinearLayout.LayoutParams(-1, dp(296)))
         root.addView(TextView(this), LinearLayout.LayoutParams(1, dp(35)))
@@ -187,9 +197,11 @@ class MainActivity : Activity() {
         }
 
         root.addView(TextView(this), LinearLayout.LayoutParams(1, 0, 1f))
-        root.addView(text(tx("premium_note"), 14f))
-        root.addView(text(tx("quota").replace("%d",
-            (3 - WidgetStore.creationCount(this)).coerceAtLeast(0).toString()), 15f, true).apply {
+        root.addView(text(if (OwnerPremium.isActive(this))
+            OwnerLoginText.t(this, "active") else tx("premium_note"), 14f))
+        root.addView(text(if (OwnerPremium.isActive(this)) OwnerLoginText.t(this, "quota")
+            else tx("quota").replace("%d",
+                (3 - WidgetStore.creationCount(this)).coerceAtLeast(0).toString()), 15f, true).apply {
             background = surface()
             setPadding(dp(10), dp(14), dp(10), dp(14))
         }, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(12) })
@@ -208,7 +220,7 @@ class MainActivity : Activity() {
         footer.addView(text("ⓘ", 26f, true).apply {
             gravity = Gravity.CENTER
             contentDescription = tx("privacy")
-            setOnClickListener { info(tx("privacy"), tx("privacy_desc")) }
+            setOnClickListener { info(tx("privacy"), OwnerLoginText.t(this@MainActivity, "privacy")) }
         }, LinearLayout.LayoutParams(dp(47), dp(48)))
         root.addView(footer)
     }
@@ -239,7 +251,8 @@ class MainActivity : Activity() {
             })
         }
 
-        val status = text(PremiumInfoText.t(this, "status"), 12.5f).apply {
+        val status = text(if (OwnerPremium.isActive(this)) OwnerLoginText.t(this, "active")
+            else PremiumInfoText.t(this, "status"), 12.5f).apply {
             gravity = Gravity.START
             setTextColor(0xFF845C52.toInt())
             background = surface()
