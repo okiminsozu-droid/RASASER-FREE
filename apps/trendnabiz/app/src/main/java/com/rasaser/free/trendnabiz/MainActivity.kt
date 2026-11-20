@@ -102,7 +102,7 @@ class MainActivity : ComponentActivity() {
         NewsNotifications.publish(this,story)
         uiHandler.postDelayed({
             liveStories=liveStories.filter { it.publishedAt > System.currentTimeMillis()-180000L }
-        },181000L)
+        },(story.publishedAt+180000L-now).coerceAtLeast(0L)+750L)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -312,7 +312,8 @@ private fun TrendNabizApp(
                                             val intent=Intent(context,LiveMonitoringService::class.java).setAction(
                                                 if(enabled) LiveMonitoringService.ACTION_START else LiveMonitoringService.ACTION_STOP
                                             )
-                                            androidx.core.content.ContextCompat.startForegroundService(context,intent)
+                                            if(enabled) androidx.core.content.ContextCompat.startForegroundService(context,intent)
+                                            else context.startService(intent)
                                             backgroundWatching=enabled
                                         } catch(_:Exception) { backgroundWatching=false }
                                     }

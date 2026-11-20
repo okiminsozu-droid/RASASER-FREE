@@ -74,7 +74,7 @@ class LiveMonitoringService : Service() {
         live=null
         UserPrefs.setMonitoring(this,false)
         if(Build.VERSION.SDK_INT>=24) stopForeground(STOP_FOREGROUND_REMOVE)
-        else { @Suppress("DEPRECATION") stopForeground(true) }
+        else stopForeground(true)
         stopSelf()
     }
     override fun onDestroy() {
