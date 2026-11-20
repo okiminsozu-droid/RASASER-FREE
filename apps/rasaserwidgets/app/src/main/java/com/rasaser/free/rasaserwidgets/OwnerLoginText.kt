@@ -12,9 +12,9 @@ object OwnerLoginText {
             "pending" to "Google onayından sonra bu uygulamaya dönün. Onay henüz tamamlanmadı.",
             "check" to "Onayı Kontrol Et",
             "later" to "Daha Sonra",
-            "active" to "RaSaSeR Sahip Premium • Süresiz",
+            "active" to "Premium • Süresiz",
             "quota" to "Sınırsız widget oluşturma hakkınız aktif.",
-            "privacy" to "Widget ayarlarınız ve seçtiğiniz görseller cihazınızda saklanır. İsteğe bağlı RaSaSeR sahip girişinde Google hesabınızın doğrulanmış kimliği ve cihazın yalnızca açık anahtarı, güvenli doğrulama hizmetine iletilir. Google şifreniz, fotoğraflarınız ve widget içerikleriniz gönderilmez."
+            "privacy" to "Widget ayarları ve seçilen fotoğraflar yalnızca telefonunuzda tutulur. Promosyon kodu etkinleştirilirken kod, uygulama kimliği ve rastgele oluşturulmuş kurulum kimliği güvenli doğrulama servisine gönderilir. Kod açık olarak saklanmaz; reklam veya takip yapılmaz.",
         ),
         "en" to mapOf(
             "inactive" to "Secure owner sign-in is unavailable right now. Please try again later.",
@@ -23,9 +23,9 @@ object OwnerLoginText {
             "pending" to "Return to this app after Google approval. Approval is still pending.",
             "check" to "Check Approval",
             "later" to "Later",
-            "active" to "RaSaSeR Owner Premium • Lifetime",
+            "active" to "Premium • Lifetime",
             "quota" to "Unlimited widget creation is active.",
-            "privacy" to "Widget settings and selected images stay on your device. Optional RaSaSeR owner sign-in shares your verified Google account identity and only your device's public key with our secure verification service. Your Google password, photos and widget contents are never sent."
+            "privacy" to "Widget settings and selected photos stay on your device. When activating a promo code, the code, app identifier and a randomly generated installation identifier are sent to our secure verification service. The code is not stored in plain text; there are no ads or tracking.",
         ),
         "de" to mapOf(
             "inactive" to "Die sichere Inhaberanmeldung ist derzeit nicht erreichbar. Bitte versuchen Sie es später erneut.",
@@ -34,9 +34,9 @@ object OwnerLoginText {
             "pending" to "Kehren Sie nach der Google-Bestätigung zur App zurück. Die Bestätigung steht noch aus.",
             "check" to "Bestätigung prüfen",
             "later" to "Später",
-            "active" to "RaSaSeR Inhaber-Premium • Lebenslang",
+            "active" to "Premium • Dauerhaft",
             "quota" to "Unbegrenzte Widget-Erstellung ist aktiv.",
-            "privacy" to "Widget-Einstellungen und ausgewählte Bilder bleiben auf Ihrem Gerät. Die optionale RaSaSeR-Inhaberanmeldung übermittelt die bestätigte Google-Kontoidentität und nur den öffentlichen Geräteschlüssel an unseren sicheren Verifizierungsdienst. Google-Passwort, Fotos und Widget-Inhalte werden nicht übertragen."
+            "privacy" to "Widget-Einstellungen und ausgewählte Fotos bleiben auf Ihrem Gerät. Beim Einlösen eines Promocodes werden Code, App-Kennung und eine zufällig erzeugte Installationskennung an unseren sicheren Prüfdienst gesendet. Der Code wird nicht im Klartext gespeichert; keine Werbung oder Nachverfolgung.",
         ),
         "es" to mapOf(
             "inactive" to "No se puede acceder al inicio de sesión seguro del propietario. Inténtalo más tarde.",
@@ -45,9 +45,9 @@ object OwnerLoginText {
             "pending" to "Vuelve a esta aplicación después de la aprobación de Google. La aprobación está pendiente.",
             "check" to "Comprobar aprobación",
             "later" to "Más tarde",
-            "active" to "RaSaSeR Premium del propietario • De por vida",
+            "active" to "Premium • De por vida",
             "quota" to "Creación ilimitada de widgets activada.",
-            "privacy" to "La configuración de widgets y las imágenes elegidas permanecen en tu dispositivo. El acceso opcional del propietario de RaSaSeR envía la identidad verificada de Google y solo la clave pública del dispositivo al servicio seguro de verificación. No se envían la contraseña de Google, las fotos ni el contenido de los widgets."
+            "privacy" to "Los ajustes y fotos de widgets permanecen en tu dispositivo. Para activar un código promocional se envían el código, el identificador de la aplicación y un identificador aleatorio de instalación a nuestro servicio seguro. El código no se guarda sin cifrar; no hay anuncios ni seguimiento.",
         ),
         "ja" to mapOf(
             "inactive" to "安全な所有者ログインには現在接続できません。後でもう一度お試しください。",
@@ -56,9 +56,9 @@ object OwnerLoginText {
             "pending" to "Google承認後、このアプリに戻ってください。承認はまだ保留中です。",
             "check" to "承認を確認",
             "later" to "あとで",
-            "active" to "RaSaSeR所有者Premium・無期限",
+            "active" to "Premium・無期限",
             "quota" to "ウィジェットを無制限に作成できます。",
-            "privacy" to "ウィジェット設定と選択した画像は端末に保存されます。任意のRaSaSeR所有者ログインでは、確認済みのGoogleアカウント識別情報と端末の公開鍵のみを安全な認証サービスへ送ります。Googleパスワード、写真、ウィジェット内容は送信しません。"
+            "privacy" to "ウィジェット設定と選択した写真は端末内に保存されます。プロモーションコードの有効化時には、コード、アプリ識別子、ランダムなインストール識別子を安全な認証サービスに送信します。コードの平文保存、広告、追跡はありません。",
         ),
         "ar" to mapOf(
             "inactive" to "تسجيل دخول المالك الآمن غير متاح حاليًا. يرجى المحاولة لاحقًا.",
@@ -67,9 +67,9 @@ object OwnerLoginText {
             "pending" to "ارجع إلى التطبيق بعد موافقة Google. الموافقة لا تزال معلّقة.",
             "check" to "التحقق من الموافقة",
             "later" to "لاحقًا",
-            "active" to "RaSaSeR Premium للمالك • مدى الحياة",
+            "active" to "Premium • مدى الحياة",
             "quota" to "إنشاء أدوات بلا حدود أصبح مفعّلًا.",
-            "privacy" to "تُحفظ إعدادات الأدوات والصور المختارة على جهازك. عند تسجيل دخول مالك RaSaSeR الاختياري، تُرسل هوية حساب Google المؤكدة والمفتاح العام للجهاز فقط إلى خدمة التحقق الآمنة. لا تُرسل كلمة مرور Google أو الصور أو محتويات الأدوات."
+            "privacy" to "تظل إعدادات الأدوات والصور المختارة على جهازك. عند تفعيل الرمز الترويجي يُرسل الرمز ومعرّف التطبيق ومعرّف تثبيت عشوائي إلى خدمة التحقق الآمنة. لا يُحفظ الرمز كنص واضح، ولا توجد إعلانات أو تتبّع."
         )
     )
 
