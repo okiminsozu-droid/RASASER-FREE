@@ -5,7 +5,7 @@
   "version_code": 2,
   "version_name": "0.2.0",
   "private_engine_required": false,
-  "allow_public_debug_artifacts": false,
+  "allow_public_debug_artifacts": true,
   "license_review_completed": false,
   "release_signing_location": "PRIVATE_ONLY",
   "news_engine": "trendnabiz-engine",
@@ -14,5 +14,6 @@
   "news_retention_seconds": 180,
   "push_mode": "foreground_websocket_only",
   "background_push_verified": false,
-  "billing_status": "NOT_INTEGRATED"
+  "billing_status": "NOT_INTEGRATED",
+  "test_apk_reason": "Owner-requested isolated debug build, public source only; no signing keys and no production push claim"
 }

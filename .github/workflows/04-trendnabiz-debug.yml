@@ -1,0 +1,55 @@
+name: TRENDNABIZ Isolated Android Test APK
+
+on:
+  push:
+    branches:
+      - feature/trendnabiz-notification-first-v1
+    paths:
+      - "apps/trendnabiz/**"
+      - ".github/workflows/04-trendnabiz-debug.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: trendnabiz-test-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  test-apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Checkout TRENDNABIZ source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Android SDK tools
+        uses: android-actions/setup-android@v4
+      - name: Install Android API 35
+        run: sdkmanager --install "platforms;android-35" "build-tools;35.0.0"
+      - name: Gradle 8.9
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Validate isolated application
+        run: |
+          python3 tools/check_repo.py
+          python3 tools/validate_app.py trendnabiz true
+      - name: Build unsigned-for-release test APK
+        run: gradle --no-daemon --stacktrace --project-dir apps/trendnabiz :app:assembleDebug :app:testDebugUnitTest
+      - name: Display APK checksum
+        run: sha256sum apps/trendnabiz/app/build/outputs/apk/debug/*.apk
+      - name: Publish test APK (DEBUG, not Play Store release)
+        uses: actions/upload-artifact@v4
+        with:
+          name: TRENDNABIZ-0.2.0-TEST-APK
+          path: apps/trendnabiz/app/build/outputs/apk/debug/*.apk
+          retention-days: 7
+          if-no-files-found: error
