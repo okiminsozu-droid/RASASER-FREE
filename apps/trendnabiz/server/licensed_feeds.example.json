@@ -1,0 +1,11 @@
+[
+  {
+    "name": "Example: authorized news provider",
+    "url": "https://example.org/approved-news-feed.xml",
+    "category": "world",
+    "enabled": false,
+    "permission_recorded": false,
+    "title_and_summary_reuse_allowed": false,
+    "proof_of_permission": "Keep a dated written agreement/license record and verify conditions before enabling"
+  }
+]
