@@ -1,3 +1,31 @@
+# VARYOK — RaSaSeR • APPS & TECHNOLOGY (0.4.1 GİRİŞ/GÖRSEL DÜZELTMELERİ)
+
+## 0.4.1 değişiklikleri
+- RaSaSeR logosuna 7 kez dokununca **gerçek HTTPS sahip girişini** başlatır; yalnızca
+  `aktif değil` uyarısını gösteren yerel kapı kaldırıldı. Sunucu gerekli gizli
+  ayarlarla hazırlanmadıysa güvenle reddeder. Başarılı Google onayı + cihaz
+  kanıtı + sunucu imzalı sertifika **olmadan** Premium sınırsız hakkı açılmaz.
+- Tek genel ECDSA P-256 doğrulama anahtarı, yalnız güvenli doğrulama adresinden
+  alınır ve Android cihazda ilk kullanımdan sonra sabitlenir. **HİÇBİR
+  Google secret, imzalama özel/genel anahtarı veya parola RASASER-FREE'ye
+  konulmaz.** Merkezi özel imzalama anahtarı Cloudflare'de kalır.
+- Gizlilik penceresinden gereksiz sunucu marka/teknik adı çıkarıldı; buna rağmen
+  Google hesap kimliğinin ve cihazın açık anahtarının doğrulama sunucusuna
+  iletilmesi açıkça belirtilir.
+- Premium penceresindeki büyük satın alma etkin değil uyarı kartı çıkarıldı.
+  Renk kontrastı, okunabilirlik ve yıllık Premium bilgi sunumu iyileştirildi.
+  **Satın alma düğmesi eklenmedi:** Play Billing doğrulaması ve ürün aktivasyonu
+  henüz tamamlanmadığı için ödeme alındığına dair yanlış bir mesaj verilmez.
+- Üç farklı uygulama ücretsiz widget sınırı, tekrar eden uygulama hakları,
+  mevcut widget verileri, PIN/biyometri, logosu ve altı dil korunur.
+- Yeni sürüm: `versionCode=10`, `versionName=0.4.1`, Android API 36.
+- Gereken son canlı kontroller: Cloudflare Web Client Secret ve ayrı ECDSA
+  imzalayıcının Cloudflare özel ayarlarında kurulması; Google OAuth uçtan uca
+  testi; Play abonelik ürününün ve satın alma doğrulamasının tamamlanması.
+  **Bu aşamada Play'de yalnız yayınlanmamış taslak uygundur.**
+
+## Önceki sürümler
+
 # VARYOK — RaSaSeR • APPS & TECHNOLOGY (0.4.0 OWNER ACCESS PREVIEW)
 
 **Yeni sürüm 0.4.0 / versionCode 9 / Android API 36.** Bu sürüm
