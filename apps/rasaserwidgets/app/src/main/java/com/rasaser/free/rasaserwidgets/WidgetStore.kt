@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
+import com.rasaser.shared.promo.RaSaSeRPromo
 import java.io.File
 
 data class WidgetConfig(
@@ -60,12 +61,12 @@ object WidgetStore {
 
     fun creationCount(ctx: Context): Int = usedApplicationPackages(ctx).size
     fun canCreate(ctx: Context): Boolean =
-        OwnerPremium.isActive(ctx) || creationCount(ctx) < 3
+        (OwnerPremium.isActive(ctx) || RaSaSeRPromo.isActive(ctx)) || creationCount(ctx) < 3
 
     fun canCreateFor(ctx: Context, targetPackage: String): Boolean {
         val target = targetPackage.trim().lowercase(java.util.Locale.ROOT)
         return target.isNotBlank() &&
-            (OwnerPremium.isActive(ctx) || target in usedApplicationPackages(ctx) || creationCount(ctx) < 3)
+            (OwnerPremium.isActive(ctx) || RaSaSeRPromo.isActive(ctx) || target in usedApplicationPackages(ctx) || creationCount(ctx) < 3)
     }
 
     @Synchronized
