@@ -32,3 +32,10 @@ No Cloudflare credentials, sign keys, publisher full-text articles or user data 
 4. Add vetted global publisher sources and rights register; verify no non-permitted text is redistributed.
 5. Verify all news content disappears after 180 seconds from app state, and Worker logs/metrics remain configured without event content.
 6. Integrate verified Play Billing or other compliant entitlement before Premium release.
+
+## v0.3.0 Repair test build
+- Cloudflare live websocket hub verified through public handshake diagnostic. Five official-source adapters: USGS, NASA EONET, NOAA/NWS, GDACS, European Commission; not every worldwide news publisher.
+- Android error diagnostics are visible. Story content and identifiers are not saved; system notification timeout after 180 seconds. The OS-level notification history remains outside app control.
+- Debug-only user opt-in foreground service can keep a WebSocket connection running while the UI is in the background, with a persistent stop button. Android OEM power management can still suspend it. Google Play review is required before considering any release version with foreground special-use service.
+- Production release manifest intentionally does not declare that debug-only foreground service. No 99% guarantee or FCM push is connected.
+- Language-specific original summary templates provided for the five verified source families. Third-party English headlines are not silently machine-translated.

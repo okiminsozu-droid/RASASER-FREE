@@ -5,4 +5,7 @@ Earthquake data: USGS (earthquake.usgs.gov). Do not represent third-party data a
 Any additional news feed must be reviewed for publication, image and text rights before enabling in production.
 Notification artwork and trademark logo belong to RaSaSeR's TRENDNABIZ brand design.
 Translation opens an external Google Translate page only when a user taps Translate; no paid translation API.
-The linked website www.okiminsozu.com is separately managed and is not modified by TRENDNABIZ.
+The linked website www.okiminsozu.com is displayed only as a publisher website and is not used as a news service or modified by TRENDNABIZ.
+No news article content is saved to Cloudflare R2/D1/KV or on-device SQLite/SharedPreferences. The Android system may keep its own notification history outside the app's control.
+Global event feeds: USGS, NASA EONET, NOAA/NWS, GDACS and European Commission press notices. Each maintains separate attribution and conditions.
+Debug-only opt-in live foreground monitoring is an experiment; Android may interrupt it. It is not enabled in release manifest.

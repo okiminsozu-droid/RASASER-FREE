@@ -2,8 +2,8 @@
   "slug": "trendnabiz",
   "display_name": "TRENDNABIZ",
   "package_id": "com.rasaser.free.trendnabiz",
-  "version_code": 2,
-  "version_name": "0.2.0",
+  "version_code": 3,
+  "version_name": "0.3.0",
   "private_engine_required": false,
   "allow_public_debug_artifacts": true,
   "license_review_completed": false,
@@ -15,5 +15,17 @@
   "push_mode": "foreground_websocket_only",
   "background_push_verified": false,
   "billing_status": "NOT_INTEGRATED",
-  "test_apk_reason": "Owner-requested isolated debug build, public source only; no signing keys and no production push claim"
+  "test_apk_reason": "Owner-requested isolated debug build, public source only; no signing keys and no production push claim",
+  "cloudflare_engine": "trendnabiz-engine",
+  "background_monitoring": "USER_OPT_IN_DEBUG_ONLY_FGS_SPECIAL_USE",
+  "offline_news_archive": false,
+  "sources": [
+    "USGS",
+    "NASA EONET",
+    "NOAA/NWS",
+    "GDACS",
+    "European Commission"
+  ],
+  "news_ttl_seconds": 180,
+  "lock_screen_delivery_guaranteed": false
 }
