@@ -233,44 +233,38 @@ class OfflineContractTests(unittest.TestCase):
         self.assertNotIn("BillingClient", home)
         self.assertIn('setPositiveButton(PremiumInfoText.t(this, "close"), null)', home)
 
-    def test_owner_google_access_is_fail_closed_and_private(self):
-        base = ROOT / "app/src/main/java/com/rasaser/free/rasaserwidgets"
-        premium = (base / "OwnerPremium.kt").read_text(encoding="utf-8")
-        login = (base / "OwnerBrowserLogin.kt").read_text(encoding="utf-8")
-        labels = (base / "OwnerLoginText.kt").read_text(encoding="utf-8")
-        main = (base / "MainActivity.kt").read_text(encoding="utf-8")
-        store = (base / "WidgetStore.kt").read_text(encoding="utf-8")
-        for required in ("AndroidKeyStore", "SHA256withECDSA",
-                         'payload.optString("packageName") != context.packageName',
-                         'payload.optString("devicePublicKey") != devicePublicKey()',
-                         'payload.optString("scope") != "owner_lifetime"',
-                         'private const val KEY_PREFS = "rasaser_owner_trusted_server_key"'):
-            self.assertIn(required, premium)
-        self.assertIn("if (!isConfigured(context)) return false", premium)
-        self.assertIn("fun configurePublicKey(context: Context, spkiB64Url: String)", premium)
-        self.assertNotIn("TRUSTED_SERVER_PUBLIC_KEY_SPKI_B64URL", premium)
-        self.assertIn("acceptSignedGrant", premium)
-        self.assertIn("7", login)
-        self.assertIn("Intent.ACTION_VIEW", login)
-        self.assertIn('fetchOwnerVerificationKey()', login)
-        self.assertIn('OwnerPremium.configurePublicKey(activity, publicKey)', login)
-        self.assertIn('/v1/owner/browser/public-key', login)
-        self.assertIn('/v1/owner/browser/start', login)
-        self.assertIn('/v1/owner/browser/status', login)
-        self.assertIn('/v1/owner/browser/finish', login)
-        self.assertIn("OwnerPremium.signSession", login)
-        self.assertIn("OwnerPremium.acceptSignedGrant", login)
-        self.assertIn("setOnClickListener { ownerLogin.onBrandTap() }", main)
-        self.assertIn("ownerLogin.onAppResumed()", main)
-        self.assertIn("OwnerPremium.isActive(ctx)", store)
+    def test_single_code_premium_across_apps_with_no_hidden_taps(self):
+        app = ROOT / "app/src/main/java/com/rasaser/free/rasaserwidgets"
+        shared = ROOT / "app/src/main/java/com/rasaser/shared/promo/RaSaSeRPromo.kt"
+        owner = (app / "OwnerPremium.kt").read_text(encoding="utf-8")
+        home = (app / "MainActivity.kt").read_text(encoding="utf-8")
+        store = (app / "WidgetStore.kt").read_text(encoding="utf-8")
+        labels = (app / "OwnerLoginText.kt").read_text(encoding="utf-8")
+        promo = shared.read_text(encoding="utf-8")
+        self.assertFalse((app / "OwnerBrowserLogin.kt").exists())
+        self.assertNotIn("ownerLogin", home)
+        self.assertNotIn("onBrandTap", home)
+        self.assertIn("RaSaSeRPromo.title(VaryokText.language(this))", home)
+        self.assertIn("RaSaSeRPromo.showCodeDialog(", home)
+        self.assertIn("RaSaSeRPromo.isActive(this)", home)
+        self.assertIn("RaSaSeRPromo.isActive(ctx)", store)
+        self.assertIn("AndroidKeyStore", promo)
+        self.assertIn("HmacSHA256", promo) if "HmacSHA256" in promo else self.assertIn("KEY_ALGORITHM_HMAC_SHA256", promo)
+        self.assertIn('"/v1/promo/redeem"', promo)
+        self.assertIn("owner_lifetime", promo)
+        self.assertIn("MessageDigest.isEqual(actual, decode(signature))", promo)
+        self.assertIn("fun showCodeDialog(activity: Activity", promo)
+        self.assertIn("network", promo.lower())
+        self.assertNotIn("GOOGLE_WEB_CLIENT_SECRET", promo)
+        self.assertNotIn("GRANT_SIGNING_KEY", promo)
+        self.assertNotIn("BEGIN PRIVATE KEY", promo)
+        self.assertIn("payload.optString(\"scope\") != \"owner_lifetime\"", owner)
         for language in ("tr", "en", "de", "es", "ja", "ar"):
             self.assertIn(f'"{language}" to mapOf(', labels)
+            self.assertIn(f'"{language}" -> listOf(', promo)
+        self.assertIn("Promosyon Kodu Gir", promo)
         self.assertNotIn("Cloudflare", labels)
-        self.assertIn("doğrulanmış kimliği", labels)
-        self.assertNotIn("GOOGLE_WEB_CLIENT_SECRET", premium)
-        self.assertNotIn("BEGIN PRIVATE KEY", premium)
-        self.assertNotIn("GRANT_SIGNING_KEY_PKCS8_B64", login)
-        self.assertNotIn("owner_lifetime=true", login)
+        self.assertIn("Promosyon kodu etkinleştirilirken", labels)
 
     def test_bundle_version_matches_app_metadata(self):
         metadata = json.loads((ROOT / "app.json").read_text(encoding="utf-8"))
