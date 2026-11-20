@@ -165,7 +165,12 @@ export default {
       deployedSources:["USGS","NASA EONET","NOAA/NWS","GDACS","European Commission"]
     }),{headers});
     if(url.pathname === "/v1/probe") {
-      return env.LIVE_HUB.get(env.LIVE_HUB.idFromName("world-live")).fetch("https://internal/probe");
+      try {
+        const response=await env.LIVE_HUB.get(env.LIVE_HUB.idFromName("world-live")).fetch("https://internal/probe");
+        return Response.json({gateway:"active",hubStatus:response.status,hubReply:(await response.text()).slice(0,360)}, {headers:{"Cache-Control":"no-store"}});
+      } catch(_) {
+        return Response.json({gateway:"active",hubStatus:503,archive:false},{status:503,headers:{"Cache-Control":"no-store"}});
+      }
     }
     if(url.pathname === "/v1/live") {
       if(request.headers.get("Upgrade")?.toLowerCase() !== "websocket") return new Response("WebSocket required",{status:426,headers});
