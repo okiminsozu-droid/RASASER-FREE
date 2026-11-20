@@ -294,14 +294,14 @@ private fun TrendNabizApp(
                         val licenses = remember { context.assets.open("legal/licenses.txt").bufferedReader().use { it.readText() } }
                         if (BuildConfig.DEBUG) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text("Premium test mode (DEBUG only)", modifier = Modifier.weight(1f), color = ink)
+                                Text(UiText.get(lang, "debugPremium"), modifier = Modifier.weight(1f), color = ink)
                                 Switch(checked = debugPremium, onCheckedChange = {
                                     UserPrefs.setDebugPremium(context, it)
                                     debugPremium = it
                                     LatestNewsWidget.refresh(context)
                                 })
                             }
-                            Text("Only debug builds allow this. Release always requires verified billing.", color = ink, fontSize = 11.sp)
+                            Text(UiText.get(lang, "debugNotice"), color = ink, fontSize = 11.sp)
                         }
                         Text(UiText.get(lang, "about"), fontWeight = FontWeight.Bold, color = ink)
                         Text(licenses, color = ink, fontSize = 12.sp)
@@ -465,6 +465,6 @@ private fun PremiumPage(lang: UiLang, modifier: Modifier) {
             }
         }
         Text(UiText.get(lang, "purchase"), color = ink, fontWeight = FontWeight.Bold)
-        Text("Google Play Billing / entitlement: not connected in v0.1.0", color = ink, fontSize = 12.sp)
+        Text(UiText.get(lang, "billingPending"), color = ink, fontSize = 12.sp)
     }
 }

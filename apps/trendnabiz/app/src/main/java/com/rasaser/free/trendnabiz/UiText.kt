@@ -59,6 +59,11 @@ object UiText {
         "website" to listOf("Web sitemiz", "Our website", "Unsere Website", "Nuestro sitio", "我们的网站"),
         "testSent" to listOf("Test bildirimi hazırlandı.", "Test notification prepared.", "Testmeldung erstellt.", "Aviso de prueba creado.", "测试通知已准备好。"),
         "feature" to listOf("Bildirim ağırlıklı haber deneyimi", "Notification-first news", "Nachrichten zuerst als Meldung", "Noticias por notificaciones", "以通知为核心的新闻体验"),
+        "debugPremium" to listOf("Premium test modu (yalnız DEBUG)", "Premium test mode (DEBUG only)", "Premium-Testmodus (nur DEBUG)", "Modo de prueba Premium (solo DEBUG)", "高级功能测试模式（仅调试）"),
+        "debugNotice" to listOf("Yalnızca test APK'sında. Yayında doğrulanmış satın alma zorunlu.", "Only in debug builds. Release requires verified purchase.", "Nur Testversion; Veröffentlichung erfordert verifizierten Kauf.", "Solo en pruebas. La versión final exige una compra verificada.", "仅限调试版；正式版需要验证购买。"),
+        "billingPending" to listOf("Google Play satın alma doğrulaması henüz bağlanmadı.", "Google Play purchase verification is not connected yet.", "Google Play-Kaufprüfung noch nicht verbunden.", "La verificación de compras de Google Play aún no está conectada.", "尚未接入 Google Play 购买验证。"),
+        "widgetLocked" to listOf("Premium widget • TRENDNABIZ'i açın", "Premium widget • open TRENDNABIZ", "Premium-Widget • TRENDNABIZ öffnen", "Widget Premium • abre TRENDNABIZ", "高级小组件 • 打开 TRENDNABIZ"),
+        "widgetEmpty" to listOf("Son olay burada görünecek", "Latest event will appear here", "Neueste Meldung erscheint hier", "El último suceso aparecerá aquí", "最新动态将在此显示"),
         "about" to listOf("Lisans ve kaynaklar", "Licenses and sources", "Lizenzen und Quellen", "Licencias y fuentes", "许可与来源")
     )
     fun get(lang: UiLang, key: String): String = words[key]?.get(lang.ordinal) ?: key

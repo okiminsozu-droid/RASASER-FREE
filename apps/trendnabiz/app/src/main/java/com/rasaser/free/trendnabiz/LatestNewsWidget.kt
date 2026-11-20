@@ -20,8 +20,8 @@ class LatestNewsWidget : AppWidgetProvider() {
             val latest = NewsStore.cached(context).firstOrNull()
             remote.setTextViewText(
                 R.id.widget_headline,
-                if (!premium) context.getString(R.string.widget_locked)
-                else latest?.title ?: context.getString(R.string.widget_placeholder)
+                if (!premium) UiText.get(UserPrefs.language(context), "widgetLocked")
+                else latest?.title ?: UiText.get(UserPrefs.language(context), "widgetEmpty")
             )
             val intent = Intent(context, MainActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
