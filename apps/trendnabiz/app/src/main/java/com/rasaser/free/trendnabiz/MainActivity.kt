@@ -53,6 +53,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -170,6 +171,8 @@ private fun TrendNabizApp(
     var criticalOnly by remember { mutableStateOf(UserPrefs.criticalOnly(context)) }
     var debugPremium by remember { mutableStateOf(UserPrefs.isPremium(context)) }
     var notificationAllowed by remember { mutableStateOf(NewsNotifications.allowed(context)) }
+    var newsServerDraft by rememberSaveable { mutableStateOf(UserPrefs.newsServer(context)) }
+    var serverInputError by remember { mutableStateOf(false) }
 
     val requestNotifications = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -269,6 +272,24 @@ private fun TrendNabizApp(
                             }
                         }
                         HorizontalDivider(color = azure.copy(alpha = .22f))
+                        Text(UiText.get(lang, "newsServer"), fontWeight = FontWeight.Bold, color = ink)
+                        Text(UiText.get(lang, "newsServerInfo"), color = ink, fontSize = 12.sp)
+                        OutlinedTextField(
+                            value = newsServerDraft,
+                            onValueChange = { newsServerDraft = it; serverInputError = false },
+                            label = { Text("https://...") },
+                            singleLine = true,
+                            isError = serverInputError,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        OrangeButton(UiText.get(lang, "saveServer")) {
+                            if (UserPrefs.setNewsServer(context, newsServerDraft)) {
+                                serverInputError = false
+                                scope.launch { reload() }
+                            } else serverInputError = true
+                        }
+                        if (serverInputError) Text(UiText.get(lang, "serverInvalid"), color = red)
+                        HorizontalDivider(color = azure.copy(alpha = .22f))
                         Text(UiText.get(lang, "alerts"), color = ink, fontWeight = FontWeight.Bold)
                         if (!notificationAllowed) {
                             OrangeButton(UiText.get(lang, "notificationsOff")) {
@@ -322,7 +343,7 @@ private fun TrendNabizApp(
                                 }
                                 Spacer(Modifier.height(6.dp))
                                 Text(UiText.get(lang, "live"), color = ink)
-                                Text(UiText.get(lang, "onlyUsGs"), color = ink, fontSize = 12.sp)
+                                Text(UiText.get(lang, if (UserPrefs.newsServer(context).isBlank()) "onlyUsGs" else "serverConfigured"), color = ink, fontSize = 12.sp)
                                 Spacer(Modifier.height(8.dp))
                                 if (!notificationAllowed) {
                                     OrangeButton(UiText.get(lang, "notificationsOff")) {

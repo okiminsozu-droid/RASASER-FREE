@@ -35,6 +35,11 @@ object UiText {
             "翻译、语音朗读、分享和小组件需要高级会员。购买验证接入后才能解锁。"
         ),
         "live" to listOf("Resmî kaynaklardan son veriler", "Latest official-source data", "Aktuelle offizielle Quellen", "Últimos datos oficiales", "官方最新数据"),
+        "newsServer" to listOf("Bağımsız haber sunucusu", "Independent news server", "Unabhängiger Nachrichtenserver", "Servidor independiente de noticias", "独立新闻服务器"),
+        "newsServerInfo" to listOf("Kendi HTTPS sunucu adresini girin. Boş bırakılırsa doğrudan USGS deprem verisi kullanılır.", "Enter your own HTTPS server URL. Leave blank for direct USGS earthquake feed.", "Eigene HTTPS-Serveradresse eingeben. Leer = direkter USGS-Erdbebenfeed.", "Indica tu servidor HTTPS. En blanco se usa directamente USGS.", "输入自有 HTTPS 服务器地址。留空使用 USGS 地震数据。"),
+        "saveServer" to listOf("Sunucu adresini kaydet", "Save server address", "Serveradresse speichern", "Guardar servidor", "保存服务器"),
+        "serverInvalid" to listOf("Geçerli bir HTTPS sunucu adresi girin.", "Enter a valid HTTPS server URL.", "Eine gültige HTTPS-Adresse eingeben.", "Introduce una URL HTTPS válida.", "请输入有效的 HTTPS 服务器地址。"),
+        "serverConfigured" to listOf("RaSaSeR bağımsız haber sunucusundan veriler gösteriliyor.", "Showing events from your independent news server.", "Nachrichten vom unabhängigen Server.", "Mostrando noticias desde el servidor independiente.", "正在显示独立服务器的动态。"),
         "onlyUsGs" to listOf("İlk sürümde USGS deprem akışı bağlıdır; dünya haberleri sunucusu henüz bağlı değil.",
             "USGS earthquake feed is connected; the global news server is not yet connected.",
             "USGS-Erdbebenfeed ist verbunden; Weltnachrichtenserver noch nicht.",
