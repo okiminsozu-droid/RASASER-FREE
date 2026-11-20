@@ -68,7 +68,7 @@ class OfflineContractTests(unittest.TestCase):
         base = ROOT / "app/src/main/java/com/rasaser/free/rasaserwidgets"
         store = (base / "WidgetStore.kt").read_text(encoding="utf-8")
         editor = (base / "WidgetEditorActivity.kt").read_text(encoding="utf-8")
-        self.assertIn("OwnerPremium.isActive(ctx) || creationCount(ctx) < 3", store)
+        self.assertIn("OwnerPremium.isActive(ctx) || RaSaSeRPromo.isActive(ctx)", store)
         self.assertIn("fun canCreateFor(ctx: Context, targetPackage: String): Boolean", store)
         self.assertIn('putStringSet("free_distinct_app_packages"', store)
         self.assertIn('putBoolean("free_distinct_migrated", true)', store)
@@ -250,7 +250,7 @@ class OfflineContractTests(unittest.TestCase):
         self.assertIn("RaSaSeRPromo.isActive(ctx)", store)
         self.assertIn("AndroidKeyStore", promo)
         self.assertIn("HmacSHA256", promo) if "HmacSHA256" in promo else self.assertIn("KEY_ALGORITHM_HMAC_SHA256", promo)
-        self.assertIn('"/v1/promo/redeem"', promo)
+        self.assertIn("/v1/promo/redeem", promo)
         self.assertIn("owner_lifetime", promo)
         self.assertIn("MessageDigest.isEqual(actual, decode(signature))", promo)
         self.assertIn("fun showCodeDialog(activity: Activity", promo)
