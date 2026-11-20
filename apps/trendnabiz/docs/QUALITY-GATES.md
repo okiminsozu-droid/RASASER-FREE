@@ -4,7 +4,7 @@
 - [x] Distinct Cloudflare Worker and cron created; execution source has no news database writes
 - [x] Native Android foreground WebSocket consumer and transient 180-second in-memory display coded
 - [x] Existing Android persistent news cache and previous Python/SQLite server removed in this branch
-- [x] Android debug compilation + JVM unit test workflow successful (run 44795358502); artifact TRENDNABIZ-0.3.0-TEST-APK
+- [x] Android debug compilation + JVM unit test workflow successful (run 44795358502; newer 0.3.1 build and JVM tests successful run 44796972559); artifact TRENDNABIZ-0.3.0-TEST-APK
 - [ ] Physical-device test of new 0.3.0 build
 - [ ] WebSocket event reception + 3-minute expiry + 5 languages
 - [ ] Long-running/locked/background notification delivery with genuine Android permissions and sustainable power behavior
@@ -18,3 +18,6 @@
 - [ ] Store/production approval (only isolated owner-requested debug Actions build completed; workflow returned to manual-only mode)
 
 **Non-guarantees**: every world event cannot be reported by every source instantly, Android sleeping phone wakeup is not supported by foreground WebSocket only, and 180-second app lifecycle does not control Android OS notification history, Cloudflare network logs, or external publisher copies.
+
+- [x] Requester-only Cloudflare WebSocket diagnostic added; 10-second delayed notice enables a real locked-screen device test without news fabrication or server archive.
+- [ ] Device-measured Cloudflare diagnostic arrival while screen locked, app backgrounded, and after extended idle.

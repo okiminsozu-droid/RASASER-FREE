@@ -29,3 +29,6 @@ A single hub is suitable for early prototyping, not millions of active sockets. 
 - Adds GDACS globally reported disasters and European Commission official press releases. Because the source publishing timestamp must be within three minutes, slow feeds may not generate a notification.
 - The source link always stays with the notice. No third-party article copies or images are stored. Worker still has no database, KV or R2 bindings.
 - This is not a worldwide comprehensive/guaranteed-zero-delay news service; unrelated publisher content requires rights screening before adding.
+
+### Diagnostic test
+A connected Android debug client can send `self_test` on its existing WebSocket. The hub returns a clearly labeled **non-news** event to that single socket after 10 seconds. No public HTTP trigger and no broadcast to subscribers. The timer holds only the transient synthetic event and does not store it.

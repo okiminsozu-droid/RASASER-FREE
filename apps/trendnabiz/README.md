@@ -3,7 +3,7 @@
 Branch: feature/trendnabiz-notification-first-v1
 Android: com.rasaser.free.trendnabiz
 Cloudflare: trendnabiz-engine (separate Worker on the connected Cloudflare account)
-Test APK version: 0.3.0. GitHub isolated debug build and JVM unit tests succeeded (run 44795358502). No signed release AAB or Play Store deployment.
+Test APK version: 0.3.1. GitHub isolated debug build and JVM unit tests succeeded (run 44796972559). No signed release AAB or Play Store deployment.
 
 ## Approved design
 Blue/red TRENDNABIZ with listener silhouette, digital globe and red pulse; pale blue homepage, orange controls and black legible event text. Turkish and English slogans, RaSaSeR APPS & TECHNOLOGY, website **www.okiminsozu.com** in brand footer ONLY — this existing website is NOT used as the news backend or modified. Settings, Premium indicator, five UI languages TR/EN/DE/ES/ZH.
@@ -39,3 +39,10 @@ No Cloudflare credentials, sign keys, publisher full-text articles or user data 
 - Debug-only user opt-in foreground service can keep a WebSocket connection running while the UI is in the background, with a persistent stop button. Android OEM power management can still suspend it. Google Play review is required before considering any release version with foreground special-use service.
 - Production release manifest intentionally does not declare that debug-only foreground service. No 99% guarantee or FCM push is connected.
 - Language-specific original summary templates provided for the five verified source families. Third-party English headlines are not silently machine-translated.
+
+## Cloudflare lock-screen test (0.3.1)
+1. Install the new debug APK (prior GitHub debug APKs may require uninstall due to different ephemeral signing keys).
+2. Allow notifications, then enable **Background live monitoring (TEST)** in Settings. A persistent user-stop notification is shown.
+3. With live WebSocket status connected, tap **Test alert from Cloudflare**, then lock the phone. The Worker sends an explicitly labeled non-news notice **10 seconds later**, only over the caller's WebSocket.
+4. Check that it appears on the lock screen and disappears from the Android notification shade after up to 3 minutes. If absent, check Android's battery optimization and foreground service permission settings. The code and cloud handshake are verified; phone OEM behavior is not.
+5. This is an opt-in debug-only diagnosis, not a claimed 24/7 deliverability solution. The new notification is not archived or distributed to other devices.
