@@ -69,6 +69,10 @@ object UiText {
         "billingPending" to listOf("Google Play satın alma doğrulaması henüz bağlanmadı.", "Google Play purchase verification is not connected yet.", "Google Play-Kaufprüfung noch nicht verbunden.", "La verificación de compras de Google Play aún no está conectada.", "尚未接入 Google Play 购买验证。"),
         "widgetLocked" to listOf("Premium widget • TRENDNABIZ'i açın", "Premium widget • open TRENDNABIZ", "Premium-Widget • TRENDNABIZ öffnen", "Widget Premium • abre TRENDNABIZ", "高级小组件 • 打开 TRENDNABIZ"),
         "widgetEmpty" to listOf("Son olay burada görünecek", "Latest event will appear here", "Neueste Meldung erscheint hier", "El último suceso aparecerá aquí", "最新动态将在此显示"),
+        "liveConnected" to listOf("CANLI • Cloudflare bağlı. Arşiv tutulmaz.", "LIVE • Cloudflare connected. No history.", "LIVE • Cloudflare verbunden. Kein Archiv.", "EN VIVO • Cloudflare conectado. Sin archivo.", "实时 • Cloudflare 已连接。无历史归档。"),
+        "liveDisconnected" to listOf("Bağlantı kuruluyor. Arka planda bağlantı kapanabilir.", "Connecting. Background connection may close.", "Verbindungsaufbau. Im Hintergrund kann sie enden.", "Conectando. La conexión puede cerrarse en segundo plano.", "正在连接。后台连接可能中断。"),
+        "liveEmpty" to listOf("Yeni olay bekleniyor; geçmiş haberler gösterilmez.", "Waiting for new events; past news is not shown.", "Warten auf neue Ereignisse. Kein Verlauf.", "Esperando nuevas noticias. Sin historial.", "等待新动态。不显示旧新闻。"),
+        "reconnect" to listOf("Canlı bağlantıyı yenile", "Reconnect live", "Live-Verbindung erneuern", "Reconectar en vivo", "重新连接实时推送"),
         "about" to listOf("Lisans ve kaynaklar", "Licenses and sources", "Lizenzen und Quellen", "Licencias y fuentes", "许可与来源")
     )
     fun get(lang: UiLang, key: String): String = words[key]?.get(lang.ordinal) ?: key

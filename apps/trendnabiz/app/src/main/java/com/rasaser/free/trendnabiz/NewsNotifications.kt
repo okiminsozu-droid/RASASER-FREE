@@ -18,6 +18,26 @@ object NewsNotifications {
     const val GENERAL = "trendnabiz_general_v1"
     const val EXTRA_ACTION = "news_action"
     const val EXTRA_ID = "news_id"
+    const val EXTRA_HEADLINE = "news_headline"
+    const val EXTRA_SUMMARY = "news_summary"
+    const val EXTRA_SOURCE = "news_source"
+    const val EXTRA_URL = "news_url"
+    const val EXTRA_TIME = "news_time"
+    const val EXTRA_SEVERITY = "news_severity"
+    fun readStory(intent: Intent?): NewsItem? {
+        if(intent == null) return null
+        val id=intent.getStringExtra(EXTRA_ID) ?: return null
+        val title=intent.getStringExtra(EXTRA_HEADLINE) ?: return null
+        val url=intent.getStringExtra(EXTRA_URL) ?: return null
+        if(!url.startsWith("https://")) return null
+        return NewsItem(
+            id=id,title=title,
+            description=intent.getStringExtra(EXTRA_SUMMARY) ?: "",
+            source=intent.getStringExtra(EXTRA_SOURCE) ?: "Source",
+            sourceUrl=url,publishedAt=intent.getLongExtra(EXTRA_TIME,System.currentTimeMillis()),
+            severity=intent.getStringExtra(EXTRA_SEVERITY) ?: "normal"
+        )
+    }
 
     fun createChannels(context: Context) {
         val manager = context.getSystemService(NotificationManager::class.java)
@@ -45,6 +65,12 @@ object NewsNotifications {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
             putExtra(EXTRA_ACTION, action)
             putExtra(EXTRA_ID, story.id)
+            putExtra(EXTRA_HEADLINE, story.title)
+            putExtra(EXTRA_SUMMARY, story.description)
+            putExtra(EXTRA_SOURCE, story.source)
+            putExtra(EXTRA_URL, story.sourceUrl)
+            putExtra(EXTRA_TIME, story.publishedAt)
+            putExtra(EXTRA_SEVERITY, story.severity)
         }
         return PendingIntent.getActivity(
             context,
