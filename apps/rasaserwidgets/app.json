@@ -2,12 +2,12 @@
   "slug": "rasaserwidgets",
   "display_name": "VARYOK",
   "package_id": "com.rasaser.free.rasaserwidgets",
-  "version_code": 10,
-  "version_name": "0.4.1",
+  "version_code": 11,
+  "version_name": "0.4.2",
   "private_engine_required": false,
   "allow_public_debug_artifacts": true,
   "license_review_completed": false,
   "release_signing_location": "PRIVATE_ONLY",
-  "owner_access": "CENTRAL_GOOGLE_OWNER_WITH_HTTPS_PINNED_PUBLIC_KEY_PENDING_CLOUDFLARE_SECRETS",
+  "owner_access": "UNIVERSAL_PROMO_CODE_CLOUDFLARE_D1_VERIFIED_KEYSTORE_OFFLINE",
   "release_ready": false
 }
