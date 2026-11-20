@@ -1,4 +1,51 @@
-# VARYOK — RaSaSeR • APPS & TECHNOLOGY (0.3.5 TEST)
+# VARYOK — RaSaSeR • APPS & TECHNOLOGY (0.4.0 OWNER ACCESS PREVIEW)
+
+**Yeni sürüm 0.4.0 / versionCode 9 / Android API 36.** Bu sürüm
+RaSaSeR markasına 7 kez dokununca açılacak Google ile merkezi sahip
+doğrulama modülünün kaynaklarını içerir. Yalnız Google üzerinden
+doğrulanmış **okiminsozu@gmail.com** hesabına Cloudflare sunucusunun
+imzaladığı cihaz+paket bağlı `owner_lifetime` belgesi verilebilir.
+
+**ŞU ANDA SAHİP PREMİUM ETKİN DEĞİL.** Cloudflare Web OAuth Client Secret
+ve **tek sunucu ECDSA-P256 özel imzalama anahtarı** kurulmamıştır.
+Bu nedenle APK'daki yalnızca **genel** doğrulama anahtarı alanı
+boştur ve uygulama güvenli biçimde erişimi reddeder. Hiçbir
+özel anahtar, Google Client Secret, PIN, keystore veya yükleme imzası
+`RASASER-FREE` public deposuna kaydedilmeyecek.
+
+**Mevcut işlevler korunur:** Üç farklı uygulama ücretsiz; aynı
+uygulamaya sınırsız tekrar widget, gerçek app ikonları/özel fotoğraf,
+şeffaflık, düzenleme, uygulama açma, PIN/parmak izi kilidi,
+6 dil, Premium bilgilendirmesi, site/gizlilik bağlantısı.
+Sahiplik sertifikası geçerli olduğunda üç farklı uygulama limiti
+uygulanmaz. Normal ücretsiz kullanıcıların kotası değişmez.
+
+**Veri ilkesi:** Widget bilgileri/fotoğraflar cihazdan çıkmaz. Yalnız
+sahip girişini başlatan kullanıcı, Google hesabı kimliği ve cihazın
+**açık anahtarını** merkezi Cloudflare doğrulama servisi üzerinden
+doğrulatır. Google parolası, PIN, fotoğraf veya widget içeriği
+sunucuya gönderilmez. `INTERNET` izni yalnız isteğe bağlı sahip
+doğrulaması için eklendi; takip/reklam/analitik SDK yok.
+
+**Yayın kuralları:** 31 Ağustos 2026'dan itibaren yeni Android
+telefon sürümleri için hedef API 36. Tek başına `bundleRelease`
+çıktısı **İMZASIZ AAB**'dir; Play'e gönderilemez.
+Gerçek Google Play yüklemesi için ayrı ve kalıcı **upload signing key**
+gerekir. Mevcut kullanıcıların güncellemelerinin anahtarı
+değiştirilmez. Bu anahtar uygulama içi sahiplik belgesi imzalama
+anahtarından tamamen farklıdır.
+
+**Google Play politikası:** Normal kullanıcının görmediği 7
+dokunuşlu sahip girişi, Play inceleyicisinden saklanmayacak;
+uygulama erişim talimatlarında açıkça belgelendirilmeli. Gizli/
+belgesiz işlev yasağı incelenmeden ve Google OAuth + gerçek cihaz
+testleri geçilmeden üretime yüklenmeyecek.
+
+Play Console API bağlantısı bu konuşma sırasında VARYOK paketine
+erişemiyor (`credentialsConfigured=false`, başka uygulama paketi
+kayıtlı). Play'e yükleme ve yayınlama henüz yapılmadı.
+
+## Önceki sürüm notları
 
 Mevcut Android uygulaması **sadece** `apps/rasaserwidgets/` klasöründe geliştirilir.
 Paket kimliği `com.rasaser.free.rasaserwidgets`, kullanıcının seçtiği
