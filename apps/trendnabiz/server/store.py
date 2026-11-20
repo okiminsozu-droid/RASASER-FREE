@@ -2,6 +2,7 @@
 from __future__ import annotations
 import json
 import sqlite3
+from contextlib import contextmanager
 import threading
 import time
 from pathlib import Path
@@ -32,11 +33,19 @@ class Store:
         with self.connect() as db:
             db.executescript(SCHEMA)
 
+    @contextmanager
     def connect(self):
         db = sqlite3.connect(self.path, timeout=10)
-        db.row_factory = sqlite3.Row
-        db.execute("PRAGMA busy_timeout=10000")
-        return db
+        try:
+            db.row_factory = sqlite3.Row
+            db.execute("PRAGMA busy_timeout=10000")
+            yield db
+            db.commit()
+        except Exception:
+            db.rollback()
+            raise
+        finally:
+            db.close()
 
     def ingest(self, source_name: str, items: list[Event], now: int | None = None) -> dict:
         now = now or int(time.time())
