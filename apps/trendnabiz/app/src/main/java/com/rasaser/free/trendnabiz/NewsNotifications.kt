@@ -61,12 +61,13 @@ object NewsNotifications {
         val channel = if (item.critical || test) CRITICAL else GENERAL
         val lang = UserPrefs.language(context)
         val sourceText = "${UiText.get(lang, "source")}: ${item.source}"
+        val description = NewsLocalization.description(item, lang)
         val logo = BitmapFactory.decodeResource(context.resources, R.drawable.brand_mark)
         val builder = NotificationCompat.Builder(context, channel)
             .setSmallIcon(R.drawable.ic_notification)
             .setLargeIcon(logo)
             .setContentTitle(item.title)
-            .setContentText(item.description)
+            .setContentText(description)
             .setStyle(NotificationCompat.BigTextStyle().bigText("${item.description}\n$sourceText"))
             .setSubText(sourceText)
             .setCategory(NotificationCompat.CATEGORY_EVENT)

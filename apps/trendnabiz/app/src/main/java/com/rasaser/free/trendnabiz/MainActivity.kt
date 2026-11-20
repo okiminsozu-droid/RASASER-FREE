@@ -312,6 +312,12 @@ private fun TrendNabizApp(
                                 Text(UiText.get(lang, "live"), color = ink)
                                 Text(UiText.get(lang, "onlyUsGs"), color = ink, fontSize = 12.sp)
                                 Spacer(Modifier.height(8.dp))
+                                if (!notificationAllowed) {
+                                    OrangeButton(UiText.get(lang, "notificationsOff")) {
+                                        if (Build.VERSION.SDK_INT >= 33) requestNotifications.launch(Manifest.permission.POST_NOTIFICATIONS)
+                                    }
+                                    Spacer(Modifier.height(7.dp))
+                                }
                                 OrangeButton(UiText.get(lang, "refresh")) { scope.launch { reload() } }
                                 if (refreshing) CircularProgressIndicator(color = azure, modifier = Modifier.padding(12.dp).size(24.dp))
                                 if (status.isNotBlank()) Text(status, color = ink, fontSize = 12.sp)
@@ -370,14 +376,7 @@ private fun NewsCard(
         DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT, Locale.forLanguageTag(lang.tag))
             .format(Date(story.publishedAt))
     }
-    val place = story.title.substringAfter(" · ", "")
-    val info = when (lang) {
-        UiLang.TR -> "$place bölgesinde ${story.magnitude} büyüklüğünde deprem kaydedildi."
-        UiLang.EN -> "Earthquake of magnitude ${story.magnitude} recorded near $place."
-        UiLang.DE -> "Erdbeben der Stärke ${story.magnitude} bei $place registriert."
-        UiLang.ES -> "Sismo de magnitud ${story.magnitude} registrado cerca de $place."
-        UiLang.ZH -> "$place 附近记录到 ${story.magnitude} 级地震。"
-    }
+    val info = NewsLocalization.description(story, lang)
     Card(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp),
         shape = RoundedCornerShape(18.dp),
