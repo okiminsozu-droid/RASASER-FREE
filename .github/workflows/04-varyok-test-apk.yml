@@ -1,4 +1,4 @@
-name: VARYOK 0.4.0 Owner Access QA & Unsigned AAB
+name: VARYOK 0.4.1 Owner Access QA & Unsigned AAB
 # No release signing secrets or upload keys are stored in GitHub.
 # Production AAB signing and Play Console upload must use a private key outside this public repository.
 on:
@@ -58,14 +58,14 @@ jobs:
       - name: Upload VARYOK debug test APK
         uses: actions/upload-artifact@v4
         with:
-          name: VARYOK-0.4.0-TEST-APK
+          name: VARYOK-0.4.1-TEST-APK
           path: apps/rasaserwidgets/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           retention-days: 7
       - name: Upload UNSIGNED VARYOK release AAB - NOT PLAY READY
         uses: actions/upload-artifact@v4
         with:
-          name: VARYOK-0.4.0-UNSIGNED-AAB-NOT-FOR-PLAY
+          name: VARYOK-0.4.1-UNSIGNED-AAB-NOT-FOR-PLAY
           path: apps/rasaserwidgets/app/build/outputs/bundle/release/*.aab
           if-no-files-found: error
           retention-days: 7
