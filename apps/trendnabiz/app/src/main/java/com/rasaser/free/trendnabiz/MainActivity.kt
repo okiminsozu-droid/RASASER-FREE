@@ -47,7 +47,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -92,6 +91,7 @@ class MainActivity : ComponentActivity() {
     private var liveClient: LiveNewsClient? = null
     private var liveStories by mutableStateOf<List<NewsItem>>(emptyList())
     private var liveConnected by mutableStateOf(false)
+    private var liveState by mutableStateOf("connecting")
     private var notificationStory by mutableStateOf<NewsItem?>(null)
 
     private fun newLiveStory(story: NewsItem) {
@@ -109,13 +109,13 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         NewsNotifications.createChannels(this)
         UserPrefs.clearLegacyNewsCache(this)
-        liveClient = LiveNewsClient(::newLiveStory) { liveConnected = it }
+        liveClient = LiveNewsClient(::newLiveStory, { liveConnected = it }, { liveState = it })
         incoming = readAction(intent)
         setContent {
             MaterialTheme(colorScheme = lightColorScheme(
                 primary = azure, secondary = orange, background = sky, onBackground = ink
             )) {
-                TrendNabizApp(incoming, notificationStory, liveStories, liveConnected, { liveClient?.stop(); liveClient?.start() }, { incoming=null; notificationStory=null }, ::executePremiumAction)
+                TrendNabizApp(incoming, notificationStory, liveStories, liveConnected, liveState, { liveClient?.stop(); liveClient?.start() }, { incoming=null; notificationStory=null }, ::executePremiumAction)
             }
         }
     }
@@ -187,6 +187,7 @@ private fun TrendNabizApp(
     notificationStory: NewsItem?,
     liveItems: List<NewsItem>,
     isConnected: Boolean,
+    connectionState: String,
     reconnect: () -> Unit,
     actionConsumed: () -> Unit,
     performAction: (NewsItem, String, UiLang) -> Unit
@@ -198,6 +199,7 @@ private fun TrendNabizApp(
     val stories = liveItems
     var criticalOnly by remember { mutableStateOf(UserPrefs.criticalOnly(context)) }
     var debugPremium by remember { mutableStateOf(UserPrefs.isPremium(context)) }
+    var backgroundWatching by remember { mutableStateOf(UserPrefs.monitoring(context)) }
     var notificationAllowed by remember { mutableStateOf(NewsNotifications.allowed(context)) }
 
     val requestNotifications = rememberLauncherForActivityResult(
@@ -328,6 +330,7 @@ private fun TrendNabizApp(
                                 Spacer(Modifier.height(6.dp))
                                 Text(UiText.get(lang, "live"), color = ink)
                                 Text(UiText.get(lang, if(isConnected) "liveConnected" else "liveDisconnected"), color = ink, fontSize = 12.sp)
+                                if(!isConnected && connectionState.startsWith("error:")) Text(UiText.get(lang,"connectionError")+" "+connectionState.removePrefix("error:"),color=red,fontSize=12.sp)
                                 Spacer(Modifier.height(8.dp))
                                 if (!notificationAllowed) {
                                     OrangeButton(UiText.get(lang, "notificationsOff")) {
@@ -354,29 +357,28 @@ private fun TrendNabizApp(
 private fun BrandHeader(lang: UiLang) {
     val context = LocalContext.current
     Column(
-        modifier = Modifier.fillMaxWidth().padding(16.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal=16.dp, vertical=10.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         Image(
             painter = painterResource(R.drawable.brand_logo),
             contentDescription = "TRENDNABIZ • RaSaSeR logo",
-            modifier = Modifier.size(170.dp),
+            modifier = Modifier.size(126.dp),
             contentScale = ContentScale.Fit
         )
-        Text("Sana onların haberleri geldi mi?", color = ink, fontSize = 15.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
-        Text("Did you receive their news?", color = ink, fontSize = 14.sp, textAlign = TextAlign.Center)
+        Text("Sana onların haberleri geldi mi?", color = ink, fontSize = 13.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+        Text("Did you receive their news?", color = ink, fontSize = 12.sp, textAlign = TextAlign.Center)
         Spacer(Modifier.height(3.dp))
-        Text("RaSaSeR", fontWeight = FontWeight.Black, color = azure, fontSize = 22.sp)
-        Text("APPS & TECHNOLOGY", fontWeight = FontWeight.Bold, color = ink, fontSize = 11.sp)
+        Text("RaSaSeR", fontWeight = FontWeight.Black, color = azure, fontSize = 17.sp)
+        Text("APPS & TECHNOLOGY", fontWeight = FontWeight.Bold, color = ink, fontSize = 10.sp)
         Text(
             "www.okiminsozu.com",
             modifier = Modifier.clickable {
                 context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://www.okiminsozu.com")))
             },
-            fontWeight = FontWeight.Bold, color = azure, fontSize = 14.sp
+            fontWeight = FontWeight.Bold, color = azure, fontSize = 12.sp
         )
-        Text(UiText.get(lang, "feature"), color = ink, fontSize = 12.sp)
     }
 }
 
