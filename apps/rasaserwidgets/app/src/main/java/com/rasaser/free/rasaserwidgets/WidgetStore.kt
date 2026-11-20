@@ -59,12 +59,13 @@ object WidgetStore {
     }
 
     fun creationCount(ctx: Context): Int = usedApplicationPackages(ctx).size
-    fun canCreate(ctx: Context): Boolean = creationCount(ctx) < 3
+    fun canCreate(ctx: Context): Boolean =
+        OwnerPremium.isActive(ctx) || creationCount(ctx) < 3
 
     fun canCreateFor(ctx: Context, targetPackage: String): Boolean {
         val target = targetPackage.trim().lowercase(java.util.Locale.ROOT)
         return target.isNotBlank() &&
-            (target in usedApplicationPackages(ctx) || creationCount(ctx) < 3)
+            (OwnerPremium.isActive(ctx) || target in usedApplicationPackages(ctx) || creationCount(ctx) < 3)
     }
 
     @Synchronized
