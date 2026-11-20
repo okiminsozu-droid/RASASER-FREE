@@ -1,0 +1,16 @@
+{
+  "service": "trendnabiz-engine",
+  "framework": "Cloudflare Workers + transient DO websocket",
+  "newsArchive": false,
+  "maxMemorySeconds": 180,
+  "cron": "* * * * *",
+  "feeds": [
+    "USGS",
+    "NASA EONET",
+    "NOAA/NWS"
+  ],
+  "approvedPublisherFeeds": 0,
+  "pushBackgroundNotImplemented": true,
+  "workerObservability": false,
+  "developerNote": "No link to okiminsozu.com, no D1/R2/KV news storage"
+}
