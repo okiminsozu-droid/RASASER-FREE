@@ -225,52 +225,59 @@ class MainActivity : Activity() {
         root.addView(footer)
     }
 
-    /** Informational only: Google Play Billing product and entitlement are not yet wired. */
+    /** Clear annual plan information, no fake purchase button or payment screen. */
     private fun showPremiumInfo() {
         val content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(22), dp(12), dp(22), dp(20))
+            setPadding(dp(23), dp(22), dp(23), dp(14))
+            background = GradientDrawable().apply {
+                setColor(0xFFFFF8FB.toInt())
+                cornerRadius = dp(22).toFloat()
+            }
         }
-        content.addView(text(PremiumInfoText.t(this, "price"), 25f, true).apply {
-            setTextColor(0xFFAD8128.toInt())
-        }, LinearLayout.LayoutParams(-1, dp(53)))
+        content.addView(text(PremiumInfoText.t(this, "headline"), 26f, true).apply {
+            setTextColor(0xFF3E2B30.toInt())
+        }, LinearLayout.LayoutParams(-1, dp(58)))
+
+        content.addView(text(PremiumInfoText.t(this, "price"), 28f, true).apply {
+            setTextColor(0xFFA8781B.toInt())
+        }, LinearLayout.LayoutParams(-1, dp(69)))
+
+        // Owner lifetime Premium overrides the ordinary annual subscription.
+        if (OwnerPremium.isActive(this)) {
+            content.addView(text(OwnerLoginText.t(this, "active"), 16f, true).apply {
+                setTextColor(0xFF966618.toInt())
+            }, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(7) })
+        }
 
         for (prefix in listOf("billing", "access", "expiration")) {
-            val heading = text(PremiumInfoText.t(this, prefix + "Title"), 16f, true).apply {
+            content.addView(text(PremiumInfoText.t(this, prefix + "Title"), 17f, true).apply {
                 gravity = Gravity.START
-            }
-            content.addView(heading, LinearLayout.LayoutParams(-1, -2).apply {
-                topMargin = dp(15)
-            })
-            val description = text(PremiumInfoText.t(this, prefix + "Body"), 14f).apply {
-                gravity = Gravity.START
-                setLineSpacing(dp(3).toFloat(), 1f)
-            }
-            content.addView(description, LinearLayout.LayoutParams(-1, -2).apply {
-                topMargin = dp(6)
-            })
-        }
+                setTextColor(0xFF7F4D62.toInt())
+            }, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(19) })
 
-        val status = text(if (OwnerPremium.isActive(this)) OwnerLoginText.t(this, "active")
-            else PremiumInfoText.t(this, "status"), 12.5f).apply {
-            gravity = Gravity.START
-            setTextColor(0xFF845C52.toInt())
-            background = surface()
-            setPadding(dp(13), dp(13), dp(13), dp(13))
+            content.addView(text(PremiumInfoText.t(this, prefix + "Body"), 15f).apply {
+                gravity = Gravity.START
+                setTextColor(0xFF342C32.toInt())
+                setLineSpacing(dp(3).toFloat(), 1f)
+            }, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(7) })
         }
-        content.addView(status, LinearLayout.LayoutParams(-1, -2).apply {
-            topMargin = dp(21)
-        })
 
         val scroll = ScrollView(this).apply {
             isFillViewport = false
+            setBackgroundColor(0xFFFFF8FB.toInt())
             addView(content)
         }
-        AlertDialog.Builder(this)
-            .setTitle(PremiumInfoText.t(this, "headline"))
+        val dialog = AlertDialog.Builder(this)
             .setView(scroll)
             .setPositiveButton(PremiumInfoText.t(this, "close"), null)
-            .show()
+            .create()
+        dialog.show()
+        dialog.window?.setBackgroundDrawable(GradientDrawable().apply {
+            setColor(0xFFFFF8FB.toInt())
+            cornerRadius = dp(22).toFloat()
+        })
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE)?.setTextColor(0xFF94691E.toInt())
     }
 
     private fun showLanguagePicker() {
