@@ -26,6 +26,10 @@ object UserPrefs {
     fun setLanguage(context: Context, value: UiLang) = store(context).edit().putString("language",value.code).apply()
     fun criticalOnly(context: Context): Boolean = store(context).getBoolean("critical_only",false)
     fun setCriticalOnly(context: Context, value: Boolean) = store(context).edit().putBoolean("critical_only",value).apply()
+    fun monitoring(context: Context): Boolean = BuildConfig.DEBUG && store(context).getBoolean("monitoring_on",false)
+    fun setMonitoring(context: Context, enabled: Boolean) {
+        store(context).edit().putBoolean("monitoring_on",enabled).apply()
+    }
     fun isPremium(context: Context): Boolean =
         BuildConfig.DEBUG && store(context).getBoolean("debug_premium_preview",false)
     fun setDebugPremium(context: Context, enabled: Boolean) {

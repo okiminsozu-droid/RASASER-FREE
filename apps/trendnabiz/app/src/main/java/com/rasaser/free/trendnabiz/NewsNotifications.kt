@@ -16,6 +16,8 @@ import androidx.core.content.ContextCompat
 object NewsNotifications {
     const val CRITICAL = "trendnabiz_critical_v1"
     const val GENERAL = "trendnabiz_general_v1"
+    private const val TTL = 180000L
+    private val recentlySent = LinkedHashMap<String,Long>() // transient identifiers only, no content
     const val EXTRA_ACTION = "news_action"
     const val EXTRA_ID = "news_id"
     const val EXTRA_HEADLINE = "news_headline"
@@ -84,6 +86,14 @@ object NewsNotifications {
         if (!allowed(context)) return
         createChannels(context)
         if (!test && UserPrefs.criticalOnly(context) && !item.critical) return
+        val now=System.currentTimeMillis()
+        val timeout = if(test) TTL else (item.publishedAt+TTL-now).coerceIn(0L, TTL)
+        if(timeout<=0L) return
+        synchronized(recentlySent) {
+            recentlySent.entries.removeAll { it.value<=now }
+            if(!test && recentlySent.containsKey(item.id)) return
+            if(!test) recentlySent[item.id]=now+timeout
+        }
         val channel = if (item.critical || test) CRITICAL else GENERAL
         val lang = UserPrefs.language(context)
         val sourceText = "${UiText.get(lang, "source")}: ${item.source}"
@@ -102,6 +112,7 @@ object NewsNotifications {
             .setPriority(if (item.critical || test) NotificationCompat.PRIORITY_HIGH else NotificationCompat.PRIORITY_DEFAULT)
             .setOnlyAlertOnce(true)
             .setAutoCancel(true)
+            .setTimeoutAfter(timeout)
             .setContentIntent(pending(context, item, "open", 0))
             .addAction(R.drawable.ic_translate, UiText.get(lang, "translate"), pending(context, item, "translate", 1))
             .addAction(R.drawable.ic_speak, UiText.get(lang, "listen"), pending(context, item, "listen", 2))
@@ -120,7 +131,7 @@ object NewsNotifications {
             title = UiText.get(lang, "testStory"),
             description = UiText.get(lang, "testDetail"),
             source = "TRENDNABIZ • TEST",
-            sourceUrl = "https://www.okiminsozu.com",
+            sourceUrl = "https://trendnabiz-engine.okiminsozu.workers.dev/healthz",
             publishedAt = System.currentTimeMillis(),
             magnitude = 6.1
         ), test = true)
