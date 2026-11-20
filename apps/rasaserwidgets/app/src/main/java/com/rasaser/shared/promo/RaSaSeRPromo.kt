@@ -89,7 +89,8 @@ object RaSaSeRPromo {
      * Free owner promotion: allow offline creation only if a successful
      * Cloudflare redemption was sealed on this same device and app package.
      */
-    fun isActive(ctx: Context): Boolean = try {
+    fun isActive(ctx: Context): Boolean {
+        return try {
         val data = prefs(ctx).getString(FIELD_DATA, null) ?: return false
         val signature = prefs(ctx).getString(FIELD_MAC, null) ?: return false
         val fields = data.split('|')
@@ -100,7 +101,8 @@ object RaSaSeRPromo {
             fields[3] != "owner_lifetime") return false
         val actual = mac(data, false) ?: return false
         MessageDigest.isEqual(actual, decode(signature))
-    } catch (_: Exception) { false }
+        } catch (_: Exception) { false }
+    }
 
     @Synchronized
     private fun seal(ctx: Context, packageName: String, installId: String): Boolean {
