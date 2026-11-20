@@ -2,6 +2,7 @@ package com.rasaser.free.rasaserwidgets
 
 import android.app.Activity
 import android.app.AlertDialog
+import com.rasaser.shared.promo.RaSaSeRPromo
 import android.appwidget.AppWidgetManager
 import android.content.ComponentName
 import android.content.Intent
@@ -22,7 +23,6 @@ class MainActivity : Activity() {
     private val pink = 0xFFF5C8D5.toInt()
     private val powder = 0xFFFFE8EF.toInt()
     private val ink = 0xFF812643.toInt()
-    private val ownerLogin by lazy { OwnerBrowserLogin(this) { render() } }
     private fun dp(value: Int) = (value * resources.displayMetrics.density).toInt()
     private fun tx(key: String) = VaryokText.t(this, key)
 
@@ -50,7 +50,6 @@ class MainActivity : Activity() {
             }
         } else {
             render()
-            ownerLogin.onAppResumed()
         }
     }
     private fun grantAccess() {
@@ -58,7 +57,6 @@ class MainActivity : Activity() {
         unlockedUntil = android.os.SystemClock.elapsedRealtime() + 180_000L
         if (!isFinishing && !isDestroyed) {
             render()
-            ownerLogin.onAppResumed()
         }
     }
     private fun showLockedScreen() {
@@ -167,9 +165,7 @@ class MainActivity : Activity() {
             scaleType = ImageView.ScaleType.FIT_CENTER
             adjustViewBounds = true
             contentDescription = "VARYOK • RaSaSeR • APPS & TECHNOLOGY"
-            isClickable = true
-            isFocusable = true
-            setOnClickListener { ownerLogin.onBrandTap() }
+            // Normal brand image: no secret seven-tap admin gesture.
         }
         root.addView(brand, LinearLayout.LayoutParams(-1, dp(296)))
         root.addView(TextView(this), LinearLayout.LayoutParams(1, dp(35)))
@@ -197,9 +193,9 @@ class MainActivity : Activity() {
         }
 
         root.addView(TextView(this), LinearLayout.LayoutParams(1, 0, 1f))
-        root.addView(text(if (OwnerPremium.isActive(this))
+        root.addView(text(if ((OwnerPremium.isActive(this) || RaSaSeRPromo.isActive(this)))
             OwnerLoginText.t(this, "active") else tx("premium_note"), 14f))
-        root.addView(text(if (OwnerPremium.isActive(this)) OwnerLoginText.t(this, "quota")
+        root.addView(text(if ((OwnerPremium.isActive(this) || RaSaSeRPromo.isActive(this))) OwnerLoginText.t(this, "quota")
             else tx("quota").replace("%d",
                 (3 - WidgetStore.creationCount(this)).coerceAtLeast(0).toString()), 15f, true).apply {
             background = surface()
@@ -244,7 +240,7 @@ class MainActivity : Activity() {
         }, LinearLayout.LayoutParams(-1, dp(69)))
 
         // Owner lifetime Premium overrides the ordinary annual subscription.
-        if (OwnerPremium.isActive(this)) {
+        if ((OwnerPremium.isActive(this) || RaSaSeRPromo.isActive(this))) {
             content.addView(text(OwnerLoginText.t(this, "active"), 16f, true).apply {
                 setTextColor(0xFF966618.toInt())
             }, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(7) })
@@ -263,6 +259,32 @@ class MainActivity : Activity() {
             }, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(7) })
         }
 
+        // Visible and accessible in the Premium sheet; no hidden logo tap.
+        var premiumDialog: AlertDialog? = null
+        if (!OwnerPremium.isActive(this) && !RaSaSeRPromo.isActive(this)) {
+            val promoAction = text(
+                "✦  " + RaSaSeRPromo.title(VaryokText.language(this)),
+                17f, true
+            ).apply {
+                setTextColor(0xFF714B16.toInt())
+                background = GradientDrawable().apply {
+                    setColor(0xFFF3DEB2.toInt())
+                    cornerRadius = dp(15).toFloat()
+                }
+                contentDescription = RaSaSeRPromo.title(VaryokText.language(this@MainActivity))
+                setOnClickListener {
+                    premiumDialog?.dismiss()
+                    RaSaSeRPromo.showCodeDialog(
+                        this@MainActivity, VaryokText.language(this@MainActivity)
+                    ) { render() }
+                }
+            }
+            content.addView(promoAction, LinearLayout.LayoutParams(-1, dp(58)).apply {
+                topMargin = dp(24)
+                bottomMargin = dp(8)
+            })
+        }
+
         val scroll = ScrollView(this).apply {
             isFillViewport = false
             setBackgroundColor(0xFFFFF8FB.toInt())
@@ -272,6 +294,7 @@ class MainActivity : Activity() {
             .setView(scroll)
             .setPositiveButton(PremiumInfoText.t(this, "close"), null)
             .create()
+        premiumDialog = dialog
         dialog.show()
         dialog.window?.setBackgroundDrawable(GradientDrawable().apply {
             setColor(0xFFFFF8FB.toInt())
