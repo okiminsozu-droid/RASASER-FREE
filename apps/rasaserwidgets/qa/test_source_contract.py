@@ -149,7 +149,7 @@ class OfflineContractTests(unittest.TestCase):
         self.assertNotIn("showSettings()", home)
         self.assertNotIn("SettingsActivity::class.java", home)
         self.assertNotIn('text("⚙"', home)
-        self.assertIn('setOnClickListener { info(tx("privacy"), tx("privacy_desc")) }', home)
+        self.assertIn('setOnClickListener { info(tx("privacy"), OwnerLoginText.t(this@MainActivity, "privacy")) }', home)
         self.assertIn('Intent(context, AppShortcutActivity::class.java)', provider)
         self.assertIn('putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, id)', provider)
         self.assertIn("packageManager.getLaunchIntentForPackage(widget.target)", launcher)
