@@ -3,20 +3,70 @@ package com.rasaser.free.rasaserwidgets
 import android.content.Context
 
 /**
- * Read-only Premium information. These strings must not imply that purchasing,
- * entitlement checks or subscription expiry enforcement are implemented.
- * When Billing is actually connected, product pricing should be supplied by
- * Google Play's ProductDetails for each user's region, not hard-coded here.
+ * Clean annual Premium plan information. Does not claim an active purchase
+ * flow: the only action in the UI is Close until a verified Google Play
+ * Billing subscription is available. Future pricing must come from Play.
  */
 object PremiumInfoText {
-    private val fields = listOf("headline", "price", "billingTitle", "billingBody", "accessTitle", "accessBody", "expirationTitle", "expirationBody", "status", "close")
+    private val fields = listOf(
+        "headline", "price", "billingTitle", "billingBody",
+        "accessTitle", "accessBody", "expirationTitle", "expirationBody", "close"
+    )
     private val localized = mapOf(
-        "tr" to listOf("VARYOK Premium", "99 TL / yıl", "Yıllık Premium abonelik", "Google Play Billing üzerinden yıllık 99 TL ödeme ve otomatik yenileme planlanmaktadır.", "Premium hak kontrolü", "Aktif aboneliği olan kullanıcılar sınırsız sayıda farklı uygulama için widget oluşturabilecektir.", "Abonelik bitiş kontrolü", "Abonelik süresi dolduğunda yeni Premium widget oluşturma durdurulacak; daha önce oluşturulan widget'lar çalışmaya devam edecektir.", "Bilgilendirme: Premium satın alma ve abonelik kontrolü henüz etkin değildir. Bu ekran ödeme almaz.", "Kapat"),
-        "en" to listOf("VARYOK Premium", "99 TRY / year", "Annual Premium subscription", "An annual 99 TRY payment through Google Play Billing with automatic renewal is planned.", "Premium entitlement check", "Users with an active subscription will be able to create widgets for unlimited different apps.", "Subscription expiration", "When the subscription expires, new Premium widgets will be restricted. Existing widgets will continue working.", "Information: Premium purchasing and subscription checks are not active yet. This screen cannot take payments.", "Close"),
-        "de" to listOf("VARYOK Premium", "99 TRY / Jahr", "Jährliches Premium-Abo", "Geplant sind 99 TRY pro Jahr über Google Play Billing mit automatischer Verlängerung.", "Prüfung des Premium-Status", "Mit aktivem Abo lassen sich Widgets für unbegrenzt viele unterschiedliche Apps erstellen.", "Ablauf des Abonnements", "Nach Ablauf können keine neuen Premium-Widgets erstellt werden. Bereits erstellte Widgets funktionieren weiter.", "Hinweis: Premium-Käufe und Abo-Prüfung sind noch nicht aktiv. Hier werden keine Zahlungen angenommen.", "Schließen"),
-        "es" to listOf("VARYOK Premium", "99 TRY / año", "Suscripción Premium anual", "Se prevé un pago anual de 99 TRY mediante Google Play Billing, con renovación automática.", "Verificación de Premium", "Con una suscripción activa se podrán crear widgets para un número ilimitado de aplicaciones diferentes.", "Fin de la suscripción", "Al vencer, se bloqueará la creación de nuevos widgets Premium. Los widgets ya creados seguirán funcionando.", "Información: las compras Premium y la verificación de suscripciones aún no están activas. Esta pantalla no cobra pagos.", "Cerrar"),
-        "ja" to listOf("VARYOK Premium", "年間 99 トルコリラ", "年間Premiumサブスクリプション", "Google Play Billingによる年間99トルコリラの自動更新プランを予定しています。", "Premium利用権の確認", "有効なサブスクリプションがあれば、異なるアプリのウィジェットを無制限に作成できます。", "サブスクリプションの期限切れ", "期限切れ後は新しいPremiumウィジェットを作成できません。作成済みのウィジェットは引き続き動作します。", "ご案内：Premiumの購入と契約確認はまだ有効ではありません。この画面では支払いできません。", "閉じる"),
-        "ar" to listOf("VARYOK Premium", "99 ليرة تركية / سنة", "اشتراك Premium السنوي", "من المخطط دفع 99 ليرة تركية سنويًا عبر Google Play Billing مع التجديد التلقائي.", "التحقق من صلاحية Premium", "يستطيع المشتركون النشطون إنشاء ويدجت لعدد غير محدود من التطبيقات المختلفة.", "انتهاء الاشتراك", "عند انتهاء الاشتراك، يتوقف إنشاء ويدجت Premium الجديدة، بينما تستمر الويدجت المنشأة سابقًا في العمل.", "ملاحظة: شراء Premium والتحقق من الاشتراك غير مفعلين بعد. لا يمكن الدفع من هذه الشاشة.", "إغلاق")
+        "tr" to listOf(
+            "VARYOK Premium", "99 TL / yıl", "Yıllık Premium",
+            "Sınırsız kullanım için yıllık Premium planı Google Play üzerinden sunulacaktır. Türkiye için belirlenen hedef fiyat 99 TL'dir.",
+            "Sınırsız özgürlük",
+            "Premium abonelik etkinleştiğinde farklı uygulamalar için sınırsız widget oluşturabilirsiniz.",
+            "Widget'ların güvende",
+            "Abonelik süresi dolduğunda mevcut widget'larınız çalışmaya devam eder.",
+            "Kapat"
+        ),
+        "en" to listOf(
+            "VARYOK Premium", "99 TRY / year", "Annual Premium",
+            "An annual Premium plan for unlimited use will be offered through Google Play. The target price for Türkiye is 99 TRY.",
+            "Unlimited freedom",
+            "With an active Premium subscription you can create unlimited widgets for different apps.",
+            "Your widgets stay",
+            "Previously created widgets continue working after the subscription ends.",
+            "Close"
+        ),
+        "de" to listOf(
+            "VARYOK Premium", "99 TRY / Jahr", "Jährliches Premium",
+            "Ein jährlicher Premium-Tarif für unbegrenzte Nutzung wird über Google Play angeboten. Der geplante Preis in der Türkei beträgt 99 TRY.",
+            "Unbegrenzt gestalten",
+            "Mit einem aktiven Premium-Abo können Sie unbegrenzt Widgets für unterschiedliche Apps erstellen.",
+            "Ihre Widgets bleiben",
+            "Vorhandene Widgets funktionieren nach Abo-Ende weiter.",
+            "Schließen"
+        ),
+        "es" to listOf(
+            "VARYOK Premium", "99 TRY / año", "Premium anual",
+            "El plan anual Premium para uso ilimitado se ofrecerá a través de Google Play. El precio previsto en Turquía es de 99 TRY.",
+            "Libertad sin límites",
+            "Con una suscripción Premium activa podrás crear widgets ilimitados para distintas aplicaciones.",
+            "Tus widgets permanecen",
+            "Los widgets ya creados seguirán funcionando al terminar la suscripción.",
+            "Cerrar"
+        ),
+        "ja" to listOf(
+            "VARYOK Premium", "年間 99 トルコリラ", "年間Premium",
+            "無制限に使える年間PremiumプランはGoogle Playで提供予定です。トルコでの予定価格は99トルコリラです。",
+            "無制限に作成",
+            "Premium契約が有効になると、さまざまなアプリのウィジェットを無制限に作成できます。",
+            "ウィジェットはそのまま",
+            "契約終了後も作成済みのウィジェットは動作し続けます。",
+            "閉じる"
+        ),
+        "ar" to listOf(
+            "VARYOK Premium", "99 ليرة تركية / سنة", "Premium السنوي",
+            "سيُتاح الاشتراك السنوي لاستخدام غير محدود عبر Google Play. السعر المستهدف في تركيا هو 99 ليرة تركية.",
+            "حرية بلا حدود",
+            "عند تفعيل الاشتراك يمكنك إنشاء أدوات غير محدودة لتطبيقات مختلفة.",
+            "أدواتك تبقى",
+            "تظل الأدوات التي أنشأتها تعمل بعد انتهاء الاشتراك.",
+            "إغلاق"
+        )
     )
 
     fun t(context: Context, key: String): String {
