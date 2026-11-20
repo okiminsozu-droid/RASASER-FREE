@@ -124,7 +124,8 @@ def approved_feed_events(xml: bytes, entry: dict, now: int) -> list[Event]:
     result = []
     for item in entries[:50]:
         def field(rss_tag: str, atom_tag: str) -> str:
-            node = item.find(rss_tag) or item.find("{http://www.w3.org/2005/Atom}"+atom_tag)
+            node = item.find(rss_tag)
+            if node is None: node = item.find("{http://www.w3.org/2005/Atom}"+atom_tag)
             return short(node.text if node is not None else "", 400)
         title = field("title", "title")
         link = field("link", "link")

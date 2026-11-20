@@ -54,12 +54,15 @@ class NewsHandler(BaseHTTPRequestHandler):
         self.end_headers()
         try:
             last = int(time.time())
+            delivered = set()
             for _ in range(24):  # max 2-minute connection; client reconnects
                 news = self.store.created_since(last)
-                for event in news[:50]:
+                for event in news:
+                    if event["id"] in delivered: continue
+                    delivered.add(event["id"])
                     body = json.dumps(event,ensure_ascii=False,separators=(",",":"))
                     self.wfile.write(("event: story\ndata: "+body+"\n\n").encode("utf-8"))
-                last = int(time.time())
+                last = max(last, int(time.time())-1)
                 self.wfile.write(b": ping\n\n")
                 self.wfile.flush()
                 time.sleep(5)

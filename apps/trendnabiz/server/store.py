@@ -80,6 +80,15 @@ class Store:
             ).fetchall()
             return [json.loads(r["payload"]) for r in rows]
 
+    def created_since(self, after: int, limit: int = 50) -> list[dict]:
+        """For SSE clients: server-inserted events, not provider publication clock."""
+        with self.lock, self.connect() as db:
+            rows = db.execute(
+                "SELECT payload FROM events WHERE created_at>=? ORDER BY created_at,id LIMIT ?",
+                (after,max(1,min(limit,100)))
+            ).fetchall()
+            return [json.loads(r["payload"]) for r in rows]
+
     def source_status(self) -> list[dict]:
         with self.lock, self.connect() as db:
             return [dict(r) for r in db.execute("SELECT name,initialized,last_success,last_error FROM source_states ORDER BY name")]
