@@ -1,0 +1,23 @@
+[Unit]
+Description=TRENDNABIZ independent event server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=trendnabiz
+Group=trendnabiz
+WorkingDirectory=/opt/trendnabiz
+EnvironmentFile=/etc/trendnabiz/server.env
+ExecStart=/usr/bin/python3 -m server.runner
+Restart=always
+RestartSec=10
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/trendnabiz
+MemoryMax=512M
+
+[Install]
+WantedBy=multi-user.target
