@@ -10,7 +10,7 @@ from email.utils import parsedate_to_datetime
 from urllib.parse import urlparse
 from .events import Event, short, stable_id, timestamp
 
-USER_AGENT = "TRENDNABIZ/0.2 (contact: webmaster@okiminsozu.com; source attribution included)"
+USER_AGENT = "TRENDNABIZ/0.2 (+https://www.okiminsozu.com; source attribution included)"
 MAX_BYTES = 4_000_000
 
 def fetch_bytes(url: str, max_bytes: int = MAX_BYTES) -> bytes:

@@ -4,7 +4,7 @@ object NewsLocalization {
     fun description(item: NewsItem, lang: UiLang): String {
         // Only data with known, machine-readable semantics may be locally translated.
         // For arbitrary future news text, do not pretend an unverified translation exists.
-        if (item.source != "USGS") return item.description
+        if (item.source != "USGS" || item.magnitude <= 0.0) return item.description
         val place = item.region.ifBlank { item.title.substringAfter(" · ", item.title.substringAfter(": ", "")) }
         return when (lang) {
             UiLang.TR -> "$place bölgesinde ${item.magnitude} büyüklüğünde deprem kaydedildi."
