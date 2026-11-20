@@ -7,7 +7,8 @@
       <category android:name="android.intent.category.LAUNCHER"/>
     </intent>
   </queries>
-  <!-- INTERNET and tracking permissions are deliberately absent. -->
+  <!-- INTERNET is used ONLY for voluntary Google owner verification via Cloudflare; no tracking. -->
+  <uses-permission android:name="android.permission.INTERNET"/>
   <!-- CAMERA is requested at runtime only for the optional flashlight tool. -->
   <!-- System BiometricPrompt handles fingerprints; biometric templates never enter the app. -->
   <uses-permission android:name="android.permission.USE_BIOMETRIC"/>
