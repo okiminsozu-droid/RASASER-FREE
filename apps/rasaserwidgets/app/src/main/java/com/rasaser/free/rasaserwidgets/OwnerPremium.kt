@@ -25,9 +25,28 @@ object OwnerPremium {
     private const val KEY_ALIAS = "rasaser_owner_device_key_v1"
     private const val PREFS = "rasaser_verified_owner_grant"
 
-    // PUBLIC verification key, NOT a secret. Fill only after Cloudflare generates
-    // and permanently stores the paired PRIVATE signer outside public GitHub.
-    private const val TRUSTED_SERVER_PUBLIC_KEY_SPKI_B64URL = ""
+    // No keys in public GitHub. Trust the shared public key obtained only over
+    // HTTPS from the fixed RaSaSeR owner service, and PIN it on first use.
+    // Signing private keys stay exclusively in the protected server.
+    private const val KEY_PREFS = "rasaser_owner_trusted_server_key"
+    private const val KEY_FIELD = "pinned_spki_p256"
+    private fun trustedPublicKey(context: Context): String =
+        context.getSharedPreferences(KEY_PREFS, Context.MODE_PRIVATE)
+            .getString(KEY_FIELD, "").orEmpty()
+
+    fun configurePublicKey(context: Context, spkiB64Url: String): Boolean = try {
+        require(spkiB64Url.length in 70..250)
+        val candidate = KeyFactory.getInstance("EC").generatePublic(
+            X509EncodedKeySpec(decode(spkiB64Url))
+        )
+        require(candidate.algorithm == "EC")
+        val prefs = context.getSharedPreferences(KEY_PREFS, Context.MODE_PRIVATE)
+        val pinned = trustedPublicKey(context)
+        if (pinned.isNotBlank()) pinned == spkiB64Url
+        else prefs.edit().putString(KEY_FIELD, spkiB64Url).commit()
+    } catch (_: Exception) {
+        false
+    }
 
     private fun encode(bytes: ByteArray): String =
         Base64.encodeToString(bytes, Base64.URL_SAFE or Base64.NO_PADDING or Base64.NO_WRAP)
@@ -35,7 +54,7 @@ object OwnerPremium {
     private fun decode(value: String): ByteArray =
         Base64.decode(value, Base64.URL_SAFE or Base64.NO_PADDING or Base64.NO_WRAP)
 
-    fun isConfigured(): Boolean = TRUSTED_SERVER_PUBLIC_KEY_SPKI_B64URL.isNotBlank()
+    fun isConfigured(context: Context): Boolean = trustedPublicKey(context).isNotBlank()
 
     private fun keyPair(): KeyPair {
         val store = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
@@ -70,7 +89,7 @@ object OwnerPremium {
     }
 
     fun isActive(context: Context): Boolean {
-        if (!isConfigured()) return false
+        if (!isConfigured(context)) return false
         val value = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .getString("grant", null) ?: return false
         return verify(context, value)
@@ -83,7 +102,7 @@ object OwnerPremium {
     }
 
     private fun verify(context: Context, grant: String): Boolean = try {
-        if (!isConfigured() || grant.length > 12_000) false
+        if (!isConfigured(context) || grant.length > 12_000) false
         else {
             val sections = grant.split('.')
             if (sections.size != 2 || sections.any { it.isBlank() }) false
@@ -97,7 +116,7 @@ object OwnerPremium {
                 ) false
                 else {
                     val signer = KeyFactory.getInstance("EC").generatePublic(
-                        X509EncodedKeySpec(decode(TRUSTED_SERVER_PUBLIC_KEY_SPKI_B64URL))
+                        X509EncodedKeySpec(decode(trustedPublicKey(context)))
                     )
                     val signature = Signature.getInstance("SHA256withECDSA")
                     signature.initVerify(signer)
