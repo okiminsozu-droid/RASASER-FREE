@@ -18,12 +18,12 @@ class OfflineContractTests(unittest.TestCase):
     def test_permissions(self):
         root = ET.parse(ROOT / "app/src/main/AndroidManifest.xml").getroot()
         permissions = {el.attrib.get(f"{{{ANDROID}}}name") for el in root.findall("uses-permission")}
-        self.assertNotIn("android.permission.INTERNET", permissions)
+        self.assertIn("android.permission.INTERNET", permissions)
         self.assertNotIn("android.permission.READ_EXTERNAL_STORAGE", permissions)
         self.assertNotIn("android.permission.MANAGE_EXTERNAL_STORAGE", permissions)
         self.assertNotIn("android.permission.QUERY_ALL_PACKAGES", permissions)
         self.assertNotIn("android.permission.CALL_PHONE", permissions)
-        self.assertEqual(permissions, {"android.permission.CAMERA", "android.permission.USE_BIOMETRIC"})
+        self.assertEqual(permissions, {"android.permission.CAMERA", "android.permission.USE_BIOMETRIC", "android.permission.INTERNET"})
         app = root.find("application")
         self.assertEqual(app.attrib.get(f"{{{ANDROID}}}allowBackup"), "false")
         self.assertEqual(app.attrib.get(f"{{{ANDROID}}}usesCleartextTraffic"), "false")
@@ -68,7 +68,7 @@ class OfflineContractTests(unittest.TestCase):
         base = ROOT / "app/src/main/java/com/rasaser/free/rasaserwidgets"
         store = (base / "WidgetStore.kt").read_text(encoding="utf-8")
         editor = (base / "WidgetEditorActivity.kt").read_text(encoding="utf-8")
-        self.assertIn("fun canCreate(ctx: Context): Boolean = creationCount(ctx) < 3", store)
+        self.assertIn("OwnerPremium.isActive(ctx) || creationCount(ctx) < 3", store)
         self.assertIn("fun canCreateFor(ctx: Context, targetPackage: String): Boolean", store)
         self.assertIn('putStringSet("free_distinct_app_packages"', store)
         self.assertIn('putBoolean("free_distinct_migrated", true)', store)
@@ -92,7 +92,7 @@ class OfflineContractTests(unittest.TestCase):
         self.assertNotIn("getInstalledPackages", catalog)
         self.assertNotIn("QUERY_ALL_PACKAGES", catalog)
         self.assertIn("WidgetCreateActivity::class.java", main)
-        self.assertIn('tx("privacy_desc")', main)
+        self.assertIn('OwnerLoginText.t(this@MainActivity, "privacy")', main)
         self.assertIn('text("ⓘ", 26f, true)', main)
 
     def test_fresh_media_picker_and_nonblocking_decode(self):
@@ -231,6 +231,46 @@ class OfflineContractTests(unittest.TestCase):
         self.assertNotIn("launchBillingFlow", home)
         self.assertNotIn("BillingClient", home)
         self.assertIn('setPositiveButton(PremiumInfoText.t(this, "close"), null)', home)
+
+    def test_owner_google_access_is_fail_closed_and_private(self):
+        base = ROOT / "app/src/main/java/com/rasaser/free/rasaserwidgets"
+        premium = (base / "OwnerPremium.kt").read_text(encoding="utf-8")
+        login = (base / "OwnerBrowserLogin.kt").read_text(encoding="utf-8")
+        labels = (base / "OwnerLoginText.kt").read_text(encoding="utf-8")
+        main = (base / "MainActivity.kt").read_text(encoding="utf-8")
+        store = (base / "WidgetStore.kt").read_text(encoding="utf-8")
+        for required in ("AndroidKeyStore", "SHA256withECDSA",
+                         'payload.optString("packageName") != context.packageName',
+                         'payload.optString("devicePublicKey") != devicePublicKey()',
+                         'payload.optString("scope") != "owner_lifetime"',
+                         'private const val TRUSTED_SERVER_PUBLIC_KEY_SPKI_B64URL = ""'):
+            self.assertIn(required, premium)
+        self.assertIn("if (!isConfigured()) return false", premium)
+        self.assertIn("acceptSignedGrant", premium)
+        self.assertIn("7", login)
+        self.assertIn("Intent.ACTION_VIEW", login)
+        self.assertIn('if (!OwnerPremium.isConfigured())', login)
+        self.assertIn('/v1/owner/browser/start', login)
+        self.assertIn('/v1/owner/browser/status', login)
+        self.assertIn('/v1/owner/browser/finish', login)
+        self.assertIn("OwnerPremium.signSession", login)
+        self.assertIn("OwnerPremium.acceptSignedGrant", login)
+        self.assertIn("setOnClickListener { ownerLogin.onBrandTap() }", main)
+        self.assertIn("ownerLogin.onAppResumed()", main)
+        self.assertIn("OwnerPremium.isActive(ctx)", store)
+        for language in ("tr", "en", "de", "es", "ja", "ar"):
+            self.assertIn(f'"{language}" to mapOf(', labels)
+        self.assertNotIn("GOOGLE_WEB_CLIENT_SECRET", premium)
+        self.assertNotIn("BEGIN PRIVATE KEY", premium)
+        self.assertNotIn("GRANT_SIGNING_KEY_PKCS8_B64", login)
+        self.assertNotIn("owner_lifetime=true", login)
+
+    def test_bundle_version_matches_app_metadata(self):
+        metadata = json.loads((ROOT / "app.json").read_text(encoding="utf-8"))
+        build = (ROOT / "app/build.gradle.kts").read_text(encoding="utf-8")
+        self.assertIn(f'versionCode = {metadata["version_code"]}', build)
+        self.assertIn(f'versionName = "{metadata["version_name"]}"', build)
+        self.assertEqual(metadata["release_signing_location"], "PRIVATE_ONLY")
 
 if __name__ == "__main__":
     unittest.main()
