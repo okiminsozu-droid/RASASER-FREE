@@ -172,6 +172,16 @@ export default {
         return Response.json({gateway:"active",hubStatus:503,archive:false},{status:503,headers:{"Cache-Control":"no-store"}});
       }
     }
+    if(url.pathname === "/v1/wsprobe") {
+      try {
+        const target=env.LIVE_HUB.get(env.LIVE_HUB.idFromName("world-live"));
+        const response=await target.fetch("https://internal/ws",{headers:{"Upgrade":"websocket"}});
+        if(response.status !== 101 || !response.webSocket) return Response.json({handshake:false,status:response.status},{status:503,headers});
+        response.webSocket.accept();
+        response.webSocket.close(1000,"probe_finished");
+        return Response.json({handshake:true,history:false,archive:false},{headers});
+      } catch(_) { return Response.json({handshake:false},{status:503,headers}); }
+    }
     if(url.pathname === "/v1/live") {
       if(request.headers.get("Upgrade")?.toLowerCase() !== "websocket") return new Response("WebSocket required",{status:426,headers});
       const id=env.LIVE_HUB.idFromName("world-live");
