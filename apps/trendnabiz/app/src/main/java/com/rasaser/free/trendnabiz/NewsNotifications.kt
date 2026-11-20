@@ -69,7 +69,7 @@ object NewsNotifications {
             .setContentText(item.description)
             .setStyle(NotificationCompat.BigTextStyle().bigText("${item.description}\n$sourceText"))
             .setSubText(sourceText)
-            .setCategory(NotificationCompat.CATEGORY_NEWS)
+            .setCategory(NotificationCompat.CATEGORY_EVENT)
             .setColor(ContextCompat.getColor(context, R.color.tn_blue))
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setPriority(if (item.critical || test) NotificationCompat.PRIORITY_HIGH else NotificationCompat.PRIORITY_DEFAULT)
