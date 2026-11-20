@@ -68,7 +68,7 @@ object NewsNotifications {
             .setLargeIcon(logo)
             .setContentTitle(item.title)
             .setContentText(description)
-            .setStyle(NotificationCompat.BigTextStyle().bigText("${item.description}\n$sourceText"))
+            .setStyle(NotificationCompat.BigTextStyle().bigText("${description}\n$sourceText"))
             .setSubText(sourceText)
             .setCategory(NotificationCompat.CATEGORY_EVENT)
             .setColor(ContextCompat.getColor(context, R.color.tn_blue))
