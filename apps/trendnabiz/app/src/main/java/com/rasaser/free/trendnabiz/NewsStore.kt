@@ -30,7 +30,11 @@ object UserPrefs {
     fun criticalOnly(context: Context): Boolean = store(context).getBoolean("critical_only", false)
     fun setCriticalOnly(context: Context, value: Boolean) = store(context).edit().putBoolean("critical_only", value).apply()
     // Reserved for a future verified Play Billing / backend entitlement; never write this from an in-app toggle.
-    fun isPremium(context: Context): Boolean = false
+    fun isPremium(context: Context): Boolean =
+        BuildConfig.DEBUG && store(context).getBoolean("debug_premium_preview", false)
+    fun setDebugPremium(context: Context, enabled: Boolean) {
+        if (BuildConfig.DEBUG) store(context).edit().putBoolean("debug_premium_preview", enabled).apply()
+    }
 }
 
 object NewsStore {

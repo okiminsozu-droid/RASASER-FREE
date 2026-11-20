@@ -168,6 +168,7 @@ private fun TrendNabizApp(
     var refreshing by remember { mutableStateOf(false) }
     var status by remember { mutableStateOf("") }
     var criticalOnly by remember { mutableStateOf(UserPrefs.criticalOnly(context)) }
+    var debugPremium by remember { mutableStateOf(UserPrefs.isPremium(context)) }
     var notificationAllowed by remember { mutableStateOf(NewsNotifications.allowed(context)) }
 
     val requestNotifications = rememberLauncherForActivityResult(
@@ -291,6 +292,17 @@ private fun TrendNabizApp(
                             } else NewsNotifications.test(context)
                         }
                         val licenses = remember { context.assets.open("legal/licenses.txt").bufferedReader().use { it.readText() } }
+                        if (BuildConfig.DEBUG) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text("Premium test mode (DEBUG only)", modifier = Modifier.weight(1f), color = ink)
+                                Switch(checked = debugPremium, onCheckedChange = {
+                                    UserPrefs.setDebugPremium(context, it)
+                                    debugPremium = it
+                                    LatestNewsWidget.refresh(context)
+                                })
+                            }
+                            Text("Only debug builds allow this. Release always requires verified billing.", color = ink, fontSize = 11.sp)
+                        }
                         Text(UiText.get(lang, "about"), fontWeight = FontWeight.Bold, color = ink)
                         Text(licenses, color = ink, fontSize = 12.sp)
                     }
