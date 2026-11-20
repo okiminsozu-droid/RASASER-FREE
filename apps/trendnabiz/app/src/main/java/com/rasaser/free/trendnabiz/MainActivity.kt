@@ -256,6 +256,13 @@ private fun TrendNabizApp(
                 "premium" -> {
                     PremiumPage(lang, modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp))
                 }
+                "licenses" -> {
+                    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(18.dp)) {
+                        Text(UiText.get(lang,"about"),fontSize=22.sp,fontWeight=FontWeight.Black,color=ink)
+                        val licenses=remember { context.assets.open("legal/licenses.txt").bufferedReader().use { it.readText() } }
+                        Text(licenses,color=ink,fontSize=13.sp,lineHeight=21.sp)
+                    }
+                }
                 "settings" -> {
                     Column(
                         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(18.dp),
@@ -293,12 +300,32 @@ private fun TrendNabizApp(
                             })
                         }
                         Text(if (criticalOnly) UiText.get(lang, "notifyCritical") else UiText.get(lang, "notifyNormal"), color = ink)
+
+                        if (BuildConfig.DEBUG) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(UiText.get(lang,"background"), modifier=Modifier.weight(1f), color=ink, fontWeight=FontWeight.SemiBold)
+                                Switch(checked=backgroundWatching,onCheckedChange={enabled ->
+                                    if(enabled && !NewsNotifications.allowed(context)){
+                                        if(Build.VERSION.SDK_INT>=33) requestNotifications.launch(Manifest.permission.POST_NOTIFICATIONS)
+                                    } else {
+                                        try {
+                                            val intent=Intent(context,LiveMonitoringService::class.java).setAction(
+                                                if(enabled) LiveMonitoringService.ACTION_START else LiveMonitoringService.ACTION_STOP
+                                            )
+                                            androidx.core.content.ContextCompat.startForegroundService(context,intent)
+                                            backgroundWatching=enabled
+                                        } catch(_:Exception) { backgroundWatching=false }
+                                    }
+                                })
+                            }
+                            Text(UiText.get(lang,"backgroundHint"),color=ink,fontSize=12.sp)
+                        }
+
                         OrangeButton(UiText.get(lang, "test")) {
                             if (!NewsNotifications.allowed(context) && Build.VERSION.SDK_INT >= 33) {
                                 requestNotifications.launch(Manifest.permission.POST_NOTIFICATIONS)
                             } else NewsNotifications.test(context)
                         }
-                        val licenses = remember { context.assets.open("legal/licenses.txt").bufferedReader().use { it.readText() } }
                         if (BuildConfig.DEBUG) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(UiText.get(lang, "debugPremium"), modifier = Modifier.weight(1f), color = ink)
@@ -310,8 +337,7 @@ private fun TrendNabizApp(
                             }
                             Text(UiText.get(lang, "debugNotice"), color = ink, fontSize = 11.sp)
                         }
-                        Text(UiText.get(lang, "about"), fontWeight = FontWeight.Bold, color = ink)
-                        Text(licenses, color = ink, fontSize = 12.sp)
+                        OrangeButton(UiText.get(lang,"about")) { currentPage="licenses" }
                     }
                 }
                 else -> {

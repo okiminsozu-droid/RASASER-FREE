@@ -13,7 +13,7 @@ enum class UiLang(val code: String, val display: String, val tag: String) {
 
 object UiText {
     private val words = mapOf(
-        "feed" to listOf("Son Gelişmeler", "Latest events", "Neueste Meldungen", "Últimos sucesos", "最新动态"),
+        "feed" to listOf("Canlı Bildirim Merkezi", "Live alerts", "Live-Meldungen", "Alertas en vivo", "实时通知中心"),
         "settings" to listOf("Ayarlar", "Settings", "Einstellungen", "Ajustes", "设置"),
         "premium" to listOf("Premium Özellikler", "Premium features", "Premium-Funktionen", "Funciones Premium", "高级功能"),
         "slogan" to listOf("Sana onların haberleri geldi mi?", "Did you receive their news?", "Hast du ihre Nachrichten erhalten?", "¿Te han llegado sus noticias?", "你收到他们的消息了吗？"),
@@ -69,6 +69,9 @@ object UiText {
         "billingPending" to listOf("Google Play satın alma doğrulaması henüz bağlanmadı.", "Google Play purchase verification is not connected yet.", "Google Play-Kaufprüfung noch nicht verbunden.", "La verificación de compras de Google Play aún no está conectada.", "尚未接入 Google Play 购买验证。"),
         "widgetLocked" to listOf("Premium widget • TRENDNABIZ'i açın", "Premium widget • open TRENDNABIZ", "Premium-Widget • TRENDNABIZ öffnen", "Widget Premium • abre TRENDNABIZ", "高级小组件 • 打开 TRENDNABIZ"),
         "widgetEmpty" to listOf("Son olay burada görünecek", "Latest event will appear here", "Neueste Meldung erscheint hier", "El último suceso aparecerá aquí", "最新动态将在此显示"),
+        "background" to listOf("Arka planda canlı izleme (TEST)", "Background live monitoring (TEST)", "Live-Überwachung im Hintergrund (TEST)", "Monitorización en segundo plano (PRUEBA)", "后台实时监听（测试）"),
+        "backgroundHint" to listOf("Bildirim alanında sürekli izleme uyarısı görünür. Pil tasarrufu bağlantıyı kesebilir. Test sürümüne özeldir.", "Persistent monitoring notification shown. Battery policies may disconnect it. Debug build only.", "Permanente Benachrichtigung. Energiesparen kann die Verbindung trennen. Nur Testversion.", "Notificación persistente. El ahorro de batería puede desconectar. Solo prueba.", "显示持续监听通知。省电模式可能断开。仅测试版。"),
+        "connectionError" to listOf("Cloudflare bağlantı hatası:", "Cloudflare connection error:", "Cloudflare-Verbindungsfehler:", "Error de conexión a Cloudflare:", "Cloudflare 连接错误："),
         "liveConnected" to listOf("CANLI • Cloudflare bağlı. Arşiv tutulmaz.", "LIVE • Cloudflare connected. No history.", "LIVE • Cloudflare verbunden. Kein Archiv.", "EN VIVO • Cloudflare conectado. Sin archivo.", "实时 • Cloudflare 已连接。无历史归档。"),
         "liveDisconnected" to listOf("Bağlantı kuruluyor. Arka planda bağlantı kapanabilir.", "Connecting. Background connection may close.", "Verbindungsaufbau. Im Hintergrund kann sie enden.", "Conectando. La conexión puede cerrarse en segundo plano.", "正在连接。后台连接可能中断。"),
         "liveEmpty" to listOf("Yeni olay bekleniyor; geçmiş haberler gösterilmez.", "Waiting for new events; past news is not shown.", "Warten auf neue Ereignisse. Kein Verlauf.", "Esperando nuevas noticias. Sin historial.", "等待新动态。不显示旧新闻。"),
