@@ -1,4 +1,4 @@
-name: VARYOK 0.4.2 Owner Access QA & Unsigned AAB
+name: VARYOK 0.4.2 Universal Promo QA & Unsigned AAB
 # No release signing secrets or upload keys are stored in GitHub.
 # Production AAB signing and Play Console upload must use a private key outside this public repository.
 on:
@@ -41,7 +41,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.11.1'
-      - name: Privacy, owner signature and source checks
+      - name: Privacy, universal promo and source checks
         run: |
           python3 tools/check_repo.py
           python3 tools/validate_app.py rasaserwidgets true
