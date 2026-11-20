@@ -6,6 +6,8 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.speech.tts.TextToSpeech
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -53,14 +55,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -73,7 +73,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import kotlinx.coroutines.launch
 import java.net.URLEncoder
 import java.text.DateFormat
 import java.util.Date
@@ -89,17 +88,34 @@ private val red = Color(0xFFE52E40)
 class MainActivity : ComponentActivity() {
     private var incoming by mutableStateOf<Pair<String, String>?>(null)
     private var speechEngine: TextToSpeech? = null
+    private val uiHandler = Handler(Looper.getMainLooper())
+    private var liveClient: LiveNewsClient? = null
+    private var liveStories by mutableStateOf<List<NewsItem>>(emptyList())
+    private var liveConnected by mutableStateOf(false)
+    private var notificationStory by mutableStateOf<NewsItem?>(null)
+
+    private fun newLiveStory(story: NewsItem) {
+        val now=System.currentTimeMillis()
+        if(story.publishedAt <= now-180000L) return
+        liveStories=(listOf(story)+liveStories.filterNot { it.id == story.id })
+            .filter { it.publishedAt > now-180000L }.take(40)
+        NewsNotifications.publish(this,story)
+        uiHandler.postDelayed({
+            liveStories=liveStories.filter { it.publishedAt > System.currentTimeMillis()-180000L }
+        },181000L)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         NewsNotifications.createChannels(this)
-        NewsWorker.schedule(this)
+        UserPrefs.clearLegacyNewsCache(this)
+        liveClient = LiveNewsClient(::newLiveStory) { liveConnected = it }
         incoming = readAction(intent)
         setContent {
             MaterialTheme(colorScheme = lightColorScheme(
                 primary = azure, secondary = orange, background = sky, onBackground = ink
             )) {
-                TrendNabizApp(incoming, { incoming = null }, ::executePremiumAction)
+                TrendNabizApp(incoming, notificationStory, liveStories, liveConnected, { liveClient?.stop(); liveClient?.start() }, { incoming=null; notificationStory=null }, ::executePremiumAction)
             }
         }
     }
@@ -112,6 +128,7 @@ class MainActivity : ComponentActivity() {
 
     private fun readAction(intent: Intent?): Pair<String, String>? {
         val kind = intent?.getStringExtra(NewsNotifications.EXTRA_ACTION) ?: return null
+        notificationStory = NewsNotifications.readStory(intent)
         return kind to (intent.getStringExtra(NewsNotifications.EXTRA_ID) ?: "")
     }
 
@@ -147,6 +164,16 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onStart() {
+        super.onStart()
+        liveClient?.start()
+    }
+    override fun onStop() {
+        liveClient?.stop()
+        liveStories=emptyList()
+        uiHandler.removeCallbacksAndMessages(null)
+        super.onStop()
+    }
     override fun onDestroy() {
         speechEngine?.stop()
         speechEngine?.shutdown()
@@ -157,44 +184,26 @@ class MainActivity : ComponentActivity() {
 @Composable
 private fun TrendNabizApp(
     externalAction: Pair<String, String>?,
+    notificationStory: NewsItem?,
+    liveItems: List<NewsItem>,
+    isConnected: Boolean,
+    reconnect: () -> Unit,
     actionConsumed: () -> Unit,
     performAction: (NewsItem, String, UiLang) -> Unit
 ) {
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
     var languageCode by rememberSaveable { mutableStateOf(UserPrefs.language(context).code) }
     val lang = UiLang.parse(languageCode)
     var currentPage by rememberSaveable { mutableStateOf("home") }
-    var stories by remember { mutableStateOf(NewsStore.cached(context)) }
-    var refreshing by remember { mutableStateOf(false) }
-    var status by remember { mutableStateOf("") }
+    val stories = liveItems
     var criticalOnly by remember { mutableStateOf(UserPrefs.criticalOnly(context)) }
     var debugPremium by remember { mutableStateOf(UserPrefs.isPremium(context)) }
     var notificationAllowed by remember { mutableStateOf(NewsNotifications.allowed(context)) }
-    var newsServerDraft by rememberSaveable { mutableStateOf(UserPrefs.newsServer(context)) }
-    var serverInputError by remember { mutableStateOf(false) }
 
     val requestNotifications = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { notificationAllowed = NewsNotifications.allowed(context) }
 
-    suspend fun reload() {
-        refreshing = true
-        try {
-            val fresh = NewsStore.sync(context)
-            for (story in fresh.take(20)) NewsNotifications.publish(context, story)
-            stories = NewsStore.cached(context)
-            LatestNewsWidget.refresh(context)
-            status = ""
-        } catch (_: Exception) {
-            status = UiText.get(lang, "offline")
-            stories = NewsStore.cached(context)
-        } finally {
-            refreshing = false
-        }
-    }
-
-    LaunchedEffect(Unit) { reload() }
     LaunchedEffect(externalAction) {
         val action = externalAction ?: return@LaunchedEffect
         val (kind, id) = action
@@ -205,15 +214,8 @@ private fun TrendNabizApp(
         } else if (!UserPrefs.isPremium(context)) {
             currentPage = "premium"
         } else {
-            val item = stories.firstOrNull { it.id == id } ?: NewsItem(
-                id = "trend_test",
-                title = UiText.get(lang, "testStory"),
-                description = UiText.get(lang, "testDetail"),
-                source = "TRENDNABIZ",
-                sourceUrl = "https://www.okiminsozu.com",
-                publishedAt = System.currentTimeMillis()
-            )
-            performAction(item, kind, lang)
+            val item = stories.firstOrNull { it.id == id } ?: notificationStory
+            if (item != null) performAction(item, kind, lang)
         }
         actionConsumed()
     }
@@ -272,24 +274,6 @@ private fun TrendNabizApp(
                             }
                         }
                         HorizontalDivider(color = azure.copy(alpha = .22f))
-                        Text(UiText.get(lang, "newsServer"), fontWeight = FontWeight.Bold, color = ink)
-                        Text(UiText.get(lang, "newsServerInfo"), color = ink, fontSize = 12.sp)
-                        OutlinedTextField(
-                            value = newsServerDraft,
-                            onValueChange = { newsServerDraft = it; serverInputError = false },
-                            label = { Text("https://...") },
-                            singleLine = true,
-                            isError = serverInputError,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        OrangeButton(UiText.get(lang, "saveServer")) {
-                            if (UserPrefs.setNewsServer(context, newsServerDraft)) {
-                                serverInputError = false
-                                scope.launch { reload() }
-                            } else serverInputError = true
-                        }
-                        if (serverInputError) Text(UiText.get(lang, "serverInvalid"), color = red)
-                        HorizontalDivider(color = azure.copy(alpha = .22f))
                         Text(UiText.get(lang, "alerts"), color = ink, fontWeight = FontWeight.Bold)
                         if (!notificationAllowed) {
                             OrangeButton(UiText.get(lang, "notificationsOff")) {
@@ -343,7 +327,7 @@ private fun TrendNabizApp(
                                 }
                                 Spacer(Modifier.height(6.dp))
                                 Text(UiText.get(lang, "live"), color = ink)
-                                Text(UiText.get(lang, if (UserPrefs.newsServer(context).isBlank()) "onlyUsGs" else "serverConfigured"), color = ink, fontSize = 12.sp)
+                                Text(UiText.get(lang, if(isConnected) "liveConnected" else "liveDisconnected"), color = ink, fontSize = 12.sp)
                                 Spacer(Modifier.height(8.dp))
                                 if (!notificationAllowed) {
                                     OrangeButton(UiText.get(lang, "notificationsOff")) {
@@ -351,10 +335,8 @@ private fun TrendNabizApp(
                                     }
                                     Spacer(Modifier.height(7.dp))
                                 }
-                                OrangeButton(UiText.get(lang, "refresh")) { scope.launch { reload() } }
-                                if (refreshing) CircularProgressIndicator(color = azure, modifier = Modifier.padding(12.dp).size(24.dp))
-                                if (status.isNotBlank()) Text(status, color = ink, fontSize = 12.sp)
-                                if (stories.isEmpty() && !refreshing) Text(UiText.get(lang, "noEvents"), color = ink)
+                                OrangeButton(UiText.get(lang, "reconnect")) { reconnect() }
+                                if (stories.isEmpty()) Text(UiText.get(lang, "liveEmpty"), color = ink)
                             }
                         }
                         items(stories, key = { it.id }) { story ->
