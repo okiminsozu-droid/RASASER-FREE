@@ -85,12 +85,12 @@ function noaaParse(doc,now) {
 }
 
 const decodeXml = text => clip(String(text||"")
-  .replace(/<!\\[CDATA\\[([\\s\\S]*?)\\]\\]>/g,"$1")
+  .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g,"$1")
   .replace(/<[^>]*>/g," ")
   .replace(/&amp;/g,"&").replace(/&quot;/g,'"')
   .replace(/&apos;/g,"'").replace(/&lt;/g,"<").replace(/&gt;/g,">"),220);
 function xmlField(fragment, tag) {
-  const re=new RegExp("<"+tag+"(?:\\\\s[^>]*)?>([\\\\s\\\\S]*?)<\\\\/"+tag+">","i");
+  const re=new RegExp("<"+tag+"(?:\\s[^>]*)?>([\\s\\S]*?)<\\/"+tag+">","i");
   return decodeXml(fragment.match(re)?.[1]||"");
 }
 async function sourceXml(url) {
@@ -102,7 +102,7 @@ async function sourceXml(url) {
 }
 function officialRss(xml, now, sourceName, allowedHosts, category) {
   if(!xml.includes("<rss") && !xml.includes("<channel")) return [];
-  const parts=[...xml.matchAll(/<item\\b[^>]*>([\\s\\S]*?)<\\/item>/gi)].slice(0,80);
+  const parts=[...xml.matchAll(/<item\b[^>]*>([\s\S]*?)<\/item>/gi)].slice(0,80);
   return parts.flatMap((match)=>{
     const item=match[1], title=xmlField(item,"title"), link=xmlField(item,"link");
     const issued=isoTime(xmlField(item,"pubDate")||xmlField(item,"dc:date")||xmlField(item,"updated"));
@@ -110,7 +110,7 @@ function officialRss(xml, now, sourceName, allowedHosts, category) {
     const host=new URL(link).hostname.toLowerCase();
     if(!allowedHosts.some(s=>host===s||host.endsWith("."+s)))return [];
     const id=xmlField(item,"guid")||link;
-    const critical=sourceName==="GDACS" && /^red\\b/i.test(title);
+    const critical=sourceName==="GDACS" && /^red\b/i.test(title);
     return [news(sourceName,id,title,
       sourceName+" published a new "+category+" notice. Refer to the original source for details.",
       link,issued,category,critical?"critical":"important")];
