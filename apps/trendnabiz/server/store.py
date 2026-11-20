@@ -107,9 +107,9 @@ class Store:
         with self.lock, self.connect() as db:
             rows = db.execute("""
               SELECT o.id,e.payload,o.attempts FROM outbox o JOIN events e USING(id)
-              WHERE o.delivered_at IS NULL AND o.next_attempt<=?
+              WHERE o.delivered_at IS NULL AND o.next_attempt<=? AND o.created_at>=?
               ORDER BY o.created_at LIMIT ?
-            """,(now,limit)).fetchall()
+            """,(now,now-45*60,limit)).fetchall()
             return [{"id":r["id"],"event":json.loads(r["payload"]),"attempts":r["attempts"]} for r in rows]
 
     def mark_delivery(self, event_id: str, success: bool, now: int | None = None) -> None:

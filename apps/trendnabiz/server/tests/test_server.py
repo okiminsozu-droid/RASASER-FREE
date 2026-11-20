@@ -47,6 +47,10 @@ class StoreTests(unittest.TestCase):
     def test_created_since(self):
         self.store.ingest("usgs",[example("b")],NOW)
         self.assertEqual(len(self.store.created_since(NOW)),1)
+    def test_delayed_activation_does_not_send_stale_notifications(self):
+        self.store.ingest("usgs",[],NOW)
+        self.store.ingest("usgs",[example("late")],NOW)
+        self.assertEqual(self.store.pending(NOW+60*60),[])
 
 class FeedTests(unittest.TestCase):
     def test_usgs(self):
