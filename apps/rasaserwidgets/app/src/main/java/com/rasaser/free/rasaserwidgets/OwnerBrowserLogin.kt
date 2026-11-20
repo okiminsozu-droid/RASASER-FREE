@@ -81,21 +81,44 @@ class OwnerBrowserLogin(
         }
     }
 
+    /** HTTPS-only, fixed-host and TOFU-pinned public verifier. */
+    private fun fetchOwnerVerificationKey(): String {
+        val conn = URL(endpoint + "/v1/owner/browser/public-key")
+            .openConnection() as HttpURLConnection
+        try {
+            conn.requestMethod = "GET"
+            conn.connectTimeout = 10_000
+            conn.readTimeout = 15_000
+            conn.instanceFollowRedirects = false
+            conn.setRequestProperty("Accept", "application/json")
+            if (conn.responseCode != 200)
+                throw IllegalStateException("Owner verification service not ready")
+            val value = conn.inputStream.bufferedReader(Charsets.UTF_8).use {
+                it.readText()
+            }
+            if (value.length > 4096) throw IllegalStateException("Invalid key response")
+            val data = JSONObject(value)
+            if (!data.optBoolean("ok")) throw IllegalStateException("Verification unavailable")
+            return data.getString("publicKey")
+        } finally {
+            conn.disconnect()
+        }
+    }
+
     private fun start() {
         if (busy || OwnerPremium.isActive(activity)) return
-        // Fail closed until Cloudflare has a secure signer and only the PUBLIC
-        // verification key has been explicitly installed in the Android source.
-        if (!OwnerPremium.isConfigured()) {
-            toast("inactive")
-            return
-        }
+        // Seven taps always perform a real HTTPS preflight. No private keys
+        // are embedded in the APK or stored in public source.
         busy = true
         Thread {
             try {
-                val publicKey = OwnerPremium.devicePublicKey()
+                val publicKey = fetchOwnerVerificationKey()
+                if (!OwnerPremium.configurePublicKey(activity, publicKey))
+                    throw IllegalStateException("Untrusted server verifier")
+                val deviceKey = OwnerPremium.devicePublicKey()
                 val data = post("/v1/owner/browser/start", JSONObject()
                     .put("packageName", activity.packageName)
-                    .put("devicePublicKey", publicKey))
+                    .put("devicePublicKey", deviceKey))
                 val id = data.getString("requestId")
                 val nonce = data.getString("nonce")
                 val expiry = data.getLong("expiresAtEpochSeconds")
@@ -130,7 +153,7 @@ class OwnerBrowserLogin(
 
     /** Called when user returns from the system Google browser to VARYOK. */
     fun onAppResumed() {
-        if (busy || OwnerPremium.isActive(activity) || !OwnerPremium.isConfigured()) return
+        if (busy || OwnerPremium.isActive(activity) || !OwnerPremium.isConfigured(activity)) return
         val id = prefs.getString("id", null) ?: return
         val nonce = prefs.getString("nonce", null) ?: return
         if (prefs.getLong("expiresAt", 0L) <= System.currentTimeMillis() / 1_000) {
