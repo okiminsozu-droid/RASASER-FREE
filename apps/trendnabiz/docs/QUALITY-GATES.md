@@ -1,26 +1,18 @@
-# TRENDNABIZ quality gates (v0.1.0)
+# TRENDNABIZ test and release gates
 
-## Isolation
-- All new files stay under apps/trendnabiz/.
-- No change to RaSaSeR PRIVATE motors, other Android apps, Cloudflare data or okiminsozu.com.
-- No secrets, signing keys, billing credentials or proprietary news copies in PUBLIC GitHub.
+- [x] Separate public GitHub source folder; no modification to other apps, site, R2 maps or existing Cloudflare Workers
+- [x] Distinct Cloudflare Worker and cron created; execution source has no news database writes
+- [x] Native Android foreground WebSocket consumer and transient 180-second in-memory display coded
+- [x] Existing Android persistent news cache and previous Python/SQLite server removed in this branch
+- [ ] Android compile and real device verification
+- [ ] WebSocket event reception + 3-minute expiry + 5 languages
+- [ ] Long-running/locked/background notification delivery with genuine Android permissions and sustainable power behavior
+- [ ] Press notification on lock-screen: source and actions work; no fabricated content
+- [ ] Cloudflare Worker platform log/privacy verification, no news content in logs
+- [ ] TLS health check from external device and active Cron events
+- [ ] Strong source licensing and origin consistency for each additional publisher feed
+- [ ] World-scale concurrency, rate limits, abuse handling, Cloudflare free/paid cap analysis
+- [ ] Google Play billing, subscriber verification and compliant Privacy Policy
+- [ ] Store/production approval (no Actions build initiated as part of this step)
 
-## Required real-device tests before release
-1. Android 8–16, five language changes, rotation/resize, offline state, website click.
-2. Android 13+ prompt for POST_NOTIFICATIONS at user's command, disabled/denied state.
-3. Android 8+ separate critical and normal notification channels, device locked/unlocked, content and sound.
-4. Lock-screen source, branded large icon where supported, open/Translate/Listen/Share actions and their premium gate.
-5. Periodic 15-minute USGS refresh, deduplication, no alert flood on first sync, offline cached news and after reboot.
-6. Notification latency percentiles from server event ingest to Android displayed, measured on major OEMs and battery modes; do NOT assert 99% before instrumented measurements.
-7. User privacy, Google Translate external handoff disclaimer and share source attribution.
-8. Premium entitlement verified on server/Google Play before unlock, widget lock state and revocations.
-9. All global news sources licensed and verified before adding adapters.
-
-## Explicit v0.1.0 limitations
-- Only USGS earthquakes are loaded; worldwide all-topic news ingestion is not online.
-- Android WorkManager 15-minute minimum prevents guaranteed instantaneous delivery.
-- The ntfy/UnifiedPush self-hosted push server is not deployed or connected.
-- Google Play Billing / Premium purchase verification is not connected.
-- Test button sends a labeled local test notification, not a fabricated news event.
-- No CI build or APK was run by this commit. Follow the project's explicit review-before-Actions policy.
-- The approved artwork is embedded as lightweight WEBP build assets; keep the original high-resolution image backed up outside the public repo for final store assets.
+**Non-guarantees**: every world event cannot be reported by every source instantly, Android sleeping phone wakeup is not supported by foreground WebSocket only, and 180-second app lifecycle does not control Android OS notification history, Cloudflare network logs, or external publisher copies.

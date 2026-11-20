@@ -1,40 +1,34 @@
-# TRENDNABIZ — RaSaSeR APPS & TECHNOLOGY
+# TRENDNABIZ — RaSaSeR independent live notification app
 
-Independent notification-first Android application, source version **0.1.0**. Development work resides in `apps/trendnabiz` in RASASER-FREE. It does not modify other apps or the private RaSaSeR motor.
+Branch: feature/trendnabiz-notification-first-v1
+Android: com.rasaser.free.trendnabiz
+Cloudflare: trendnabiz-engine (separate Worker on the connected Cloudflare account)
+Source code release: 0.2.0, NO APK or AAB built/tested/released.
 
-## Design and behavior
-- Approved TRENDNABIZ brand: listener silhouette, blue digital globe, red pulse, blue TREND / red NABIZ, RaSaSeR signature.
-- Light sky blue background, orange controls, black readable news text.
-- Homepage: logo, bilingual slogan (TR/EN), publisher, clickable https://www.okiminsozu.com.
-- Premium and Settings icons; five interface languages TR / EN / DE / ES / ZH; user changes language from a list.
-- Notification-first: source visible on every headline; normal and critical notification channels, lock-screen visibility subject to user/device settings; source URL in article details.
-- Notification actions: Translate, Listen, Share. These are gated behind verified Premium entitlement. The widget is Premium-gated too.
-- Google Translate is an optional external handoff; Android TTS uses installed system speech engine, not a proprietary speech API.
-- Basic news reading and notifications remain free. No fake subscriptions, promo-code bypass, simulated purchases or embedded secret.
-- App stores source events on-device and supports an optional user-configured HTTPS backend; if unset, it reads USGS directly. No production backend is deployed yet.
+## Approved design
+Blue/red TRENDNABIZ with listener silhouette, digital globe and red pulse; pale blue homepage, orange controls and black legible event text. Turkish and English slogans, RaSaSeR APPS & TECHNOLOGY, website **www.okiminsozu.com** in brand footer ONLY — this existing website is NOT used as the news backend or modified. Settings, Premium indicator, five UI languages TR/EN/DE/ES/ZH.
 
-## Technical boundaries
-The initial feed is **real USGS data**, fetched over HTTPS. It must NOT be represented as all world news. A scheduled WorkManager check runs no more frequently than every 15 minutes and Android power-saving modes may delay it. Worldwide, instant, 99% reliable delivery requires a separate tested push infrastructure (self-hosted UnifiedPush/ntfy is an option), server deduplication, regional feed agreements, monitoring, and legal review.
+## New architecture (no news archive)
+- Cloudflare Worker `cloudflare/TRENDNABIZ/worker.mjs`, independently deployed as `trendnabiz-engine`.
+- Cron scans 1-minute cycles: USGS earthquakes (each minute), NOAA alerts (every third minute), NASA EONET (every fifth minute).
+- Only event records with a *source time* from the previous 180 seconds are broadcast to open WebSocket clients. No old news backfill.
+- Worker Durable Object keeps at most transient **event identifiers** for deduplication. No article contents, texts, images, or event archive are written to DO storage, KV, D1, R2, Cache or Queues.
+- Cloudflare Worker observability disabled. Cloudflare may still retain network/platform operational metadata outside our application control. Absolute zero retention cannot be guaranteed.
+- Android uses a websocket session **while the app is visible** to listen for new events, produces a branded native Android notification with source, and clears the in-memory live list after three minutes. The earlier Android SharedPreferences news cache and scheduled WorkManager-based history fetching are removed.
+- Android OS notification shade/history is outside app retention guarantees; tapping a notification may pass its event text through system PendingIntent extras until Android discards it.
+- Premium actions (Translate / TTS Listen / Share / home-screen widget) remain locked on production builds without verified billing; debug-only preview is not an entitlement.
+- Five interface languages are present, but arbitrary world headlines from external sources are **not automatically translated**. Only known, structured USGS event text can be rendered in those five languages.
+- The worker currently has **three official-source adapters**, not worldwide comprehensive news coverage. Publisher licenses, other country feeds and category mappings remain to be added.
 
-Android lock-screen display, heads-up appearance, notification sounds, number of action buttons and visibility are ultimately controlled by Android/user/OEM settings. News copy inside system notifications cannot force black font color; inside the application black text is used.
+## Status, important limitations
+**Worker deployed, cron enabled.** No installed Android APK, real-device tests or production push have been confirmed. The Worker broadcasts to currently connected clients but **cannot wake a sleeping Android app**. The Android code disconnects on background: locked-phone / app-closed instant notifications are NOT implemented or verified. A policy-compliant, user-consented background delivery method must be researched/tested before release. Do not claim 99% delivery.
 
-Google Play digital subscriptions, when activated, must use applicable compliant billing / verified entitlement; the UI intentionally has no fake activation. No purchase API is wired in v0.1.0.
+No Cloudflare credentials, sign keys, publisher full-text articles or user data stored in public GitHub. The old Python/SQLite experimental server has been removed from this branch per no-news-archive requirement.
 
-## Local build
-With Java 17, Android SDK 35 and Gradle 8.9+ installed:
-```sh
-cd apps/trendnabiz
-gradle :app:assembleDebug
-```
-No GitHub Actions workflow is run from this change. The public repository carries no signing key.
-
-## Still needed before release
-1. Verify build and run 5-language + notification tests on physical Android 8–16 devices.
-2. Integrate self-hosted push server, event aggregation, source licenses, translation workflow.
-3. Integrate verified Google Play Billing / entitlement and test premium actions + widget.
-4. Perform image/right-to-use and legal review; prepare store privacy & content policies.
-5. Publish signed AAB from a secure environment only after explicit approval.
-
-## v0.2 server integration
-
-`server/` now contains the independent Python/SQLite news aggregator, USGS/NASA/NOAA adapters, licensed RSS registry and optional self-hosted ntfy publishing. In Settings, enter the HTTPS reverse-proxy URL of your own deployed backend, or leave empty for direct USGS access. This is only an HTTP pull integration; UnifiedPush registration and production hosting have not been completed. Both direct and server feeds use local caching and a first-sync notification baseline.
+## Testing and next gates
+1. Review compile/release configuration, perform Android debug build after feature approval.
+2. Connect on test device and inspect live events received from Cloudflare.
+3. Build compliant background push/connection strategy; instrument lock-screen delivery by manufacturer and OS.
+4. Add vetted global publisher sources and rights register; verify no non-permitted text is redistributed.
+5. Verify all news content disappears after 180 seconds from app state, and Worker logs/metrics remain configured without event content.
+6. Integrate verified Play Billing or other compliant entitlement before Premium release.
