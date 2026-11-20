@@ -149,8 +149,20 @@ export class LiveHub extends DurableObject {
     return new Response("Not found",{status:404,headers});
   }
   webSocketMessage(socket,message) {
-    // Client cannot upload news or request prior messages.
-    if(message==="ping") socket.send(JSON.stringify({type:"pong",at:Date.now()}));
+    // No historic event retrieval or user-published news; a self-test echoes ONLY to requesting socket.
+    if(message==="ping") { socket.send(JSON.stringify({type:"pong",at:Date.now()})); return; }
+    if(message==="self_test") {
+      const now=Date.now();
+      if(!this.selfTests) this.selfTests=new WeakMap();
+      if(now-(this.selfTests.get(socket)||0)<30000) return;
+      this.selfTests.set(socket,now);
+      socket.send(JSON.stringify({
+        type:"event",id:"SELFTEST:"+now,title:"TRENDNABIZ • Cloudflare TEST",
+        summary:"Bu gercek bir haber degildir. Cloudflare canli baglantisindan gonderilen test bildirimidir.",
+        source:"TRENDNABIZ TEST",sourceUrl:"https://trendnabiz-engine.okiminsozu.workers.dev/healthz",
+        issuedAt:now,category:"diagnostic",priority:"normal",expiresAt:now+TTL_MS
+      }));
+    }
   }
   webSocketClose() {}
   webSocketError() {}
