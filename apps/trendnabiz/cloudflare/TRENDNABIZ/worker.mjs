@@ -156,12 +156,17 @@ export class LiveHub extends DurableObject {
       if(!this.selfTests) this.selfTests=new WeakMap();
       if(now-(this.selfTests.get(socket)||0)<30000) return;
       this.selfTests.set(socket,now);
-      socket.send(JSON.stringify({
-        type:"event",id:"SELFTEST:"+now,title:"TRENDNABIZ • Cloudflare TEST",
-        summary:"Bu gercek bir haber degildir. Cloudflare canli baglantisindan gonderilen test bildirimidir.",
-        source:"TRENDNABIZ TEST",sourceUrl:"https://trendnabiz-engine.okiminsozu.workers.dev/healthz",
-        issuedAt:now,category:"diagnostic",priority:"normal",expiresAt:now+TTL_MS
-      }));
+      // Ten-second delayed self-test: user can lock the phone after tapping the button.
+      // The message is never broadcast to any other connection or stored in an archive.
+      setTimeout(() => {
+        const sentAt=Date.now();
+        try { socket.send(JSON.stringify({
+          type:"event",id:"SELFTEST:"+sentAt,title:"TRENDNABIZ • Cloudflare TEST",
+          summary:"Bu gercek bir haber degildir. Cloudflare canli baglantisindan gonderilen test bildirimidir.",
+          source:"TRENDNABIZ TEST",sourceUrl:"https://trendnabiz-engine.okiminsozu.workers.dev/healthz",
+          issuedAt:sentAt,category:"diagnostic",priority:"normal",expiresAt:sentAt+TTL_MS
+        })); } catch (_) { /* disconnected before test; do not queue or save */ }
+      },10000);
     }
   }
   webSocketClose() {}
