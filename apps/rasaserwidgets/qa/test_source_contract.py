@@ -219,12 +219,13 @@ class OfflineContractTests(unittest.TestCase):
         self.assertIn("showLanguagePicker()", home)
         self.assertIn("PremiumInfoText.t(this, prefix + \"Title\")", home)
         self.assertIn("PremiumInfoText.t(this, prefix + \"Body\")", home)
-        self.assertIn("PremiumInfoText.t(this, \"status\")", home)
+        self.assertNotIn('PremiumInfoText.t(this, "status")', home)
         self.assertIn('for (prefix in listOf("billing", "access", "expiration"))', home)
         self.assertIn("99 TL / yıl", info)
-        self.assertIn("Google Play Billing", info)
-        self.assertIn("daha önce oluşturulan widget'lar çalışmaya devam", info)
-        self.assertIn("Bu ekran ödeme almaz", info)
+        self.assertIn("Google Play", info)
+        self.assertIn("mevcut widget'larınız çalışmaya devam", info)
+        self.assertNotIn("Bu ekran ödeme almaz", info)
+        self.assertNotIn("satın alma ve abonelik kontrolü henüz etkin", info)
         for language in ("tr", "en", "de", "es", "ja", "ar"):
             self.assertIn(f'"{language}" to listOf(', info)
         # No fake purchase button: this is read-only until the Play product exists.
@@ -243,13 +244,17 @@ class OfflineContractTests(unittest.TestCase):
                          'payload.optString("packageName") != context.packageName',
                          'payload.optString("devicePublicKey") != devicePublicKey()',
                          'payload.optString("scope") != "owner_lifetime"',
-                         'private const val TRUSTED_SERVER_PUBLIC_KEY_SPKI_B64URL = ""'):
+                         'private const val KEY_PREFS = "rasaser_owner_trusted_server_key"'):
             self.assertIn(required, premium)
-        self.assertIn("if (!isConfigured()) return false", premium)
+        self.assertIn("if (!isConfigured(context)) return false", premium)
+        self.assertIn("fun configurePublicKey(context: Context, spkiB64Url: String)", premium)
+        self.assertNotIn("TRUSTED_SERVER_PUBLIC_KEY_SPKI_B64URL", premium)
         self.assertIn("acceptSignedGrant", premium)
         self.assertIn("7", login)
         self.assertIn("Intent.ACTION_VIEW", login)
-        self.assertIn('if (!OwnerPremium.isConfigured())', login)
+        self.assertIn('fetchOwnerVerificationKey()', login)
+        self.assertIn('OwnerPremium.configurePublicKey(activity, publicKey)', login)
+        self.assertIn('/v1/owner/browser/public-key', login)
         self.assertIn('/v1/owner/browser/start', login)
         self.assertIn('/v1/owner/browser/status', login)
         self.assertIn('/v1/owner/browser/finish', login)
@@ -260,6 +265,8 @@ class OfflineContractTests(unittest.TestCase):
         self.assertIn("OwnerPremium.isActive(ctx)", store)
         for language in ("tr", "en", "de", "es", "ja", "ar"):
             self.assertIn(f'"{language}" to mapOf(', labels)
+        self.assertNotIn("Cloudflare", labels)
+        self.assertIn("doğrulanmış kimliği", labels)
         self.assertNotIn("GOOGLE_WEB_CLIENT_SECRET", premium)
         self.assertNotIn("BEGIN PRIVATE KEY", premium)
         self.assertNotIn("GRANT_SIGNING_KEY_PKCS8_B64", login)
