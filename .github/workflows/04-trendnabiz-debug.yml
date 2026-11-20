@@ -2,6 +2,12 @@ name: TRENDNABIZ Isolated Android Test APK
 
 # Manual test builds only; no automatic runner use on source edits.
 on:
+  push:
+    branches:
+      - feature/trendnabiz-notification-first-v1
+    paths:
+      - "apps/trendnabiz/**"
+      - ".github/workflows/04-trendnabiz-debug.yml"
   workflow_dispatch:
 
 permissions:
@@ -44,7 +50,7 @@ jobs:
       - name: Publish test APK (DEBUG, not Play Store release)
         uses: actions/upload-artifact@v4
         with:
-          name: TRENDNABIZ-0.3.0-TEST-APK
+          name: TRENDNABIZ-0.3.1-TEST-APK
           path: apps/trendnabiz/app/build/outputs/apk/debug/*.apk
           retention-days: 7
           if-no-files-found: error
