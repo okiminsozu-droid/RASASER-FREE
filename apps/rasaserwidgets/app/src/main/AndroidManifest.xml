@@ -7,7 +7,7 @@
       <category android:name="android.intent.category.LAUNCHER"/>
     </intent>
   </queries>
-  <!-- INTERNET is used ONLY for voluntary Google owner verification via Cloudflare; no tracking. -->
+  <!-- INTERNET: only the optional one-time Premium promotion code check; ordinary widget operations stay offline. -->
   <uses-permission android:name="android.permission.INTERNET"/>
   <!-- CAMERA is requested at runtime only for the optional flashlight tool. -->
   <!-- System BiometricPrompt handles fingerprints; biometric templates never enter the app. -->
