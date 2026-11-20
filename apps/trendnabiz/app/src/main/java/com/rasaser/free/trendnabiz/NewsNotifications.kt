@@ -85,7 +85,7 @@ object NewsNotifications {
     fun publish(context: Context, item: NewsItem, test: Boolean = false) {
         if (!allowed(context)) return
         createChannels(context)
-        if (!test && UserPrefs.criticalOnly(context) && !item.critical) return
+        if (!test && UserPrefs.criticalOnly(context) && !item.critical && !item.source.contains("TEST")) return
         val now=System.currentTimeMillis()
         val timeout = if(test) TTL else (item.publishedAt+TTL-now).coerceIn(0L, TTL)
         if(timeout<=0L) return

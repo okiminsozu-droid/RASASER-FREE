@@ -3,6 +3,7 @@ package com.rasaser.free.trendnabiz
 /** Source-aware original explanatory sentences; never silently invent or auto-translate reported facts. */
 object NewsLocalization {
     fun description(item: NewsItem, lang: UiLang): String {
+        if (item.source.contains("TRENDNABIZ") && item.source.contains("TEST")) return UiText.get(lang,"cloudTestHint")
         if (item.source == "USGS" && item.magnitude > 0.0) {
             val place = item.region.ifBlank {
                 item.title.substringAfter(": ",item.title.substringAfter(" · ",""))

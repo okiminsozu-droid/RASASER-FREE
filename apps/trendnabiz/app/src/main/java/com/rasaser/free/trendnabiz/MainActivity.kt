@@ -115,7 +115,7 @@ class MainActivity : ComponentActivity() {
             MaterialTheme(colorScheme = lightColorScheme(
                 primary = azure, secondary = orange, background = sky, onBackground = ink
             )) {
-                TrendNabizApp(incoming, notificationStory, liveStories, liveConnected, liveState, { liveClient?.stop(); liveClient?.start() }, { incoming=null; notificationStory=null }, ::executePremiumAction)
+                TrendNabizApp(incoming, notificationStory, liveStories, liveConnected, liveState, { liveClient?.stop(); liveClient?.start() }, { liveClient?.requestCloudTest() == true }, { incoming=null; notificationStory=null }, ::executePremiumAction)
             }
         }
     }
@@ -189,6 +189,7 @@ private fun TrendNabizApp(
     isConnected: Boolean,
     connectionState: String,
     reconnect: () -> Unit,
+    cloudTest: () -> Boolean,
     actionConsumed: () -> Unit,
     performAction: (NewsItem, String, UiLang) -> Unit
 ) {
@@ -327,6 +328,13 @@ private fun TrendNabizApp(
                                 requestNotifications.launch(Manifest.permission.POST_NOTIFICATIONS)
                             } else NewsNotifications.test(context)
                         }
+                        if(isConnected) {
+                            OrangeButton(UiText.get(lang,"cloudTest")) {
+                                if(!cloudTest()) NewsNotifications.test(context)
+                            }
+                            Text(UiText.get(lang,"cloudTestHint"),color=ink,fontSize=12.sp)
+                        }
+
                         if (BuildConfig.DEBUG) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(UiText.get(lang, "debugPremium"), modifier = Modifier.weight(1f), color = ink)

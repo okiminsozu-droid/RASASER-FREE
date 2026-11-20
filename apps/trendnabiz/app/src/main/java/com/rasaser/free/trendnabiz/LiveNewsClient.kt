@@ -109,6 +109,8 @@ class LiveNewsClient(
         return NewsItem(id,title,description,source,sourceUrl,issuedAt,magnitude,
             obj.optString("category","world"),obj.optString("priority","normal"))
     }
+    fun requestCloudTest(): Boolean = if(started && socket!=null) socket?.send("self_test")==true else false
+
     fun stop() {
         started=false
         generation++
