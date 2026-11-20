@@ -1,3 +1,29 @@
+# VARYOK 0.4.2 — Tek Promosyon Kodu ile Süresiz Premium
+
+## Değişiklik
+- **7 dokunuşlu gizli Google girişi tamamen kaldırıldı.** Logo artık normal görsel.
+- Premium penceresinin içinde altı dilde görünür **Promosyon Kodu Gir** alanı var.
+- Aynı tek promosyon kodu, Cloudflare D1 üzerinden yalnız kayıtlı RaSaSeR
+  uygulamaları için doğrulanır. Kodun kendisi, özet hash'i ve parola
+  **herkese açık GitHub deposunda bulunmaz.**
+- Başarılı doğrulama Android Keystore HMAC-SHA256 ile **uygulama ve cihaz
+  kurulumuna bağlı** olarak yerel saklanır. Sonraki kullanım **çevrimdışı**.
+  Kod ilk kez etkinleştirilirken internet bağlantısı gerekir.
+- Önceden oluşturulan widget'lar, üç ücretsiz farklı uygulama hakkı, PIN,
+  parmak izi, altı dil, logo, fotoğraf ve şeffaflık korunur.
+- Kod kullanıcıdan alındığında sunucuda yalnız SHA-256 ile doğrulanır;
+  Cloudflare yalnız hash, uygulama kimliği ve rastgele kurulum kimliğinin
+  hash'ini tutar; başarısız denemeleri sınırlamak için IP hash'i saatlik
+  kısa süreli saklanır. Ham kod uygulamada kalıcı tutulmaz.
+- Bu kod **Google Play üzerinden ücretli abonelik satın almak yerine**
+  yayıncı tarafından ücretsiz verilen süresiz Premium istisnasıdır;
+  uygulamanın 99 TL/yıl abonelik ödeme entegrasyonu hâlâ ayrı çalışmadır.
+  Hazırlanan 0.4.2 yalnız test/Play taslak içindir.
+- **Sürüm:** 0.4.2 / code 11 / target SDK 36.
+- Kalıcı Play yükleme imzası ve Cloudflare şifreleri bu public depoda YOK.
+
+## Önceki sürüm notları
+
 # VARYOK — RaSaSeR • APPS & TECHNOLOGY (0.4.1 GİRİŞ/GÖRSEL DÜZELTMELERİ)
 
 ## 0.4.1 değişiklikleri
