@@ -1,5 +1,6 @@
-name: VARYOK 0.3.5 Test APK
-# Premium info UI, six languages; no active purchases or billing products.
+name: VARYOK 0.4.0 Owner Access QA & Unsigned AAB
+# No release signing secrets or upload keys are stored in GitHub.
+# Production AAB signing and Play Console upload must use a private key outside this public repository.
 on:
   push:
     branches:
@@ -20,10 +21,11 @@ jobs:
         uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - name: Verify user-approved logo and app icon are preserved
+      - name: Verify approved images and absence of signing secrets
         run: |
           test -s apps/rasaserwidgets/app/src/main/res/drawable-nodpi/varyok_brand_full.png
           test -s apps/rasaserwidgets/app/src/main/res/drawable-nodpi/varyok_app_icon.png
+          ! find apps/rasaserwidgets -type f \( -iname '*.keystore' -o -iname '*.jks' -o -iname '*private*.pem' -o -iname '*.p12' \) | grep .
       - name: Set up Java 17
         uses: actions/setup-java@v4
         with:
@@ -33,27 +35,37 @@ jobs:
         uses: android-actions/setup-android@v3
         with:
           packages: 'platform-tools'
-      - name: Install SDK 35
-        run: sdkmanager --install "platforms;android-35" "build-tools;35.0.0"
-      - name: Set up Gradle 8.9
+      - name: Install Android API 36
+        run: sdkmanager --install "platforms;android-36" "build-tools;36.0.0"
+      - name: Set up Gradle 8.11.1
         uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: '8.9'
-      - name: Privacy and source checks
+          gradle-version: '8.11.1'
+      - name: Privacy, owner signature and source checks
         run: |
           python3 tools/check_repo.py
           python3 tools/validate_app.py rasaserwidgets true
           python3 apps/rasaserwidgets/qa/test_source_contract.py
-      - name: Compile debug APK and run tests
-        run: gradle --no-daemon --project-dir apps/rasaserwidgets :app:assembleDebug :app:testDebugUnitTest
-      - name: Verify compiled APK
+      - name: Compile debug APK, UNSIGNED release AAB and unit tests
+        run: gradle --no-daemon --project-dir apps/rasaserwidgets :app:assembleDebug :app:bundleRelease :app:testDebugUnitTest
+      - name: Inspect generated build artifacts
         run: |
           ls -lh apps/rasaserwidgets/app/build/outputs/apk/debug/*.apk
+          ls -lh apps/rasaserwidgets/app/build/outputs/bundle/release/*.aab
           sha256sum apps/rasaserwidgets/app/build/outputs/apk/debug/*.apk
-      - name: Upload VARYOK test APK
+          sha256sum apps/rasaserwidgets/app/build/outputs/bundle/release/*.aab
+          unzip -t apps/rasaserwidgets/app/build/outputs/bundle/release/*.aab | tail -n 2
+      - name: Upload VARYOK debug test APK
         uses: actions/upload-artifact@v4
         with:
-          name: VARYOK-0.3.5-TEST-APK
+          name: VARYOK-0.4.0-TEST-APK
           path: apps/rasaserwidgets/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+          retention-days: 7
+      - name: Upload UNSIGNED VARYOK release AAB - NOT PLAY READY
+        uses: actions/upload-artifact@v4
+        with:
+          name: VARYOK-0.4.0-UNSIGNED-AAB-NOT-FOR-PLAY
+          path: apps/rasaserwidgets/app/build/outputs/bundle/release/*.aab
           if-no-files-found: error
           retention-days: 7
