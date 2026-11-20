@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">TRENDNABIZ</string>
+    <string name="widget_title">TRENDNABIZ</string>
+    <string name="widget_placeholder">Latest verified event will appear here</string>
+    <string name="widget_locked">Premium widget • open TRENDNABIZ</string>
+</resources>

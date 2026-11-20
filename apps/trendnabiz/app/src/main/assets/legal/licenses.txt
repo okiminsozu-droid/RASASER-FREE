@@ -1,0 +1,8 @@
+TRENDNABIZ — RaSaSeR APPS & TECHNOLOGY
+Copyright (c) 2026 RaSaSeR. Source code in public GitHub is not automatically licensed for third-party reuse.
+AndroidX/Jetpack Compose, Kotlin, Android system TTS and Android Open Source Project components have their own license conditions.
+Earthquake data: USGS (earthquake.usgs.gov). Do not represent third-party data as official TRENDNABIZ guidance.
+Any additional news feed must be reviewed for publication, image and text rights before enabling in production.
+Notification artwork and trademark logo belong to RaSaSeR's TRENDNABIZ brand design.
+Translation opens an external Google Translate page only when a user taps Translate; no paid translation API.
+The linked website www.okiminsozu.com is separately managed and is not modified by TRENDNABIZ.
