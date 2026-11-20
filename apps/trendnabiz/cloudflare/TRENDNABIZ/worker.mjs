@@ -15,7 +15,9 @@ const headers = {
 const sources = {
   usgs: "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_hour.geojson",
   nasa: "https://eonet.gsfc.nasa.gov/api/v3/events?days=1&status=all&limit=100",
-  noaa: "https://api.weather.gov/alerts/active"
+  noaa: "https://api.weather.gov/alerts/active",
+  gdacs: "https://www.gdacs.org/xml/rss.xml",
+  eu: "https://ec.europa.eu/commission/presscorner/api/rss?language=en"
 };
 const isoTime = raw => {
   if (typeof raw === "number") return raw > 1e11 ? raw : raw * 1000;
@@ -81,14 +83,50 @@ function noaaParse(doc,now) {
       url,t,"weather",["extreme","severe"].includes(severity)?"critical":"important")];
   });
 }
+
+const decodeXml = text => clip(String(text||"")
+  .replace(/<!\\[CDATA\\[([\\s\\S]*?)\\]\\]>/g,"$1")
+  .replace(/<[^>]*>/g," ")
+  .replace(/&amp;/g,"&").replace(/&quot;/g,'"')
+  .replace(/&apos;/g,"'").replace(/&lt;/g,"<").replace(/&gt;/g,">"),220);
+function xmlField(fragment, tag) {
+  const re=new RegExp("<"+tag+"(?:\\\\s[^>]*)?>([\\\\s\\\\S]*?)<\\\\/"+tag+">","i");
+  return decodeXml(fragment.match(re)?.[1]||"");
+}
+async function sourceXml(url) {
+  const result=await fetch(url,{headers:{"Accept":"application/rss+xml,application/xml,text/xml","User-Agent":"TRENDNABIZ/0.4"},redirect:"error",signal:AbortSignal.timeout(11000)});
+  if(!result.ok) throw Error("rss_unavailable");
+  const body=await result.text();
+  if(body.length > 650000) throw Error("rss_too_large");
+  return body;
+}
+function officialRss(xml, now, sourceName, allowedHosts, category) {
+  if(!xml.includes("<rss") && !xml.includes("<channel")) return [];
+  const parts=[...xml.matchAll(/<item\\b[^>]*>([\\s\\S]*?)<\\/item>/gi)].slice(0,80);
+  return parts.flatMap((match)=>{
+    const item=match[1], title=xmlField(item,"title"), link=xmlField(item,"link");
+    const issued=isoTime(xmlField(item,"pubDate")||xmlField(item,"dc:date")||xmlField(item,"updated"));
+    if(!validRecent(issued,now)||!title||!isHttps(link))return [];
+    const host=new URL(link).hostname.toLowerCase();
+    if(!allowedHosts.some(s=>host===s||host.endsWith("."+s)))return [];
+    const id=xmlField(item,"guid")||link;
+    const critical=sourceName==="GDACS" && /^red\\b/i.test(title);
+    return [news(sourceName,id,title,
+      sourceName+" published a new "+category+" notice. Refer to the original source for details.",
+      link,issued,category,critical?"critical":"important")];
+  });
+}
+
 export class LiveHub extends DurableObject {
   constructor(ctx,env) { super(ctx,env); this.seen = new Map(); }
   async fetch(request) {
     const url = new URL(request.url);
+    if(url.pathname === "/probe") return Response.json({hub:"ready",activeSockets:this.ctx.getWebSockets().length,archive:false},{headers:{"Cache-Control":"no-store"}});
     if(url.pathname === "/ws") {
       if(request.headers.get("Upgrade")?.toLowerCase() !== "websocket") return new Response("WebSocket required",{status:426,headers});
       const pair = new WebSocketPair(), client=pair[0], server=pair[1];
       this.ctx.acceptWebSocket(server);
+      server.send(JSON.stringify({type:"hello",serverAt:Date.now(),history:false}));
       return new Response(null,{status:101,webSocket:client});
     }
     if(url.pathname === "/dispatch" && request.method==="POST") {
@@ -122,10 +160,13 @@ export default {
     const url=new URL(request.url);
     if(request.method !== "GET") return new Response("Method not allowed",{status:405,headers});
     if(url.pathname === "/healthz") return new Response(JSON.stringify({
-      app:"TRENDNABIZ",engine:"ephemeral-live",ttlSeconds:180,
+      app:"TRENDNABIZ",engine:"ephemeral-live",version:"0.4.0",ttlSeconds:180,
       archive:false,newsHistory:false,liveConnectionOnly:true,pushBackgroundConnected:false,
-      deployedSources:["USGS","NASA EONET","NOAA/NWS"]
+      deployedSources:["USGS","NASA EONET","NOAA/NWS","GDACS","European Commission"]
     }),{headers});
+    if(url.pathname === "/v1/probe") {
+      return env.LIVE_HUB.get(env.LIVE_HUB.idFromName("world-live")).fetch("https://internal/probe");
+    }
     if(url.pathname === "/v1/live") {
       if(request.headers.get("Upgrade")?.toLowerCase() !== "websocket") return new Response("WebSocket required",{status:426,headers});
       const id=env.LIVE_HUB.idFromName("world-live");
@@ -139,6 +180,8 @@ export default {
     if(minute%3===0) chosen.push(["NOAA",sources.noaa,noaaParse]);
     if(minute%5===0) chosen.push(["NASA",sources.nasa,nasaParse]);
     const fetched=await Promise.allSettled(chosen.map(async ([label,url,fn])=>fn(await sourceJson(url),time)));
+    if(minute%6===0) fetched.push(...await Promise.allSettled([sourceXml(sources.gdacs).then(xml=>officialRss(xml,time,"GDACS",["gdacs.org"],"disaster"))]));
+    if(minute%5===0) fetched.push(...await Promise.allSettled([sourceXml(sources.eu).then(xml=>officialRss(xml,time,"European Commission",["europa.eu"],"world"))]));
     const batch=fetched.flatMap(x=>x.status==="fulfilled"?x.value:[]).slice(0,OUT_LIMIT);
     if(!batch.length) return;
     // News exists only in this request's local memory and websocket frames, not persistent storage.
