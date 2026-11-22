@@ -610,7 +610,7 @@ private fun notificationPermissionGranted(context: Context): Boolean {
 private fun openLinkedAccount(context: Context, account: SocialAccount): Boolean {
     if (account.profileUrl.isNotBlank()) {
         val uri = Uri.parse(account.profileUrl)
-        if (uri.scheme != "https") return false
+        if (!uri.scheme.equals("https", true)) return false
         if (account.packageName.isNotBlank()) {
             try {
                 context.startActivity(Intent(Intent.ACTION_VIEW, uri).apply {
