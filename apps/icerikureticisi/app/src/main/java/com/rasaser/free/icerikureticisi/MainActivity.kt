@@ -6,6 +6,7 @@ import androidx.fragment.app.FragmentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.view.WindowCompat
@@ -29,6 +30,7 @@ class MainActivity : FragmentActivity() {
         unlocked = !AppLock.enabled(this)
 
         setContent {
+            CompositionLocalProvider(LocalCreatorLanguage provides AppLanguage.get(this)) {
             if (!unlocked) {
                 MaterialTheme(colorScheme = lightColorScheme(
                     background = Color(0xFFF7F1E7),
@@ -38,6 +40,7 @@ class MainActivity : FragmentActivity() {
                 }
             } else {
                 CreatorHubApp(initialCreatorId = requestedCreator.longValue)
+            }
             }
         }
     }
