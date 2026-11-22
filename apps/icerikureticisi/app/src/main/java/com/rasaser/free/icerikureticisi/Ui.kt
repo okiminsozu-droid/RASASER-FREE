@@ -53,7 +53,6 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.fragment.app.FragmentActivity
-import androidx.compose.foundation.layout.weight
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
