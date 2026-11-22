@@ -1,5 +1,5 @@
 RaSaSeR Apps & Technology — İçerik Üreticisi
-Sürüm: 0.1.0
+Sürüm: 0.1.1
 © 2026 RaSaSeR. Tüm hakları saklıdır.
 
 Bu proje Jetpack Compose, AndroidX ve Kotlin kullanır. Üretim yayını öncesinde
