@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
@@ -56,8 +57,8 @@ object AppLock {
     fun biometricEnabled(context: Context): Boolean =
         enabled(context) && prefs(context).getBoolean("biometric", false)
 
-    fun setBiometric(context: Context, enabled: Boolean) {
-        prefs(context).edit().putBoolean("biometric", enabled && enabled(context)).apply()
+    fun setBiometric(context: Context, value: Boolean) {
+        prefs(context).edit().putBoolean("biometric", value && enabled(context)).apply()
     }
 
     fun setPin(context: Context, pin: String) {
@@ -166,7 +167,7 @@ fun UnlockScreen(activity: FragmentActivity, onUnlock: () -> Unit) {
     }
     androidx.compose.material3.Surface(
         color = MaterialTheme.colorScheme.background,
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxSize()
     ) {
         Column(
             Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 64.dp),
