@@ -64,7 +64,7 @@ fun CreatorTopControls(
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
+        horizontalArrangement = Arrangement.SpaceEvenly
     ) {
         IconButton(onClick = onPremium) {
             Text("♛", color = Color(0xFFD1AB5C),
@@ -73,7 +73,6 @@ fun CreatorTopControls(
         Image(painter = painterResource(R.drawable.ic_launcher_creator),
             contentDescription = "İçerik Üreticisi logosu",
             modifier = Modifier.size(42.dp))
-        Spacer(Modifier.weight(1f))
         IconButton(onClick = onLock) {
             Text("🔐", style = MaterialTheme.typography.headlineSmall,
                 color = MaterialTheme.colorScheme.onBackground)
@@ -174,17 +173,19 @@ fun CreatorNameTranslationsDialog(
 @Composable
 fun CreatorFooter(context: Context) {
     Column(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
+        modifier = Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text("RaSaSeR APPS & TECHNOLOGY",
             color = MaterialTheme.colorScheme.onBackground,
             style = MaterialTheme.typography.labelMedium,
+            textAlign = TextAlign.Center,
             fontWeight = FontWeight.SemiBold)
         Text(
             "www.okiminsozu.com",
             color = MaterialTheme.colorScheme.secondary,
             style = MaterialTheme.typography.labelSmall,
+            textAlign = TextAlign.Center,
             modifier = Modifier.clickable {
                 try {
                     context.startActivity(Intent(Intent.ACTION_VIEW,
