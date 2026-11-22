@@ -1,4 +1,4 @@
-name: İçerik Üreticisi — v0.3.0 Premium Dil Kilit Testi
+name: İçerik Üreticisi — v0.3.1 Deneme Parmak İzi Testi
 on:
   push:
     branches:
@@ -81,7 +81,7 @@ jobs:
             exit 1
           fi
           "$AAPT" dump badging "$APK" | head -n 4
-          if ! "$AAPT" dump badging "$APK" | grep -q "name='com.rasaser.free.icerikureticisi.v030' versionCode='4' versionName='0.3.0'"; then
+          if ! "$AAPT" dump badging "$APK" | grep -q "name='com.rasaser.free.icerikureticisi.v030' versionCode='5' versionName='0.3.1'"; then
             echo "ERROR: Debug preview identity mismatch"
             exit 1
           fi
