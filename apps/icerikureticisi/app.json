@@ -1,0 +1,12 @@
+{
+  "slug": "icerikureticisi",
+  "display_name": "İçerik Üreticisi",
+  "package_id": "com.rasaser.free.icerikureticisi",
+  "version_code": 1,
+  "version_name": "0.1.0",
+  "private_engine_required": false,
+  "allow_public_debug_artifacts": true,
+  "license_review_completed": false,
+  "release_signing_location": "PRIVATE_ONLY",
+  "credentials_stored": false
+}
