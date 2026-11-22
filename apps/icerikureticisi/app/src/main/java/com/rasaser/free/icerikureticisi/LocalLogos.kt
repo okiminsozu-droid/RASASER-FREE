@@ -16,8 +16,9 @@ object LocalLogos {
     fun importImage(context: Context, uri: Uri): String {
         val resolver = context.contentResolver
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-        resolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, bounds) }
+        val firstStream = resolver.openInputStream(uri)
             ?: throw IllegalArgumentException("Logo okunamadı.")
+        firstStream.use { BitmapFactory.decodeStream(it, null, bounds) }
         require(bounds.outWidth in 1..16000 && bounds.outHeight in 1..16000) {
             "Logo boyutları desteklenmiyor."
         }
