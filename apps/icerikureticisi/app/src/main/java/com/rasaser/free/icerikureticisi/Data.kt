@@ -5,8 +5,21 @@ import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 import java.net.URI
+import org.json.JSONObject
 
-data class Creator(val id: Long, val name: String)
+data class Creator(
+    val id: Long,
+    val name: String,
+    val logoFile: String = "",
+    val translatedNamesJson: String = "{}"
+) {
+    fun displayName(language: String): String {
+        if (language == "tr") return name
+        return try {
+            JSONObject(translatedNamesJson).optString(language).ifBlank { name }
+        } catch (_: Exception) { name }
+    }
+}
 data class SocialAccount(
     val id: Long,
     val creatorId: Long,
@@ -63,7 +76,7 @@ object SocialCatalog {
 
 /** Device-only SQLite. No internet, login, password or cloud sync. */
 class CreatorDatabase(context: Context) :
-    SQLiteOpenHelper(context.applicationContext, "creator_hub.db", null, 3) {
+    SQLiteOpenHelper(context.applicationContext, "creator_hub.db", null, 4) {
     private val appContext = context.applicationContext
 
     override fun onConfigure(db: SQLiteDatabase) {
@@ -76,7 +89,9 @@ class CreatorDatabase(context: Context) :
             """CREATE TABLE creators (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT NOT NULL,
-                created_at INTEGER NOT NULL
+                created_at INTEGER NOT NULL,
+                logo_file TEXT NOT NULL DEFAULT '',
+                translated_names TEXT NOT NULL DEFAULT '{}'
             )"""
         )
         db.execSQL(
@@ -99,6 +114,10 @@ class CreatorDatabase(context: Context) :
             db.execSQL("ALTER TABLE accounts ADD COLUMN logo_file TEXT NOT NULL DEFAULT ''")
         }
         if (oldVersion < 3) createScheduledTable(db)
+        if (oldVersion < 4) {
+            db.execSQL("ALTER TABLE creators ADD COLUMN logo_file TEXT NOT NULL DEFAULT ''")
+            db.execSQL("ALTER TABLE creators ADD COLUMN translated_names TEXT NOT NULL DEFAULT '{}'")
+        }
     }
 
     private fun createScheduledTable(db: SQLiteDatabase) {
@@ -118,8 +137,12 @@ class CreatorDatabase(context: Context) :
     }
 
     fun creators(): List<Creator> = buildList {
-        readableDatabase.rawQuery("SELECT id, name FROM creators ORDER BY id", null).use { c ->
-            while (c.moveToNext()) add(Creator(c.getLong(0), c.getString(1)))
+        readableDatabase.rawQuery(
+            "SELECT id, name, logo_file, translated_names FROM creators ORDER BY id", null
+        ).use { c ->
+            while (c.moveToNext()) add(
+                Creator(c.getLong(0), c.getString(1), c.getString(2), c.getString(3))
+            )
         }
     }
 
@@ -143,7 +166,7 @@ class CreatorDatabase(context: Context) :
         }
     }
 
-    fun addCreator(name: String): Long {
+    fun addCreator(name: String, logoFile: String = ""): Long {
         val trimmed = name.trim()
         require(trimmed.isNotEmpty() && trimmed.length <= 80) {
             "İçerik adı 1–80 karakter olmalı."
@@ -151,11 +174,37 @@ class CreatorDatabase(context: Context) :
         return writableDatabase.insertOrThrow("creators", null, ContentValues().apply {
             put("name", trimmed)
             put("created_at", System.currentTimeMillis())
+            put("logo_file", logoFile)
+            put("translated_names", "{}")
         })
     }
 
+    fun setCreatorLogo(creatorId: Long, logoFile: String) {
+        val oldFile = readableDatabase.rawQuery(
+            "SELECT logo_file FROM creators WHERE id=?", arrayOf(creatorId.toString())
+        ).use { c -> if (c.moveToFirst()) c.getString(0) else "" }
+        val rows = writableDatabase.update("creators", ContentValues().apply {
+            put("logo_file", logoFile)
+        }, "id=?", arrayOf(creatorId.toString()))
+        if (rows != 1) throw IllegalStateException("Profil bulunamadı.")
+        if (oldFile != logoFile) LocalLogos.delete(appContext, oldFile)
+    }
+
+    fun setCreatorTranslations(creatorId: Long, translations: Map<String, String>) {
+        val json = JSONObject()
+        for ((lang, value) in translations) {
+            if (lang in AppLanguage.codes && lang != "tr" && value.isNotBlank()) {
+                json.put(lang, value.trim().take(80))
+            }
+        }
+        writableDatabase.update("creators", ContentValues().apply {
+            put("translated_names", json.toString())
+        }, "id=?", arrayOf(creatorId.toString()))
+    }
+
     fun deleteCreator(id: Long) {
-        val logoFiles = accounts(id).map { it.logoFile }
+        val logoFiles = accounts(id).map { it.logoFile } +
+            creators().firstOrNull { it.id == id }?.logoFile.orEmpty()
         writableDatabase.delete("creators", "id=?", arrayOf(id.toString()))
         logoFiles.forEach { LocalLogos.delete(appContext, it) }
     }

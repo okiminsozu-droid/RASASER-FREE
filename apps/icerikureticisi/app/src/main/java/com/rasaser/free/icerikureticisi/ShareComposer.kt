@@ -237,37 +237,37 @@ fun ShareComposer(
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = panelBg),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         shape = RoundedCornerShape(20.dp)
     ) {
         Column(Modifier.padding(16.dp)) {
-            Text("Paylaşım oluştur", style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold, color = textInk)
+            Text(tr("Paylaşım oluştur"), style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
             Spacer(Modifier.height(10.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(
                     onClick = { picker.launch(arrayOf("image/*")) },
-                    colors = ButtonDefaults.buttonColors(containerColor = actionBg, contentColor = textInk),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant, contentColor = MaterialTheme.colorScheme.onSurface),
                     modifier = Modifier.weight(1f), contentPadding = androidx.compose.foundation.layout.PaddingValues(10.dp)
-                ) { Text("▧ Resim yükle") }
+                ) { Text(tr("▧ Resim yükle")) }
                 Button(
                     onClick = { picker.launch(arrayOf("video/*")) },
-                    colors = ButtonDefaults.buttonColors(containerColor = actionBg, contentColor = textInk),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant, contentColor = MaterialTheme.colorScheme.onSurface),
                     modifier = Modifier.weight(1f), contentPadding = androidx.compose.foundation.layout.PaddingValues(10.dp)
-                ) { Text("▶ Video yükle") }
+                ) { Text(tr("▶ Video yükle")) }
             }
             if (mediaUri.isNotBlank()) {
                 Text(
                     if (mediaMime.startsWith("video/")) "✓ Video seçildi" else "✓ Resim seçildi",
-                    color = mutedText, style = MaterialTheme.typography.bodySmall
+                    color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall
                 )
             }
             Spacer(Modifier.height(10.dp))
             OutlinedTextField(
                 value = caption,
                 onValueChange = { caption = it.take(2500) },
-                label = { Text("Açıklama ekle") },
-                placeholder = { Text("Paylaşım metni ve etiketler...") },
+                label = { Text(tr("Açıklama ekle")) },
+                placeholder = { Text(tr("Paylaşım metni ve etiketler...")) },
                 minLines = 2,
                 maxLines = 4,
                 modifier = Modifier.fillMaxWidth()
@@ -282,7 +282,7 @@ fun ShareComposer(
                         onSelectedIds(if (all) accounts.map { it.id }.toSet() else emptySet())
                     }
                 )
-                Text("Hepsini seç", color = textInk,
+                Text(tr("Hepsini seç"), color = MaterialTheme.colorScheme.onSurface,
                     style = MaterialTheme.typography.labelSmall)
                 Spacer(Modifier.weight(1f))
                 Button(
@@ -295,16 +295,16 @@ fun ShareComposer(
                             sendTo(available.first())
                         }
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = textInk),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                     contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp)
-                ) { Text("➤ Gönder", style = MaterialTheme.typography.labelMedium) }
+                ) { Text(tr("➤ Gönder"), style = MaterialTheme.typography.labelMedium) }
                 OutlinedButton(
                     onClick = { plan() },
                     contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp)
-                ) { Text("◷ Zaman", style = MaterialTheme.typography.labelMedium) }
+                ) { Text(tr("◷ Zaman"), style = MaterialTheme.typography.labelMedium) }
             }
             Text("${available.size} hesap seçildi",
-                style = MaterialTheme.typography.labelSmall, color = mutedText)
+                style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             if (nextPosition < sendQueue.size && mediaUri.isNotBlank()) {
                 val next = accounts.firstOrNull { it.id == sendQueue[nextPosition] }
                 if (next != null) {
@@ -319,17 +319,17 @@ fun ShareComposer(
             Text(
                 "Seçilen hesaplarda paylaşım ekranı açılır. Gönderi sizin onayınızla yayınlanır; " +
                     "hesap değişimi ve açıklamanın eklenmesi platforma bağlıdır.",
-                color = mutedText, style = MaterialTheme.typography.bodySmall
+                color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall
             )
         }
     }
 
     if (schedules.isNotEmpty()) {
         Spacer(Modifier.height(10.dp))
-        Card(colors = CardDefaults.cardColors(containerColor = panelBg),
+        Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) {
             Column(Modifier.padding(12.dp)) {
-                Text("Zamanlanmış taslaklar", fontWeight = FontWeight.Bold, color = textInk)
+                Text(tr("Zamanlanmış taslaklar"), fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                 schedules.take(12).forEach { draft ->
                     Spacer(Modifier.height(8.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -337,7 +337,7 @@ fun ShareComposer(
                             Text(dateFormat.format(Date(draft.scheduledAt)),
                                 style = MaterialTheme.typography.bodySmall)
                             Text(if (draft.ready) "Hatırlatma zamanı geldi" else "Hatırlatma bekleniyor",
-                                style = MaterialTheme.typography.labelSmall, color = mutedText)
+                                style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         TextButton(onClick = {
                             mediaUri = draft.mediaUri
@@ -347,12 +347,12 @@ fun ShareComposer(
                             sendQueue = emptyList()
                             nextPosition = 0
                             onMessage("Taslak hazırlandı. Göndermek için hesapları kontrol edin.")
-                        }) { Text("Hazırla") }
+                        }) { Text(tr("Hazırla")) }
                         TextButton(onClick = {
                             ShareReminders.cancel(context, draft.id)
                             database.deleteScheduledShare(draft.id)
                             refreshSchedules++
-                        }) { Text("Sil", color = Color(0xFFAE4C44)) }
+                        }) { Text(tr("Sil"), color = Color(0xFFAE4C44)) }
                     }
                 }
             }
