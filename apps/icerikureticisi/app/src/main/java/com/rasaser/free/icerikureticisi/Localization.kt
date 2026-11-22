@@ -88,6 +88,13 @@ object Translations {
         "Google Play'de aç" to mapOf("en" to "Open in Google Play", "de" to "In Google Play öffnen", "es" to "Abrir en Google Play", "ja" to "Google Playで開く", "ar" to "فتح في Google Play"),
         "Doğrula" to mapOf("en" to "Verify", "de" to "Prüfen", "es" to "Verificar", "ja" to "確認", "ar" to "تحقق"),
         "Premium etkin" to mapOf("en" to "Premium active", "de" to "Premium aktiv", "es" to "Premium activo", "ja" to "プレミアム有効", "ar" to "المميز مفعل"),
+
+        "Ücretsiz deneme" to mapOf("en" to "Free trial", "de" to "Kostenlos testen", "es" to "Prueba gratis", "ja" to "無料お試し", "ar" to "تجربة مجانية"),
+        "gün kaldı" to mapOf("en" to "days left", "de" to "Tage verbleiben", "es" to "días restantes", "ja" to "日間残り", "ar" to "أيام متبقية"),
+        "Deneme süresi doldu" to mapOf("en" to "Trial expired", "de" to "Testzeit abgelaufen", "es" to "Prueba finalizada", "ja" to "試用期間終了", "ar" to "انتهت الفترة التجريبية"),
+        "15 günlük ücretsiz denemeniz tamamlandı. İçerikleriniz cihazınızda saklanmaya devam eder." to mapOf("en" to "Your 15-day free trial has ended. Your content remains on your device.", "de" to "Ihre 15-tägige Testphase ist beendet. Ihre Inhalte bleiben auf Ihrem Gerät.", "es" to "Su prueba gratuita de 15 días ha finalizado. Su contenido permanece en su dispositivo.", "ja" to "15日間の無料お試し期間が終了しました。データは端末に保存されたままです。", "ar" to "انتهت تجربتك المجانية لمدة 15 يوما. ستظل بياناتك محفوظة على جهازك."),
+        "Promosyon kodu ile etkinleştir" to mapOf("en" to "Activate with promo code", "de" to "Mit Promocode aktivieren", "es" to "Activar con código promocional", "ja" to "プロモコードで有効化", "ar" to "التفعيل برمز ترويجي"),
+        "Önce PIN oluşturun; ardından telefonunuzun parmak izi özelliğini etkinleştirin." to mapOf("en" to "Create a PIN first, then enable the phone's fingerprint unlock.", "de" to "Erstellen Sie zuerst eine PIN und aktivieren Sie dann den Fingerabdruck.", "es" to "Primero cree un PIN y después active la huella digital del teléfono.", "ja" to "先にPINを設定し、その後端末の指紋認証を有効にしてください。", "ar" to "أنشئ رمز PIN أولا ثم فعّل بصمة الهاتف."),
         "Promosyon kodu" to mapOf("en" to "Promo code", "de" to "Promocode", "es" to "Código promocional", "ja" to "プロモコード", "ar" to "الرمز الترويجي"),
         "Dil" to mapOf("en" to "Language", "de" to "Sprache", "es" to "Idioma", "ja" to "言語", "ar" to "اللغة"),
         "Tema" to mapOf("en" to "Theme", "de" to "Design", "es" to "Tema", "ja" to "テーマ", "ar" to "السمة"),
