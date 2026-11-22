@@ -197,7 +197,7 @@ fun OwnerPremiumDialog(context: Context, onDismiss: () -> Unit) {
             Column {
                 Text(
                     if (active) tr("Premium etkin") else
-                        "RaSaSeR ortak sahip promosyon kodu yalnız güvenli sunucuda doğrulanır.",
+                        tr("15 günlük ücretsiz deneme. Ortak promosyon kodu Cloudflare sunucusunda doğrulanır."),
                     style = MaterialTheme.typography.bodyMedium
                 )
                 Spacer(Modifier.height(12.dp))
