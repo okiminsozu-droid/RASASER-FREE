@@ -140,8 +140,8 @@ class CreatorDatabase(context: Context) :
     ): Long {
         require(platform.trim().isNotBlank() && platform.length <= 50)
         require(label.trim().isNotBlank() && label.length <= 80)
-        require(validPackage(packageName.trim())) { "Android paket adı geçersiz." }
-        val verifiedUrl = secureUrl(url, SocialCatalog.find(platform)?.homeUrl ?: "")
+        require(SocialCatalog.validPackage(packageName.trim())) { "Android paket adı geçersiz." }
+        val verifiedUrl = SocialCatalog.secureUrl(url, SocialCatalog.find(platform)?.homeUrl ?: "")
         require(verifiedUrl.isNotBlank() || packageName.isNotBlank()) {
             "Hesap bağlantısı veya uygulama paket adı ekleyin."
         }
