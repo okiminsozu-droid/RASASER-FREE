@@ -4,6 +4,7 @@ on:
     branches:
       - feature/icerik-ureticisi-android-v1
       - feature/icerik-ureticisi-brand-secure-multilang-v030
+      - feature/icerik-ureticisi-biometric-trial-cloudflare-v031
     paths:
       - 'apps/icerikureticisi/**'
       - '.github/workflows/04-icerik-ureticisi-debug.yml'
