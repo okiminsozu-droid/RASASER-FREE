@@ -1,44 +1,34 @@
-# RaSaSeR İçerik Üreticisi — Android 0.1.0
+# RaSaSeR İçerik Üreticisi — Güvenli kurulum sürümü 0.1.1
 
-Bağımsız, tamamen cihaz üzerinde çalışan içerik üreticisi ve sosyal medya kısayol merkezi.
+Android telefonlarda içerik profilleri ve sosyal medya kısayollarını düzenleyen, tamamen cihaz içi çalışan uygulama.
 
 ## Özellikler
-- Krem, koyu beyaz ve sıcak gri temalı Jetpack Compose arayüzü.
-- Ana sayfada **İçerik Üreticisi +**; sınırsız içerik profili. Profiller adlarıyla listelenir.
-- İçerik profilinde Instagram, Facebook, YouTube, TikTok kısayolları ve **+ Sosyal medya hesabı ekle**.
-- Her içeriğe sınırsız sosyal hesap bağlantısı; aynı platformdan birden fazla hesap adı eklenebilir.
-- Ek platform: sosyal medya adı, hesap etiketi, HTTPS profil adresi, isteğe bağlı Android paket adı ve **galeriden özel logo seçimi**. Logo cihazın uygulamaya özel alanında küçük boyuta dönüştürülerek tutulur.
-- Yüklü resmi uygulamanın orijinal ikonu (cihazda görünürse); değilse marka adı ve tanınabilir simge.
-- **Aç** ile kayıtlı HTTPS profil bağlantısının resmi uygulamada açılması; yoksa tarayıcıya yönlendirme. Uygulama oturumlarını kendi içine aktarmaz.
-- Android NotificationListenerService ile kullanıcı izninden sonra, ekli uygulamaların **etkin** bildirim sayıları ve bildirim önizlemesi.
-- Kaydedilen içerik adları ve profil bağlantıları cihazdaki SQLite'ta. Giriş bilgisi, parola, çerez, API tokenı tutulmaz.
+- Krem arka plan, koyu beyaz butonlar; modern Jetpack Compose.
+- Ana sayfada **İçerik Üreticisi +**; sınırsız sayıda isimli içerik profili (pratik sınır cihaz depolamasıdır).
+- Her içerik profiline sınırsız sosyal medya bağlantısı ekleme.
+- Instagram, Facebook, YouTube, TikTok hazır kısayolları; farklı sosyal medya adı, profil adresi, isteğe bağlı Android paket adı ve galeriden özel logo.
+- Cihazda kurulu resmi uygulamayı/HTTPS profil bağlantısını açar, uygulama yoksa tarayıcıyı kullanır.
+- İsim, hesap etiketi, profil bağlantısı ve logolar yalnızca telefonda saklanır. Şifre/çerez/token saklamaz.
+- Doğrudan INTERNET izni, hesap giriş ekranı, reklam/takip SDK'sı ve bulut senkronizasyonu yok.
 
-## Android'in sınırları
-1. Başka bir uygulamanın oturumuna, mesaj kutusuna, bildirim geçmişine veya hesabına izin verilmeden doğrudan erişilemez. Uygulama içinde OAuth veya parola isteyen sahte giriş ekranı **yoktur**.
-2. Android bildirimleri paket/uygulama bazında verir. **Bir uygulamadaki farklı sosyal hesapların hangisine ait olduğu güvenilir şekilde ayrılamaz.** Aynı Instagram uygulaması eklenmiş birden fazla içerik profiline bağlanırsa görünen sayı uygulama düzeyindeki ortak etkin bildirim sayısıdır; ayrı hesapların okunmamış mesaj sayısı değildir.
-3. Yalnız hâlen etkin Android bildirimleri RAM'de tutulur. Silinen/kapalı bildirimler ve platform içi okunmamış mesaj sayısı geri getirilemez. İlgili uygulamanın kendi bildirim ayarları da açık olmalıdır.
-4. Bildirim izni Android sistem ayarlarından **elle** verilir ve istenildiğinde geri alınabilir. İşletim sistemi bu özel erişimde bütün uygulama bildirimlerine teknik olarak erişim tanıyabilir; kod yalnız kaydedilen paketlerin bildirimlerini işler.
-5. Sosyal medya uygulaması yoksa HTTPS profil linki uygun tarayıcıda açılır. Bir hesap adına kaydedilen bağlantı o hesap için otomatik giriş sağlamaz; oturum değiştirme ilgili sosyal uygulamada yapılır.
-6. İstendiği kadar profil/hesap eklenebilir; gerçek üst sınır cihaz belleği ve depolamasıdır.
+## Play Protect uyarısına yönelik düzeltme
+**0.1.0** sürümünde Android NotificationListenerService ve `android.permission.BIND_NOTIFICATION_LISTENER_SERVICE` servis izni vardı. Google Play Protect bazı cihazlarda tarayıcı/dosya yöneticisi üzerinden indirilen, hassas bildirim erişimi isteyen APK'ların kurulumunu engeller. Uyarının ardından **0.1.1** güvenli kurulum sürümünde:
+- Bildirim dinleme servisi, erişim izni ve ilgili uygulama içi izin yönlendirmeleri **tamamen kaldırıldı**.
+- Kullanıcıdan telefonun tüm bildirimlerini okuyabilen özel erişim istenmez.
+- Bu sürümde sosyal medyanın bildirim sayılarını ve metinlerini **göstermez**; bildirimler ilgili resmi sosyal medya uygulamalarında görülür.
+- Önceki bildirimli prototip kaynak kodu `archive/icerik-ureticisi-bildirimli-v010` dalında ayrı tutulur. Bildirim özelliğinin ileride Google Play üzerinden dağıtımı ayrıca incelenecektir.
 
-## Gizlilik / güvenlik
-- **Android INTERNET izni yok.** Doğrudan ağ çağrısı, analiz/izleme SDK'sı, reklam SDK'sı, bulut senkronizasyonu yok.
-- Bildirim başlık/metinleri kalıcı kayda veya sunucuya gönderilmez.
-- SQLite veritabanı ve seçilen logolar yalnız uygulama dahili alanında; Android yedeği kapalıdır.
-- Bildirim erişimi ve özel sosyal hesap bağlantıları yalnız cihazda kullanıcı onayıyla kullanılır.
-- PUBLIC GitHub'a kullanıcı giriş bilgileri, keystore veya Play imzalama sertifikası eklenmez.
-- Paket listesinde geniş kapsamlı QUERY_ALL_PACKAGES izni bulunmaz.
-- Başka uygulama üzerinden profil açma yalnız HTTPS bağlantıları üzerinden yapılır.
-- Üretim öncesi üçüncü taraf logo ve lisans kullanımları ayrıca gözden geçirilmelidir.
+**Önemli:** Bildirim servisini kaldırmak Play Protect uyarı ihtimalini azaltır; Google'ın diğer güvenlik kontrollerine karşı **kurulum garantisi vermez**. Play Protect'i kapatmayı önermiyoruz.
 
-## Derleme (özel imza gerektirmez)
-Depo kökünden Android SDK/JDK 17 ve Gradle kurulu ortamda:
-```sh
-cd apps/icerikureticisi
-gradle :app:assembleDebug :app:testDebugUnitTest
-```
-Repository Actions şablonu destekliyorsa `app_slug=icerikureticisi` seçilerek **onaydan sonra** Actions başlatılabilir. Bu kod eklenirken manuel workflow çalıştırma komutu verilmedi.
+## Derleme / test
+- Gradle 8.9, JDK 17, Android SDK 35; `gradle :app:assembleDebug :app:testDebugUnitTest`
+- GitHub Actions `.github/workflows/04-icerik-ureticisi-debug.yml` özel anahtarsız debug APK üretir, oluşturulan APK'nın son AndroidManifest'inde notification listener servisi bulunmadığını da kontrol eder.
+- Debug imzası sadece cihaz testi içindir; Google Play yayın AAB'si değildir. Telefon üzerinde gerçek kurulum/işlev testleri kullanıcının cihazında tamamlanmalıdır.
 
-## Durum
-Kaynak kodu / ilk prototip; **cihaz üzerinde test edilmiş veya imzalı yayın sürümü değildir**. Paket: `com.rasaser.free.icerikureticisi`.
-Diğer RaSaSeR projelerine ve özel motor koduna dokunulmaz.
+## Gizlilik
+- Paket: `com.rasaser.free.icerikureticisi`, sürüm: `0.1.1` (`versionCode 2`).
+- Android yedeği devre dışı. İmza anahtarı, kullanıcı giriş bilgisi, sosyal medya hesabı parolası veya API tokenı GitHub'a kaydedilmez.
+- Yalnızca `apps/icerikureticisi/` ve ona özel test workflow'u değiştirilir; diğer RaSaSeR uygulamaları ve PRIVATE motor korunur.
+- Üçüncü taraf marka/logoların kullanım koşulları yayın öncesinde kontrol edilmelidir.
+
+Referans: https://developers.google.com/android/play-protect/warning-dev-guidance

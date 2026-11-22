@@ -1,4 +1,4 @@
-name: İçerik Üreticisi — Debug APK
+name: İçerik Üreticisi — Güvenli Debug APK
 on:
   push:
     branches:
@@ -62,12 +62,22 @@ jobs:
         run: |
           set -euo pipefail
           gradle --no-daemon --stacktrace --project-dir apps/icerikureticisi :app:assembleDebug :app:testDebugUnitTest
-          sha256sum apps/icerikureticisi/app/build/outputs/apk/debug/app-debug.apk
+          APK="apps/icerikureticisi/app/build/outputs/apk/debug/app-debug.apk"
+          test -s "$APK"
+          AAPT="${ANDROID_HOME}/build-tools/35.0.0/aapt"
+          test -x "$AAPT"
+          "$AAPT" dump xmltree "$APK" AndroidManifest.xml > /tmp/icerik-manifest.txt
+          if grep -E -q 'BIND_NOTIFICATION_LISTENER_SERVICE|SocialNotificationListener|NotificationListenerService' /tmp/icerik-manifest.txt; then
+            echo "ERROR: Sensitive notification listener still in APK"
+            exit 1
+          fi
+          "$AAPT" dump badging "$APK" | head -n 4
+          sha256sum "$APK"
 
       - name: Upload installable debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: RaSaSeR-Icerik-Ureticisi-debug-${{ github.run_number }}
+          name: RaSaSeR-Icerik-Ureticisi-v011-guvenli-debug-${{ github.run_number }}
           path: apps/icerikureticisi/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 7
           if-no-files-found: error

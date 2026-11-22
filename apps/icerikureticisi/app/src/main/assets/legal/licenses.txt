@@ -2,7 +2,13 @@ RaSaSeR Apps & Technology — İçerik Üreticisi
 Sürüm: 0.1.1
 © 2026 RaSaSeR. Tüm hakları saklıdır.
 
-Bu proje Jetpack Compose, AndroidX ve Kotlin kullanır. Üretim yayını öncesinde
-üçüncü taraf lisans metinleri ve ticari marka kullanım koşulları denetlenmelidir.
+GÜVENLİ KURULUM
+Bu sürüm Android bildirim okuma izni ve bildirim dinleme servisi içermez.
+Sosyal medya bildirimleri ilgili resmi uygulamadan görüntülenebilir.
+Uygulama sosyal medya şifresi, çerez veya API tokenı saklamaz.
+
+ÜÇÜNCÜ TARAF BİLDİRİMLERİ
+Bu proje Jetpack Compose, AndroidX ve Kotlin kullanır. Gerçek yayın öncesinde
+ilgili üçüncü taraf lisans ve ticari marka bildirimleri kontrol edilmelidir.
 Instagram, Facebook, YouTube ve TikTok ilgili hak sahiplerinin markalarıdır;
 RaSaSeR bu platformların resmi temsilcisi değildir.
