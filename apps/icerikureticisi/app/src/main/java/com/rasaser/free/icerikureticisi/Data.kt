@@ -13,7 +13,8 @@ data class SocialAccount(
     val platform: String,
     val label: String,
     val profileUrl: String,
-    val packageName: String
+    val packageName: String,
+    val logoFile: String
 )
 data class Platform(val name: String, val packageName: String, val homeUrl: String)
 
@@ -50,7 +51,8 @@ object SocialCatalog {
 
 /** Device-only SQLite. No internet, login, password or cloud sync. */
 class CreatorDatabase(context: Context) :
-    SQLiteOpenHelper(context.applicationContext, "creator_hub.db", null, 1) {
+    SQLiteOpenHelper(context.applicationContext, "creator_hub.db", null, 2) {
+    private val appContext = context.applicationContext
 
     override fun onConfigure(db: SQLiteDatabase) {
         super.onConfigure(db)
@@ -72,14 +74,17 @@ class CreatorDatabase(context: Context) :
                 platform TEXT NOT NULL,
                 display_name TEXT NOT NULL,
                 profile_url TEXT NOT NULL,
-                package_name TEXT NOT NULL
+                package_name TEXT NOT NULL,
+                logo_file TEXT NOT NULL DEFAULT ''
             )"""
         )
         db.execSQL("CREATE INDEX idx_accounts_creator ON accounts(creator_id)")
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
-        // Schema v1. Never drop user data as an implicit migration.
+        if (oldVersion < 2) {
+            db.execSQL("ALTER TABLE accounts ADD COLUMN logo_file TEXT NOT NULL DEFAULT ''")
+        }
     }
 
     fun creators(): List<Creator> = buildList {
@@ -90,12 +95,12 @@ class CreatorDatabase(context: Context) :
 
     fun accounts(creatorId: Long): List<SocialAccount> = buildList {
         readableDatabase.rawQuery(
-            "SELECT id, creator_id, platform, display_name, profile_url, package_name " +
+            "SELECT id, creator_id, platform, display_name, profile_url, package_name, logo_file " +
                 "FROM accounts WHERE creator_id=? ORDER BY id DESC", arrayOf(creatorId.toString())
         ).use { c ->
             while (c.moveToNext()) add(
                 SocialAccount(c.getLong(0), c.getLong(1), c.getString(2),
-                    c.getString(3), c.getString(4), c.getString(5))
+                    c.getString(3), c.getString(4), c.getString(5), c.getString(6))
             )
         }
     }
@@ -120,7 +125,9 @@ class CreatorDatabase(context: Context) :
     }
 
     fun deleteCreator(id: Long) {
+        val logoFiles = accounts(id).map { it.logoFile }
         writableDatabase.delete("creators", "id=?", arrayOf(id.toString()))
+        logoFiles.forEach { LocalLogos.delete(appContext, it) }
     }
 
     fun addAccount(
@@ -128,7 +135,8 @@ class CreatorDatabase(context: Context) :
         platform: String,
         label: String,
         url: String,
-        packageName: String
+        packageName: String,
+        logoFile: String = ""
     ): Long {
         require(platform.trim().isNotBlank() && platform.length <= 50)
         require(label.trim().isNotBlank() && label.length <= 80)
@@ -143,10 +151,15 @@ class CreatorDatabase(context: Context) :
             put("display_name", label.trim())
             put("profile_url", verifiedUrl)
             put("package_name", packageName.trim())
+            put("logo_file", logoFile)
         })
     }
 
     fun deleteAccount(id: Long) {
+        val file = readableDatabase.rawQuery(
+            "SELECT logo_file FROM accounts WHERE id=?", arrayOf(id.toString())
+        ).use { c -> if (c.moveToFirst()) c.getString(0) else "" }
         writableDatabase.delete("accounts", "id=?", arrayOf(id.toString()))
+        LocalLogos.delete(appContext, file)
     }
 }
