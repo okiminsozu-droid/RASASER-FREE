@@ -1,13 +1,21 @@
-# RaSaSeR İçerik Üreticisi — 0.3.0 Özellik Testi
+# RaSaSeR İçerik Üreticisi — 0.3.1 Güvenlik ve Deneme Testi
 
-**Kapsam:** Yalnızca `apps/icerikureticisi/`, ayrı `feature/icerik-ureticisi-brand-secure-multilang-v030` dalı. Çalışan 0.2.0 sürümü ve önceki tüm Android projeleri değiştirilmez.
+**Kapsam:** Yalnızca `apps/icerikureticisi/`, ayrı `feature/icerik-ureticisi-biometric-trial-cloudflare-v031` dalı. Çalışan 0.2.0 sürümü ve önceki tüm Android projeleri değiştirilmez.
+
+## 0.3.1 düzenlemeleri (23 Kasım 2026)
+- **Telefonun yerel parmak izi:** PIN oluşturulunca biyometrik geçiş belirginleşir; parmak izini etkinleştirmek için Android BiometricPrompt üzerinden gerçekten başarılı cihaz doğrulaması istenir. PIN güvenli yedek olarak kalır. Parmak izi görüntüsü/şablonu uygulama tarafından alınmaz veya saklanmaz.
+- **Üst ve alt hizalama:** Üst kontrol ikonları ekran genişliğine dengeli yerleştirilir; Android güvenli ekran alanları (durum çubuğu, gezinme çubuğu, çentik) dikkate alınır. Alt marka ve site yazısı telefon gezinme çubuğunun üstünde ortalanır.
+- **15 gün ücretsiz deneme:** İlk açılışta başlayan çevrimdışı tam erişim. Keystore HMAC ile mühürlenen yerel başlangıç/son görüntüleme saati tutulur. Saati geriye alarak uzatmaya karşı temel koruma vardır. Süre bitince işlemler Premium ekranı açılana kadar engellenir; yerel içerikler otomatik silinmez. Çevrimdışı cihazdaki deneme takibi tam anlamıyla manipülasyona dayanıklı lisans sunucusu değildir.
+- **Promosyon kodu / Cloudflare:** Mevcut, kullanıcı verilerinden bağımsız `rasaser-bagimsiz-kullanici-girisi` Worker ve D1 `owner_allowed_packages` izin listesine hem `com.rasaser.free.icerikureticisi` hem `com.rasaser.free.icerikureticisi.v030` paketleri yetkilendirilmiştir. Kod APK'ya, GitHub'a veya uygulama tercih dosyasına yazılmaz; ilk etkinleştirme için internet gerekir. Kod yalnızca sunucudan doğrulanır.
+- **Sürüm:** source 0.3.1 / versionCode 5. Yan yana kurulan debug paket kimliği `.v030` sabit bırakılmıştır; mevcut test verilerini koruyan güncelleme yolu amaçlanır.
+- **Henüz yapılmayanlar:** Google Play Billing ürün, abonelik ve satın alma altyapısı yoktur. "Google Play'de aç" yalnız RaSaSeR araması açar; satın alma veya deneme sonrası otomatik tahsilat yapmaz. Üretim yayınına geçmeden önce gerçek bir satın alma yolu ve mağaza uyumluluğu hazırlanmalıdır. Android cihazda biyometrik/promosyon uçtan uca test ve APK derlemesi henüz çalıştırılmamıştır. GitHub Actions maliyetine sebep olmamak için otomatik derleme yeni dalda tetiklenmemiştir.
 
 ## Yeni eklenenler
 - İçerik üreticisi profili oluştururken galeriden fotoğraf/logo; var olan profile görsel değiştirme. Görsel SQLite'ta yalnız dosya yolu ve `filesDir` içinde özel küçük PNG olarak tutulur. Liste kartındaki varsayılan numara yerine profil görseli görünür. SQLite v3→v4 veri silmeyen migration.
 - 🇹🇷 Türkçe, 🇬🇧 İngilizce, 🇩🇪 Almanca, 🇪🇸 İspanyolca, 🇯🇵 Japonca, 🇸🇦 Arapça dil açılır menüsü; bilinen arayüz etiketleri yerel çeviri tablosundan değişir. Kullanıcının yazdığı profil/hesap adları yanlış otomatik çevrilmez; profiller için 🌐 menüsünden her dile isteğe bağlı karşılık girilebilir. Bilinmeyen dinamik metin kaynak dilde kalabilir.
 - Krem/açık tema ve antrasit/koyu tema seçimi; cihazda kalıcı tercih.
 - Sol üst Premium simgesi, Google Play'de RaSaSeR araması ve ortak RaSaSeR promosyon kodu doğrulama alanı. Google Play satış/abonelik entegrasyonu **yoktur**, mağazada yayımlanmamış bir uygulama için uydurma ürün bağlantısı kullanılmaz.
-- Premium kodu APK'ya veya GitHub'a konmaz. Halihazırdaki Cloudflare `/v1/promo/redeem` servisi üzerinden **HTTPS ve sunucuda D1 whitelist** kontrolü; `owner_lifetime` yanıtı alınırsa cihazdaki hak Android Keystore HMAC ile mühürlenir. İlk etkinleştirme internet gerektirir. Bu paketin Cloudflare izin listesinde yetkili olması ayrıca gereklidir; aksi durumda başarısız doğrulama, Premium hakkı vermez.
+- Premium kodu APK'ya veya GitHub'a konmaz. Halihazırdaki Cloudflare `/v1/promo/redeem` servisi üzerinden **HTTPS ve sunucuda D1 whitelist** kontrolü; `owner_lifetime` yanıtı alınırsa cihazdaki hak Android Keystore HMAC ile mühürlenir. İlk etkinleştirme internet gerektirir. İzin listesine bu paketin normal ve v030 test kimlikleri 23 Kasım 2026'da eklenmiştir; doğrulama başarısızsa Premium hakkı verilmez.
 - Üst çubukta 🔐 PIN oluştur/değiştir + parmak izi aç/kapat. PIN 6–12 rakam, rastgele tuzla PBKDF2-HMAC-SHA256 (180.000 yineleme), beş yanlış denemede 30 sn kilit. Güçlü parmak izi destekli cihazda kullanıcı onayıyla BiometricPrompt; PIN yedeği her zaman var. PIN kurulduktan sonra sonraki uygulama açılışı kilitli başlar; başarıyla kimlik doğrulanınca uygulama otomatik açılır.
 - Ana sayfa altında `RaSaSeR APPS & TECHNOLOGY` + tıklanabilir `www.okiminsozu.com`.
 - Uygulama ikonunda özgün krem, altın ve siyah klaket/kamera çizimi; tüm ekranlarda ölçeklenebilir vektör kaynak.
