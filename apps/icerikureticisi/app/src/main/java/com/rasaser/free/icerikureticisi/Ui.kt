@@ -11,6 +11,8 @@ import android.net.Uri
 import android.os.Build
 import android.provider.Settings
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -266,7 +268,7 @@ fun CreatorHubApp() {
                         LightCard {
                             Row(Modifier.fillMaxWidth().padding(14.dp),
                                 verticalAlignment = Alignment.CenterVertically) {
-                                SocialAppIcon(account.packageName, account.platform, Modifier.size(44.dp))
+                                SocialAppIcon(account.packageName, account.platform, Modifier.size(44.dp), account.logoFile)
                                 Spacer(Modifier.width(12.dp))
                                 Column(Modifier.weight(1f)) {
                                     Text(account.label, fontWeight = FontWeight.Bold,
@@ -312,14 +314,19 @@ fun CreatorHubApp() {
 
         addAccountFor?.let { initial ->
             NewAccountDialog(initial, onDismiss = { addAccountFor = null }) {
-                    platform, label, url, packageName ->
+                    platform, label, url, packageName, logoUri ->
+                var logoPath = ""
                 try {
-                    database.addAccount(creatorId, platform, label, url, packageName)
+                    logoPath = logoUri?.let { LocalLogos.importImage(context, it) }.orEmpty()
+                    database.addAccount(creatorId, platform, label, url, packageName, logoPath)
                     reload()
                     filterPlatform = null
                     addAccountFor = null
                     null
-                } catch (e: Exception) { e.message ?: "Hesap eklenemedi." }
+                } catch (e: Exception) {
+                    if (logoPath.isNotBlank()) LocalLogos.delete(context, logoPath)
+                    e.message ?: "Hesap eklenemedi."
+                }
             }
         }
 
@@ -468,10 +475,15 @@ private fun PlatformTile(
 }
 
 @Composable
-private fun SocialAppIcon(packageName: String, platform: String, modifier: Modifier = Modifier) {
+private fun SocialAppIcon(
+    packageName: String, platform: String, modifier: Modifier = Modifier,
+    logoFile: String = ""
+) {
     val context = LocalContext.current
-    val image = remember(packageName) {
-        if (packageName.isBlank()) null else try {
+    val image = remember(packageName, logoFile) {
+        val custom = if (logoFile.isNotBlank()) LocalLogos.load(context, logoFile) else null
+        if (custom != null) custom.asImageBitmap()
+        else if (packageName.isBlank()) null else try {
             val icon = context.packageManager.getApplicationIcon(packageName)
             val bitmap = Bitmap.createBitmap(96, 96, Bitmap.Config.ARGB_8888)
             icon.setBounds(0, 0, 96, 96)
@@ -531,7 +543,7 @@ private fun NewCreatorDialog(onDismiss: () -> Unit, onCreate: (String) -> String
 @Composable
 private fun NewAccountDialog(
     initial: String, onDismiss: () -> Unit,
-    onAdd: (String, String, String, String) -> String?
+    onAdd: (String, String, String, String, Uri?) -> String?
 ) {
     var selected by remember { mutableStateOf(initial) }
     var customPlatform by remember { mutableStateOf("") }
@@ -539,6 +551,10 @@ private fun NewAccountDialog(
     var url by remember { mutableStateOf("") }
     var customPackage by remember { mutableStateOf("") }
     var error by remember { mutableStateOf("") }
+    var selectedLogo by remember { mutableStateOf<Uri?>(null) }
+    val logoPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        selectedLogo = uri
+    }
     val isCustom = selected == "Diğer"
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -559,6 +575,9 @@ private fun NewAccountDialog(
                     OutlinedTextField(customPackage, { customPackage = it.trim().take(150) },
                         label = { Text("Android paket adı (isteğe bağlı)") },
                         modifier = Modifier.fillMaxWidth(), singleLine = true)
+                    OutlinedButton(onClick = { logoPicker.launch("image/*") }) {
+                        Text(if (selectedLogo == null) "＋ Logo seç (galeriden)" else "✓ Logo seçildi")
+                    }
                 }
                 OutlinedTextField(label, { label = it.take(80) },
                     label = { Text("Hesap / profil ismi") }, singleLine = true,
@@ -577,7 +596,7 @@ private fun NewAccountDialog(
                 val platform = if (isCustom) customPlatform.trim() else selected
                 val packageName = if (isCustom) customPackage.trim() else
                     SocialCatalog.find(platform)?.packageName.orEmpty()
-                error = onAdd(platform, label, url, packageName).orEmpty()
+                error = onAdd(platform, label, url, packageName, selectedLogo).orEmpty()
             }) { Text("Hesabı ekle") }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Vazgeç") } }
