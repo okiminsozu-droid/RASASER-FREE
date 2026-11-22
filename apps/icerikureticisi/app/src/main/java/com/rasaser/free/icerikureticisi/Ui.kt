@@ -598,7 +598,7 @@ private fun NewAccountDialog(
                 val platform = if (isCustom) customPlatform.trim() else selected
                 val packageName = if (isCustom) customPackage.trim() else
                     SocialCatalog.find(platform)?.packageName.orEmpty()
-                error = onAdd(platform, label, url, packageName, selectedLogo).orEmpty()
+                error = onAdd(platform, label, url, packageName, if (isCustom) selectedLogo else null).orEmpty()
             }) { Text("Hesabı ekle") }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Vazgeç") } }
