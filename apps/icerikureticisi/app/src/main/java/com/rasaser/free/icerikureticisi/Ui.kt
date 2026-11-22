@@ -22,6 +22,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -96,6 +99,13 @@ fun CreatorHubApp(initialCreatorId: Long = -1L) {
     var language by remember { mutableStateOf(AppLanguage.get(context)) }
     var darkMode by remember { mutableStateOf(CreatorAppearance.dark(context)) }
     var showPremium by remember { mutableStateOf(false) }
+    var accessRevision by remember { mutableStateOf(0) }
+    val trialStatus = remember(accessRevision) { TrialAccess.status(context) }
+    val ownerPremium = remember(accessRevision) { OwnerPremium.active(context) }
+    if (!ownerPremium && trialStatus.expired) {
+        TrialExpiredScreen(onActivated = { accessRevision++ })
+        return
+    }
     var showLockSettings by remember { mutableStateOf(false) }
     var nameTranslationsFor by remember { mutableStateOf<Creator?>(null) }
     var profileImageFor by remember { mutableStateOf(-1L) }
@@ -163,6 +173,7 @@ fun CreatorHubApp(initialCreatorId: Long = -1L) {
         Column(
             modifier = Modifier.fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
+                .windowInsetsPadding(WindowInsets.safeDrawing)
                 .padding(horizontal = 20.dp)
         ) {
             Spacer(Modifier.height(8.dp))
@@ -192,7 +203,14 @@ fun CreatorHubApp(initialCreatorId: Long = -1L) {
                         Text("＋", style = MaterialTheme.typography.headlineSmall)
                     }
                 }
-                Spacer(Modifier.height(18.dp))
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    if (ownerPremium) tr("Premium etkin")
+                    else tr("Ücretsiz deneme") + " • " + trialStatus.remainingDays + " " + tr("gün kaldı"),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.labelSmall
+                )
+                Spacer(Modifier.height(14.dp))
                 Text(tr("İçerik yönetim alanlarım"), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.height(12.dp))
                 MainButton(tr("＋ İçerik ekle")) { addCreator = true }
@@ -444,7 +462,10 @@ fun CreatorHubApp(initialCreatorId: Long = -1L) {
                 }) { Text(tr("Şimdi değil")) }
             }
         )
-        if (showPremium) OwnerPremiumDialog(context, onDismiss = { showPremium = false })
+        if (showPremium) OwnerPremiumDialog(context, onDismiss = {
+            showPremium = false
+            accessRevision++
+        })
         if (showLockSettings) {
             val activity = context as? FragmentActivity
             if (activity != null) AppLockSettings(activity, onDismiss = { showLockSettings = false })
@@ -469,7 +490,7 @@ fun CreatorHubApp(initialCreatorId: Long = -1L) {
                     Text("Şifre, erişim anahtarı ve giriş oturumu saklanmaz. " +
                         "Bu sürüm Android bildirimlerine erişmez. " +
                         "İçerik adları, hesap etiketleri ve profil bağlantıları yalnız cihazdaki SQLite veritabanında tutulur. " +
-                        "Bulut eşitlemesi ve internet izni yoktur. Uygulama yedeği devre dışıdır.")
+                        "Bulut eşitlemesi yoktur. İnternet izni sadece Premium kodu doğrulamak ve bağlantı açmak için kullanılır. Uygulama yedeği devre dışıdır.")
                     Spacer(Modifier.height(12.dp))
                     Text(remember {
                         context.assets.open("legal/licenses.txt").bufferedReader().use { it.readText() }
