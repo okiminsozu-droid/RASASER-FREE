@@ -34,6 +34,8 @@ object VisibleNotices {
         SocialNotificationListener.resyncIfConnected()
     }
 
+    fun isWatched(packageName: String): Boolean = packageName in allowed
+
     fun replace(all: List<SocialNotice>) {
         active = all.filter { it.packageName in allowed }.sortedByDescending { it.postedAt }
     }
@@ -73,7 +75,8 @@ class SocialNotificationListener : NotificationListenerService() {
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification?) {
-        val notice = sbn?.toSocialNotice() ?: return
+        if (sbn == null || !VisibleNotices.isWatched(sbn.packageName)) return
+        val notice = sbn.toSocialNotice() ?: return
         mainHandler.post { VisibleNotices.posted(notice) }
     }
 
@@ -91,7 +94,8 @@ class SocialNotificationListener : NotificationListenerService() {
 
     private fun resync() {
         val snapshot = try {
-            activeNotifications?.mapNotNull { it.toSocialNotice() }.orEmpty()
+            activeNotifications?.filter { VisibleNotices.isWatched(it.packageName) }
+                ?.mapNotNull { it.toSocialNotice() }.orEmpty()
         } catch (_: SecurityException) {
             emptyList()
         }
