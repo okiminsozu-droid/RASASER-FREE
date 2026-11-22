@@ -142,6 +142,8 @@ fun CreatorHubApp() {
                 Spacer(Modifier.height(18.dp))
                 Text("İçerik yönetim alanlarım", color = slate)
                 Spacer(Modifier.height(12.dp))
+                MainButton("＋ İçerik ekle") { addCreator = true }
+                Spacer(Modifier.height(12.dp))
                 LazyColumn(
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                     contentPadding = PaddingValues(bottom = 30.dp)
