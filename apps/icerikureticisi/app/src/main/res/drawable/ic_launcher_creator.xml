@@ -1,11 +1,38 @@
 <?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="108dp"
-    android:height="108dp"
-    android:viewportWidth="108"
-    android:viewportHeight="108">
-    <path android:fillColor="#F7F0E4" android:pathData="M0,0h108v108h-108z"/>
-    <path android:fillColor="#292723" android:pathData="M20,22h68v64h-68z"/>
-    <path android:strokeColor="#F7F0E4" android:strokeWidth="8"
-        android:strokeLineCap="round" android:pathData="M54,35v38 M35,54h38"/>
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <!-- The icon's vector identity is matched to the approved cream/charcoal/gold logo. -->
+    <path android:fillColor="#F7EBDC"
+        android:pathData="M17,3 L91,3 C100,3 105,9 105,17 L105,91 C105,100 99,105 91,105 L17,105 C8,105 3,99 3,91 L3,17 C3,9 8,3 17,3 Z"/>
+    <path android:fillColor="#C6923B"
+        android:pathData="M17,5 L91,5 C98,5 103,11 103,17 L103,91 C103,98 98,103 91,103 L17,103 C10,103 5,98 5,91 L5,17 C5,11 10,5 17,5 Z"/>
+    <path android:fillColor="#FFFAED"
+        android:pathData="M17,8 L91,8 C96,8 100,13 100,17 L100,91 C100,96 96,100 91,100 L17,100 C12,100 8,96 8,91 L8,17 C8,13 12,8 17,8 Z"/>
+    <!-- Clapperboard upper rim -->
+    <path android:fillColor="#202024"
+        android:pathData="M23,33 L84,15 C87,14 89,16 90,19 L92,26 C93,29 90,32 87,33 L26,49 Z"/>
+    <path android:fillColor="#FFD993"
+        android:pathData="M31,31 L42,28 L34,44 L25,47 Z M50,26 L61,23 L54,39 L43,42 Z M70,20 L81,17 L74,33 L63,36 Z"/>
+    <!-- Camera silhouette -->
+    <path android:fillColor="#BF842F"
+        android:pathData="M21,36 L84,36 C89,36 94,41 94,47 L94,78 C94,86 87,91 79,91 L29,91 C21,91 15,85 15,78 L15,48 C15,41 17,36 21,36 Z"/>
+    <path android:fillColor="#242427"
+        android:pathData="M22,39 L83,39 C87,39 90,43 90,48 L90,77 C90,83 86,87 80,87 L28,87 C22,87 19,83 19,77 L19,47 C19,42 20,39 22,39 Z"/>
+    <!-- Lens gold ring and dark center -->
+    <path android:fillColor="#E9AC46"
+        android:pathData="M55,44 C68,44 78,54 78,67 C78,79 68,88 55,88 C42,88 32,79 32,67 C32,54 42,44 55,44 Z"/>
+    <path android:fillColor="#111216"
+        android:pathData="M55,49 C65,49 73,57 73,67 C73,77 65,84 55,84 C45,84 37,77 37,67 C37,57 45,49 55,49 Z"/>
+    <path android:fillColor="#FFF3C9"
+        android:pathData="M49,55 L49,79 L68,67 Z"/>
+    <!-- small photo badge and film -->
+    <path android:fillColor="#F3C06E"
+        android:pathData="M23,50 L36,50 L36,62 L23,62 Z M24,61 L28,56 L31,58 L33,54 L36,59 L36,62 L24,62 Z"/>
+    <path android:fillColor="#FFE6AB"
+        android:pathData="M23,67 L33,67 L33,83 L23,83 Z M25,69 L31,69 L31,71 L25,71 Z M25,78 L31,78 L31,80 L25,80 Z"/>
+    <path android:fillColor="#F0C46E"
+        android:pathData="M78,57 L83,57 L83,63 L89,63 L89,68 L83,68 L83,74 L78,74 L78,68 L73,68 L73,63 L78,63 Z"/>
+    <path android:fillColor="#F04436"
+        android:pathData="M83,43 C86,43 88,45 88,48 C88,51 86,53 83,53 C80,53 78,51 78,48 C78,45 80,43 83,43 Z"/>
 </vector>
