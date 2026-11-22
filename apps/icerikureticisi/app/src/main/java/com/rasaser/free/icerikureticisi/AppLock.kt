@@ -145,7 +145,7 @@ object FingerprintGate {
             .setTitle(title)
             .setSubtitle("RaSaSeR İçerik Üreticisi")
             .setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_STRONG)
-            .setNegativeButtonText("PIN kullan")
+            .setNegativeButtonText(tr("PIN kullan"))
             .build()
         prompt.authenticate(info)
     }
@@ -173,13 +173,13 @@ fun UnlockScreen(activity: FragmentActivity, onUnlock: () -> Unit) {
             Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 64.dp),
             verticalArrangement = Arrangement.Center
         ) {
-            Text("RaSaSeR • İçerik Üreticisi", style = MaterialTheme.typography.headlineSmall)
+            Text(tr("RaSaSeR • İçerik Üreticisi"), style = MaterialTheme.typography.headlineSmall)
             Spacer(Modifier.height(22.dp))
-            Text("Uygulama kilidi", style = MaterialTheme.typography.titleLarge)
+            Text(tr("Uygulama kilidi"), style = MaterialTheme.typography.titleLarge)
             OutlinedTextField(
                 value = pin, onValueChange = { pin = it.filter(Char::isDigit).take(12) },
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text("PIN gir") },
+                label = { Text(tr("PIN gir")) },
                 visualTransformation = PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
                 singleLine = true
@@ -194,14 +194,14 @@ fun UnlockScreen(activity: FragmentActivity, onUnlock: () -> Unit) {
                         else "PIN yanlış."
                     pin = ""
                 }
-            }, modifier = Modifier.fillMaxWidth()) { Text("Kilidi aç") }
+            }, modifier = Modifier.fillMaxWidth()) { Text(tr("Kilidi aç")) }
             if (AppLock.biometricEnabled(activity) &&
                 FingerprintGate.available(activity)) {
                 TextButton(onClick = {
                     FingerprintGate.authenticate(activity, "Parmak iziyle aç", onUnlock) {
                         message = it
                     }
-                }) { Text("Parmak iziyle aç") }
+                }) { Text(tr("Parmak iziyle aç")) }
             }
             Text(
                 "PIN unutulursa ve parmak izi kullanılamazsa uygulama verilerini silmeden " +
@@ -225,27 +225,27 @@ fun AppLockSettings(activity: FragmentActivity, onDismiss: () -> Unit) {
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Uygulama kilidi") },
+        title = { Text(tr("Uygulama kilidi")) },
         text = {
             Column {
                 if (!verified) {
-                    Text("Değişiklik için mevcut PIN'i doğrulayın.")
+                    Text(tr("Değişiklik için mevcut PIN'i doğrulayın."))
                     OutlinedTextField(oldPin, { oldPin = it.filter(Char::isDigit).take(12) },
-                        label = { Text("PIN gir") }, singleLine = true,
+                        label = { Text(tr("PIN gir")) }, singleLine = true,
                         visualTransformation = PasswordVisualTransformation(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword))
                     Button(onClick = {
                         verified = AppLock.verify(activity, oldPin)
                         if (!verified) message = "PIN yanlış veya geçici kilit etkin."
-                    }) { Text("Doğrula") }
+                    }) { Text(tr("Doğrula")) }
                 } else {
                     Text(if (isEnabled) "Şifreyi değiştir" else "Şifre oluştur")
                     OutlinedTextField(pin, { pin = it.filter(Char::isDigit).take(12) },
-                        label = { Text("Yeni PIN") }, singleLine = true,
+                        label = { Text(tr("Yeni PIN")) }, singleLine = true,
                         visualTransformation = PasswordVisualTransformation(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword))
                     OutlinedTextField(confirm, { confirm = it.filter(Char::isDigit).take(12) },
-                        label = { Text("PIN tekrarı") }, singleLine = true,
+                        label = { Text(tr("PIN tekrarı")) }, singleLine = true,
                         visualTransformation = PasswordVisualTransformation(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword))
                     Button(onClick = {
@@ -258,11 +258,11 @@ fun AppLockSettings(activity: FragmentActivity, onDismiss: () -> Unit) {
                             pin = ""; confirm = ""
                             message = "PIN kaydedildi. Bir sonraki açılışta istenecek."
                         }
-                    }) { Text("Kaydet") }
+                    }) { Text(tr("Kaydet")) }
                     if (isEnabled) {
                         Spacer(Modifier.height(8.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("Parmak izi", modifier = Modifier.weight(1f))
+                            Text(tr("Parmak izi"), modifier = Modifier.weight(1f))
                             Switch(checked = bio, enabled = FingerprintGate.available(activity),
                                 onCheckedChange = { enabled ->
                                     AppLock.setBiometric(activity, enabled)
@@ -279,7 +279,7 @@ fun AppLockSettings(activity: FragmentActivity, onDismiss: () -> Unit) {
                                 message = "Kilidi kapatmak için mevcut PIN'i yeniden girin."
                                 verified = false
                             }
-                        }) { Text("Kilidi kapat") }
+                        }) { Text(tr("Kilidi kapat")) }
                     }
                 }
                 if (message.isNotBlank()) Text(
@@ -287,6 +287,6 @@ fun AppLockSettings(activity: FragmentActivity, onDismiss: () -> Unit) {
                     style = MaterialTheme.typography.bodySmall)
             }
         },
-        confirmButton = { TextButton(onClick = onDismiss) { Text("Kapat") } }
+        confirmButton = { TextButton(onClick = onDismiss) { Text(tr("Kapat")) } }
     )
 }
