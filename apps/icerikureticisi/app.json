@@ -2,8 +2,8 @@
   "slug": "icerikureticisi",
   "display_name": "İçerik Üreticisi",
   "package_id": "com.rasaser.free.icerikureticisi",
-  "version_code": 4,
-  "version_name": "0.3.0",
+  "version_code": 5,
+  "version_name": "0.3.1",
   "private_engine_required": false,
   "allow_public_debug_artifacts": true,
   "license_review_completed": false,
@@ -25,5 +25,8 @@
     "ar"
   ],
   "optional_biometric": true,
-  "local_pin_hash": "PBKDF2-HMAC-SHA256"
+  "local_pin_hash": "PBKDF2-HMAC-SHA256",
+  "trial_days": 15,
+  "trial_mode": "offline_keystore_receipt_with_clock_rollback_detection",
+  "promo_package_authorized_on_cloudflare": true
 }
