@@ -12,7 +12,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: icerikureticisi-debug-${{ github.ref }}
+  group: icerikureticisi-guvenli-v011-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
