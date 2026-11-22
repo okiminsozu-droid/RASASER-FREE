@@ -223,7 +223,7 @@ fun OwnerPremiumDialog(context: Context, onDismiss: () -> Unit) {
                         scope.launch {
                             val r = OwnerPremium.redeem(context, code)
                             active = r.granted || OwnerPremium.active(context)
-                            result = if (r.granted) tr("Premium etkin") else r.message
+                            result = if (r.granted) Translations.text(AppLanguage.get(context), "Premium etkin") else r.message
                             code = ""
                             checking = false
                         }
