@@ -1,15 +1,12 @@
 package com.rasaser.free.icerikureticisi
 
-import android.app.NotificationManager
 import android.content.ActivityNotFoundException
-import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.net.Uri
 import android.os.Build
-import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -26,7 +23,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -35,7 +31,6 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
@@ -44,7 +39,6 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -52,7 +46,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -67,11 +60,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
 private val cream = Color(0xFFF7F1E7)
 private val cardWhite = Color(0xFFFFFDF8)
@@ -93,29 +81,12 @@ fun CreatorHubApp() {
     var deleteCreator by remember { mutableStateOf<Creator?>(null) }
     var deleteAccount by remember { mutableStateOf<SocialAccount?>(null) }
     var filterPlatform by remember { mutableStateOf<String?>(null) }
-    var noticePackage by remember { mutableStateOf<String?>(null) }
-    var showAccessDisclosure by remember { mutableStateOf(false) }
     var showLicenses by remember { mutableStateOf(false) }
     var feedback by remember { mutableStateOf("") }
-    var accessGranted by remember { mutableStateOf(notificationPermissionGranted(context)) }
 
     fun reload() {
         creators = database.creators()
         accounts = if (creatorId >= 0) database.accounts(creatorId) else emptyList()
-        VisibleNotices.configure(context)
-    }
-
-    DisposableEffect(context) {
-        val activity = context as? ComponentActivity
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) {
-                accessGranted = notificationPermissionGranted(context)
-                VisibleNotices.configure(context)
-            }
-        }
-        activity?.lifecycle?.addObserver(observer)
-        VisibleNotices.configure(context)
-        onDispose { activity?.lifecycle?.removeObserver(observer) }
     }
 
     MaterialTheme(
@@ -216,12 +187,9 @@ fun CreatorHubApp() {
                     contentPadding = PaddingValues(vertical = 8.dp)
                 ) {
                     items(SocialCatalog.presets, key = { it.name }) { platform ->
-                        val count = VisibleNotices.active.count { it.packageName == platform.packageName }
-                        PlatformTile(platform, count, filterPlatform == platform.name,
-                            onSelect = {
-                                filterPlatform = if (filterPlatform == platform.name) null else platform.name
-                            },
-                            onNotices = { noticePackage = platform.packageName })
+                        PlatformTile(platform, filterPlatform == platform.name) {
+                            filterPlatform = if (filterPlatform == platform.name) null else platform.name
+                        }
                     }
                 }
                 Spacer(Modifier.height(10.dp))
@@ -229,17 +197,14 @@ fun CreatorHubApp() {
                 Spacer(Modifier.height(10.dp))
                 LightCard {
                     Column(Modifier.padding(14.dp)) {
-                        Text(if (accessGranted) "Bildirim erişimi açık" else "Bildirim erişimini etkinleştir",
-                            fontWeight = FontWeight.SemiBold)
+                        Text("Güvenli kurulum sürümü", fontWeight = FontWeight.SemiBold)
                         Spacer(Modifier.height(3.dp))
                         Text(
-                            "Bildirimler telefondaki uygulamalardan alınır. Hesap bazında kesin ayrım yapılamaz.",
+                            "Bu sürüm hassas bildirim okuma izni istemez. " +
+                                "Instagram, Facebook, YouTube ve TikTok bildirimlerini " +
+                                "kendi uygulamalarında görebilirsiniz.",
                             color = slate, style = MaterialTheme.typography.bodySmall
                         )
-                        Spacer(Modifier.height(8.dp))
-                        OutlinedButton(onClick = { showAccessDisclosure = true }) {
-                            Text(if (accessGranted) "Bildirim ayarları" else "Bildirim izni ver")
-                        }
                     }
                 }
                 Spacer(Modifier.height(12.dp))
@@ -264,9 +229,6 @@ fun CreatorHubApp() {
                             color = slate, modifier = Modifier.padding(vertical = 18.dp))
                     }
                     items(shownAccounts, key = { it.id }) { account ->
-                        val unread = VisibleNotices.active.count {
-                            it.packageName == account.packageName && account.packageName.isNotBlank()
-                        }
                         LightCard {
                             Row(Modifier.fillMaxWidth().padding(14.dp),
                                 verticalAlignment = Alignment.CenterVertically) {
@@ -277,14 +239,6 @@ fun CreatorHubApp() {
                                         maxLines = 2, overflow = TextOverflow.Ellipsis)
                                     Text(account.platform, color = slate,
                                         style = MaterialTheme.typography.bodySmall)
-                                    if (unread > 0) Text(
-                                        "$unread etkin bildirim",
-                                        color = alertRed,
-                                        modifier = Modifier.clickable {
-                                            noticePackage = account.packageName
-                                        },
-                                        style = MaterialTheme.typography.labelMedium
-                                    )
                                 }
                                 Column(horizontalAlignment = Alignment.End) {
                                     TextButton(onClick = {
@@ -351,65 +305,13 @@ fun CreatorHubApp() {
                     reload()
                 })
         }
-        noticePackage?.let { pkg ->
-            val matches = VisibleNotices.active.filter { it.packageName == pkg }
-            AlertDialog(
-                onDismissRequest = { noticePackage = null },
-                title = { Text("Etkin bildirimler (${matches.size})") },
-                text = {
-                    Column(Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState())) {
-                        Text("Bu bildirimler uygulama düzeyindedir; hangi sosyal hesaba ait olduğu kesin değildir.",
-                            color = slate, style = MaterialTheme.typography.bodySmall)
-                        Spacer(Modifier.height(8.dp))
-                        if (matches.isEmpty()) Text("Şu anda etkin bildirim bulunmuyor.")
-                        matches.forEach { notice ->
-                            HorizontalDivider()
-                            Text(notice.title.ifBlank { "Bildirim" }, fontWeight = FontWeight.Bold,
-                                modifier = Modifier.padding(top = 8.dp))
-                            Text(notice.message, style = MaterialTheme.typography.bodySmall)
-                            Text(SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault())
-                                .format(Date(notice.postedAt)), color = slate,
-                                style = MaterialTheme.typography.labelSmall)
-                            Spacer(Modifier.height(8.dp))
-                        }
-                    }
-                },
-                confirmButton = {
-                    TextButton(onClick = { noticePackage = null }) { Text("Kapat") }
-                }
-            )
-        }
-        if (showAccessDisclosure) AlertDialog(
-            onDismissRequest = { showAccessDisclosure = false },
-            title = { Text("Bildirim erişimi hakkında") },
-            text = {
-                Text(
-                    "Android bu izinle diğer uygulamaların bildirimlerini de görmeye teknik olarak izin verir. " +
-                        "İçerik Üreticisi yalnız eklediğiniz uygulamaların etkin bildirimlerini bellekte gösterir. " +
-                        "Bildirim metinleri kaydedilmez veya sunucuya gönderilmez. " +
-                        "İzni telefon ayarlarından istediğiniz zaman kapatabilirsiniz."
-                )
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    showAccessDisclosure = false
-                    try {
-                        context.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
-                    } catch (_: ActivityNotFoundException) {
-                        feedback = "Bu cihazda bildirim erişim ayarı açılamadı."
-                    }
-                }) { Text("Android ayarlarına git") }
-            },
-            dismissButton = {
-                TextButton(onClick = { showAccessDisclosure = false }) { Text("Vazgeç") }
-            }
-        )
         if (showLicenses) AlertDialog(
             onDismissRequest = { showLicenses = false },
             title = { Text("Gizlilik ve lisanslar") },
             text = {
                 Column(Modifier.heightIn(max = 400.dp).verticalScroll(rememberScrollState())) {
                     Text("Şifre, erişim anahtarı ve giriş oturumu saklanmaz. " +
+                        "Bu sürüm Android bildirimlerine erişmez. " +
                         "İçerik adları, hesap etiketleri ve profil bağlantıları yalnız cihazdaki SQLite veritabanında tutulur. " +
                         "Bulut eşitlemesi ve internet izni yoktur. Uygulama yedeği devre dışıdır.")
                     Spacer(Modifier.height(12.dp))
@@ -450,8 +352,7 @@ private fun MainButton(text: String, onClick: () -> Unit) {
 
 @Composable
 private fun PlatformTile(
-    platform: Platform, count: Int, selected: Boolean,
-    onSelect: () -> Unit, onNotices: () -> Unit
+    platform: Platform, selected: Boolean, onSelect: () -> Unit
 ) {
     Column(
         modifier = Modifier.width(82.dp).clip(RoundedCornerShape(16.dp))
@@ -459,20 +360,9 @@ private fun PlatformTile(
             .clickable(onClick = onSelect).padding(10.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Box {
-            SocialAppIcon(platform.packageName, platform.name, Modifier.size(45.dp))
-            if (count > 0) Box(
-                Modifier.align(Alignment.TopEnd).offset(x = 10.dp, y = (-7).dp)
-                    .clip(CircleShape).background(alertRed).clickable(onClick = onNotices)
-                    .padding(horizontal = 5.dp, vertical = 2.dp)
-            ) {
-                Text(count.toString(), color = Color.White,
-                    style = MaterialTheme.typography.labelSmall)
-            }
-        }
+        SocialAppIcon(platform.packageName, platform.name, Modifier.size(45.dp))
         Spacer(Modifier.height(6.dp))
-        Text(platform.name, style = MaterialTheme.typography.labelSmall,
-            maxLines = 1)
+        Text(platform.name, style = MaterialTheme.typography.labelSmall, maxLines = 1)
     }
 }
 
@@ -614,17 +504,6 @@ private fun ConfirmDelete(title: String, body: String, onCancel: () -> Unit, onD
         confirmButton = { TextButton(onClick = onDelete) { Text("Sil", color = alertRed) } },
         dismissButton = { TextButton(onClick = onCancel) { Text("Vazgeç") } }
     )
-}
-
-private fun notificationPermissionGranted(context: Context): Boolean {
-    val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-    val component = ComponentName(context, SocialNotificationListener::class.java)
-    return if (Build.VERSION.SDK_INT >= 27) {
-        manager.isNotificationListenerAccessGranted(component)
-    } else {
-        Settings.Secure.getString(context.contentResolver, "enabled_notification_listeners")
-            ?.contains(component.flattenToString()) == true
-    }
 }
 
 /** Open the installed official app using its profile deep link; fall back to browser. */
