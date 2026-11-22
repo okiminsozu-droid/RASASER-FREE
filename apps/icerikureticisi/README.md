@@ -7,7 +7,7 @@ Bağımsız, tamamen cihaz üzerinde çalışan içerik üreticisi ve sosyal med
 - Ana sayfada **İçerik Üreticisi +**; sınırsız içerik profili. Profiller adlarıyla listelenir.
 - İçerik profilinde Instagram, Facebook, YouTube, TikTok kısayolları ve **+ Sosyal medya hesabı ekle**.
 - Her içeriğe sınırsız sosyal hesap bağlantısı; aynı platformdan birden fazla hesap adı eklenebilir.
-- Ek platform: sosyal medya adı, hesap etiketi, HTTPS profil adresi ve isteğe bağlı Android paket adı.
+- Ek platform: sosyal medya adı, hesap etiketi, HTTPS profil adresi, isteğe bağlı Android paket adı ve **galeriden özel logo seçimi**. Logo cihazın uygulamaya özel alanında küçük boyuta dönüştürülerek tutulur.
 - Yüklü resmi uygulamanın orijinal ikonu (cihazda görünürse); değilse marka adı ve tanınabilir simge.
 - **Aç** ile kayıtlı HTTPS profil bağlantısının resmi uygulamada açılması; yoksa tarayıcıya yönlendirme. Uygulama oturumlarını kendi içine aktarmaz.
 - Android NotificationListenerService ile kullanıcı izninden sonra, ekli uygulamaların **etkin** bildirim sayıları ve bildirim önizlemesi.
@@ -24,7 +24,7 @@ Bağımsız, tamamen cihaz üzerinde çalışan içerik üreticisi ve sosyal med
 ## Gizlilik / güvenlik
 - **Android INTERNET izni yok.** Doğrudan ağ çağrısı, analiz/izleme SDK'sı, reklam SDK'sı, bulut senkronizasyonu yok.
 - Bildirim başlık/metinleri kalıcı kayda veya sunucuya gönderilmez.
-- SQLite veritabanı yalnız uygulama dahili alanında; Android yedeği kapalıdır.
+- SQLite veritabanı ve seçilen logolar yalnız uygulama dahili alanında; Android yedeği kapalıdır.
 - Bildirim erişimi ve özel sosyal hesap bağlantıları yalnız cihazda kullanıcı onayıyla kullanılır.
 - PUBLIC GitHub'a kullanıcı giriş bilgileri, keystore veya Play imzalama sertifikası eklenmez.
 - Paket listesinde geniş kapsamlı QUERY_ALL_PACKAGES izni bulunmaz.
@@ -37,7 +37,7 @@ Depo kökünden Android SDK/JDK 17 ve Gradle kurulu ortamda:
 cd apps/icerikureticisi
 gradle :app:assembleDebug :app:testDebugUnitTest
 ```
-Repository Actions şablonu destekliyorsa `app_slug=icerikureticisi` seçilerek **onaydan sonra** Actions başlatılabilir. Bu kod eklenirken workflow tetiklenmedi.
+Repository Actions şablonu destekliyorsa `app_slug=icerikureticisi` seçilerek **onaydan sonra** Actions başlatılabilir. Bu kod eklenirken manuel workflow çalıştırma komutu verilmedi.
 
 ## Durum
 Kaynak kodu / ilk prototip; **cihaz üzerinde test edilmiş veya imzalı yayın sürümü değildir**. Paket: `com.rasaser.free.icerikureticisi`.
