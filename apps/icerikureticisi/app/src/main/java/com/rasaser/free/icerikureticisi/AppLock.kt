@@ -222,6 +222,7 @@ fun AppLockSettings(activity: FragmentActivity, onDismiss: () -> Unit) {
     var message by remember { mutableStateOf("") }
     var isEnabled by remember { mutableStateOf(AppLock.enabled(activity)) }
     var bio by remember { mutableStateOf(AppLock.biometricEnabled(activity)) }
+    val fingerprintTitle = tr("Parmak iziyle aç")
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -239,7 +240,14 @@ fun AppLockSettings(activity: FragmentActivity, onDismiss: () -> Unit) {
                         if (!verified) message = "PIN yanlış veya geçici kilit etkin."
                     }) { Text(tr("Doğrula")) }
                 } else {
-                    Text(if (isEnabled) "Şifreyi değiştir" else "Şifre oluştur")
+                    Text(tr(if (isEnabled) "Şifreyi değiştir" else "Şifre oluştur"))
+                    if (!isEnabled) {
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            tr("Önce PIN oluşturun; ardından telefonunuzun parmak izi özelliğini etkinleştirin."),
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
                     OutlinedTextField(pin, { pin = it.filter(Char::isDigit).take(12) },
                         label = { Text(tr("Yeni PIN")) }, singleLine = true,
                         visualTransformation = PasswordVisualTransformation(),
@@ -256,17 +264,33 @@ fun AppLockSettings(activity: FragmentActivity, onDismiss: () -> Unit) {
                             isEnabled = true
                             bio = false
                             pin = ""; confirm = ""
-                            message = "PIN kaydedildi. Bir sonraki açılışta istenecek."
+                            message = if (FingerprintGate.available(activity))
+                                "PIN kaydedildi. Şimdi aşağıdan parmak iziyle açmayı etkinleştirebilirsiniz."
+                            else "PIN kaydedildi. Bir sonraki açılışta istenecek."
                         }
                     }) { Text(tr("Kaydet")) }
                     if (isEnabled) {
                         Spacer(Modifier.height(8.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(tr("Parmak izi"), modifier = Modifier.weight(1f))
+                            Text(tr("Parmak iziyle aç"), modifier = Modifier.weight(1f))
                             Switch(checked = bio, enabled = FingerprintGate.available(activity),
                                 onCheckedChange = { enabled ->
-                                    AppLock.setBiometric(activity, enabled)
-                                    bio = AppLock.biometricEnabled(activity)
+                                    if (!enabled) {
+                                        AppLock.setBiometric(activity, false)
+                                        bio = false
+                                        message = "Parmak izi devre dışı."
+                                    } else {
+                                        FingerprintGate.authenticate(
+                                            activity = activity,
+                                            title = fingerprintTitle,
+                                            onSuccess = {
+                                                AppLock.setBiometric(activity, true)
+                                                bio = AppLock.biometricEnabled(activity)
+                                                message = "Parmak izi etkinleştirildi."
+                                            },
+                                            onError = { message = it }
+                                        )
+                                    }
                                 })
                         }
                         if (!FingerprintGate.available(activity)) Text(
