@@ -6,6 +6,7 @@ import android.content.Intent
 import android.Manifest
 import android.content.pm.PackageManager
 import androidx.core.content.ContextCompat
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import android.graphics.Bitmap
 import android.graphics.Canvas
@@ -56,6 +57,8 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.fragment.app.FragmentActivity
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -102,6 +105,14 @@ fun CreatorHubApp(initialCreatorId: Long = -1L) {
     var accessRevision by remember { mutableStateOf(0) }
     val trialStatus = remember(accessRevision) { TrialAccess.status(context) }
     val ownerPremium = remember(accessRevision) { OwnerPremium.active(context) }
+    DisposableEffect(context) {
+        val lifecycle = (context as? FragmentActivity)?.lifecycle
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) accessRevision++
+        }
+        lifecycle?.addObserver(observer)
+        onDispose { lifecycle?.removeObserver(observer) }
+    }
     if (!ownerPremium && trialStatus.expired) {
         TrialExpiredScreen(onActivated = { accessRevision++ })
         return
