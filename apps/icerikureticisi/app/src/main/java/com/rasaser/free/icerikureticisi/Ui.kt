@@ -1,0 +1,580 @@
+package com.rasaser.free.icerikureticisi
+
+import android.content.ActivityNotFoundException
+import android.content.Context
+import android.content.Intent
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.core.content.ContextCompat
+import androidx.compose.runtime.LaunchedEffect
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.net.Uri
+import android.os.Build
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.lightColorScheme
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+
+private val cream = Color(0xFFF7F1E7)
+private val cardWhite = Color(0xFFFFFDF8)
+private val darkWhite = Color(0xFFE8E3DA)
+private val ink = Color(0xFF262521)
+private val slate = Color(0xFF736E66)
+private val alertRed = Color(0xFFAE4C44)
+private val shape = RoundedCornerShape(20.dp)
+
+@Composable
+fun CreatorHubApp(initialCreatorId: Long = -1L) {
+    val context = LocalContext.current
+    val database = remember { CreatorDatabase(context.applicationContext) }
+    var creators by remember { mutableStateOf(database.creators()) }
+    var creatorId by rememberSaveable(initialCreatorId) { mutableStateOf(initialCreatorId) }
+    var selectedAccountIds by remember { mutableStateOf<Set<Long>>(emptySet()) }
+    var accounts by remember { mutableStateOf(emptyList<SocialAccount>()) }
+    var addCreator by remember { mutableStateOf(false) }
+    var addAccountFor by remember { mutableStateOf<String?>(null) }
+    var deleteCreator by remember { mutableStateOf<Creator?>(null) }
+    var deleteAccount by remember { mutableStateOf<SocialAccount?>(null) }
+    var filterPlatform by remember { mutableStateOf<String?>(null) }
+    var showLicenses by remember { mutableStateOf(false) }
+    var feedback by remember { mutableStateOf("") }
+    val prefs = remember { context.getSharedPreferences("share_reminders", Context.MODE_PRIVATE) }
+    val notificationRequester = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        feedback = if (granted) "Paylaşım hatırlatmaları etkinleştirildi."
+            else "Bildirim izni verilmedi. Zamanlama öncesinde yeniden isteyebilirsiniz."
+    }
+    var firstLaunchPrompt by remember {
+        mutableStateOf(
+            Build.VERSION.SDK_INT >= 33 &&
+                !prefs.getBoolean("reminder_permission_explained", false) &&
+                ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS)
+                    != PackageManager.PERMISSION_GRANTED
+        )
+    }
+
+    fun reload() {
+        creators = database.creators()
+        accounts = if (creatorId >= 0) database.accounts(creatorId) else emptyList()
+    }
+
+    LaunchedEffect(initialCreatorId) {
+        if (initialCreatorId >= 0L && creators.any { it.id == initialCreatorId }) {
+            creatorId = initialCreatorId
+            selectedAccountIds = emptySet()
+            reload()
+        }
+    }
+
+    MaterialTheme(
+        colorScheme = lightColorScheme(
+            primary = ink, onPrimary = cardWhite, background = cream,
+            onBackground = ink, surface = cardWhite, onSurface = ink
+        )
+    ) {
+        Column(
+            modifier = Modifier.fillMaxSize().background(cream).padding(horizontal = 20.dp)
+        ) {
+            Spacer(Modifier.height(24.dp))
+            if (creatorId < 0) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text("RaSaSeR", color = slate, style = MaterialTheme.typography.labelLarge)
+                        Text("İçerik Üreticisi", fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.headlineMedium)
+                    }
+                    Button(onClick = { addCreator = true }, contentPadding = PaddingValues(12.dp)) {
+                        Text("＋", style = MaterialTheme.typography.headlineSmall)
+                    }
+                }
+                Spacer(Modifier.height(18.dp))
+                Text("İçerik yönetim alanlarım", color = slate)
+                Spacer(Modifier.height(12.dp))
+                MainButton("＋ İçerik ekle") { addCreator = true }
+                Spacer(Modifier.height(12.dp))
+                LazyColumn(
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    contentPadding = PaddingValues(bottom = 30.dp)
+                ) {
+                    if (creators.isEmpty()) item {
+                        LightCard {
+                            Column(Modifier.padding(22.dp)) {
+                                Text("İlk içerik sayfanı oluştur",
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.SemiBold)
+                                Spacer(Modifier.height(8.dp))
+                                Text("＋ düğmesine bas, sayfana isim ver ve sosyal medya hesaplarını ekle.")
+                                Spacer(Modifier.height(12.dp))
+                                MainButton("＋ İçerik ekle") { addCreator = true }
+                            }
+                        }
+                    }
+                    itemsIndexed(creators, key = { _, c -> c.id }) { index, creator ->
+                        LightCard {
+                            Row(Modifier.fillMaxWidth().clickable {
+                                creatorId = creator.id
+                                selectedAccountIds = emptySet()
+                                filterPlatform = null
+                                reload()
+                            }.padding(18.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Box(
+                                    Modifier.size(48.dp).background(darkWhite, RoundedCornerShape(15.dp)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text("${index + 1}", fontWeight = FontWeight.Bold,
+                                        style = MaterialTheme.typography.titleLarge)
+                                }
+                                Spacer(Modifier.width(12.dp))
+                                Column(Modifier.weight(1f)) {
+                                    Text(creator.name, fontWeight = FontWeight.Bold,
+                                        style = MaterialTheme.typography.titleMedium,
+                                        maxLines = 2, overflow = TextOverflow.Ellipsis)
+                                    Text("İçerik sayfasını aç", color = slate,
+                                        style = MaterialTheme.typography.bodySmall)
+                                }
+                                Text("›", style = MaterialTheme.typography.headlineMedium)
+                            }
+                        }
+                    }
+                    item {
+                        TextButton(onClick = { showLicenses = true }) {
+                            Text("Gizlilik ve lisans bilgileri", color = slate)
+                        }
+                    }
+                }
+            } else {
+                val current = creators.firstOrNull { it.id == creatorId }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    TextButton(onClick = {
+                        creatorId = -1L
+                        selectedAccountIds = emptySet()
+                        filterPlatform = null
+                        reload()
+                    }) { Text("‹ Geri") }
+                    Column(Modifier.weight(1f)) {
+                        Text("İçerik Üreticisi", color = slate,
+                            style = MaterialTheme.typography.labelMedium)
+                        Text(current?.name.orEmpty(), fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.titleLarge, maxLines = 2,
+                            overflow = TextOverflow.Ellipsis)
+                    }
+                    TextButton(onClick = { deleteCreator = current }) {
+                        Text("Sil", color = alertRed)
+                    }
+                }
+                Spacer(Modifier.height(10.dp))
+                val shownAccounts = accounts.filter {
+                    filterPlatform == null || it.platform == filterPlatform
+                }
+                LazyColumn(
+                    modifier = Modifier.fillMaxWidth().weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    contentPadding = PaddingValues(bottom = 28.dp)
+                ) {
+                    item {
+                        Text("Sosyal medya platformları", fontWeight = FontWeight.SemiBold)
+                        Spacer(Modifier.height(10.dp))
+                        LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            items(SocialCatalog.presets, key = { it.name }) { platform ->
+                                PlatformTile(platform, filterPlatform == platform.name) {
+                                    filterPlatform = if (filterPlatform == platform.name) null
+                                        else platform.name
+                                }
+                            }
+                        }
+                        Spacer(Modifier.height(14.dp))
+                        MainButton("＋ Sosyal medya hesabı ekle") {
+                            addAccountFor = "Instagram"
+                        }
+                        Spacer(Modifier.height(10.dp))
+                        ShareComposer(
+                            creatorId = creatorId,
+                            accounts = accounts,
+                            selectedIds = selectedAccountIds,
+                            onSelectedIds = { selectedAccountIds = it },
+                            database = database,
+                            onMessage = { feedback = it }
+                        )
+                        Spacer(Modifier.height(14.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(if (filterPlatform == null) "Bağlantılarım"
+                                 else filterPlatform.orEmpty(),
+                                fontWeight = FontWeight.Bold,
+                                style = MaterialTheme.typography.titleMedium,
+                                modifier = Modifier.weight(1f))
+                            if (filterPlatform != null) TextButton(onClick = { filterPlatform = null }) {
+                                Text("Tümünü göster")
+                            }
+                        }
+                        if (shownAccounts.isEmpty()) {
+                            Text("Bu bölümde henüz sosyal medya hesabı yok.",
+                                color = slate, modifier = Modifier.padding(vertical = 10.dp))
+                        }
+                    }
+                    items(shownAccounts, key = { it.id }) { account ->
+                        LightCard {
+                            Row(Modifier.fillMaxWidth().padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically) {
+                                Checkbox(
+                                    checked = account.id in selectedAccountIds,
+                                    onCheckedChange = { checked ->
+                                        selectedAccountIds = if (checked)
+                                            selectedAccountIds + account.id
+                                        else selectedAccountIds - account.id
+                                    }
+                                )
+                                SocialAppIcon(
+                                    account.packageName, account.platform,
+                                    Modifier.size(40.dp), account.logoFile
+                                )
+                                Spacer(Modifier.width(9.dp))
+                                Column(Modifier.weight(1f)) {
+                                    Text(account.label, fontWeight = FontWeight.Bold,
+                                        maxLines = 2, overflow = TextOverflow.Ellipsis)
+                                    Text(account.platform, color = slate,
+                                        style = MaterialTheme.typography.bodySmall)
+                                }
+                                Column(horizontalAlignment = Alignment.End) {
+                                    TextButton(onClick = {
+                                        if (!SocialIntents.openAccount(context, account))
+                                            feedback = "Uygulama veya bağlantı açılamadı."
+                                    }) { Text("Aç ›") }
+                                    TextButton(onClick = { deleteAccount = account }) {
+                                        Text("Kaldır", color = alertRed)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if (addCreator) NewCreatorDialog(onDismiss = { addCreator = false }) { name ->
+            try {
+                val id = database.addCreator(name)
+                reload()
+                creatorId = id
+                reload()
+                addCreator = false
+                null
+            } catch (e: Exception) { e.message ?: "İçerik eklenemedi." }
+        }
+
+        addAccountFor?.let { initial ->
+            NewAccountDialog(initial, onDismiss = { addAccountFor = null }) {
+                    platform, label, url, packageName, logoUri ->
+                var logoPath = ""
+                try {
+                    logoPath = logoUri?.let { LocalLogos.importImage(context, it) }.orEmpty()
+                    database.addAccount(creatorId, platform, label, url, packageName, logoPath)
+                    reload()
+                    filterPlatform = null
+                    addAccountFor = null
+                    null
+                } catch (e: Exception) {
+                    if (logoPath.isNotBlank()) LocalLogos.delete(context, logoPath)
+                    e.message ?: "Hesap eklenemedi."
+                }
+            }
+        }
+
+        deleteCreator?.let { creator ->
+            ConfirmDelete("İçerik sayfasını sil", "${creator.name} ve tüm hesap bağlantıları silinsin mi?",
+                onCancel = { deleteCreator = null },
+                onDelete = {
+                    database.deleteCreator(creator.id)
+                    creatorId = -1
+                    selectedAccountIds = emptySet()
+                    deleteCreator = null
+                    reload()
+                })
+        }
+        deleteAccount?.let { account ->
+            ConfirmDelete("Hesabı kaldır", "${account.label} bağlantısı kaldırılsın mı?",
+                onCancel = { deleteAccount = null },
+                onDelete = {
+                    database.deleteAccount(account.id)
+                    selectedAccountIds = selectedAccountIds - account.id
+                    deleteAccount = null
+                    reload()
+                })
+        }
+        if (firstLaunchPrompt) AlertDialog(
+            onDismissRequest = {
+                prefs.edit().putBoolean("reminder_permission_explained", true).apply()
+                firstLaunchPrompt = false
+            },
+            title = { Text("Zamanlanmış paylaşım hatırlatmaları") },
+            text = {
+                Text("Planladığınız fotoğraf ve videoların yayın zamanı geldiğinde " +
+                    "telefonunuzda hatırlatma göstermek için bildirim izni gerekir. " +
+                    "Bu izin Instagram, Facebook veya başka uygulamaların bildirimlerini okumaz.")
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    prefs.edit().putBoolean("reminder_permission_explained", true).apply()
+                    firstLaunchPrompt = false
+                    notificationRequester.launch(Manifest.permission.POST_NOTIFICATIONS)
+                }) { Text("İzin iste") }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    prefs.edit().putBoolean("reminder_permission_explained", true).apply()
+                    firstLaunchPrompt = false
+                }) { Text("Şimdi değil") }
+            }
+        )
+        if (showLicenses) AlertDialog(
+            onDismissRequest = { showLicenses = false },
+            title = { Text("Gizlilik ve lisanslar") },
+            text = {
+                Column(Modifier.heightIn(max = 400.dp).verticalScroll(rememberScrollState())) {
+                    Text("Şifre, erişim anahtarı ve giriş oturumu saklanmaz. " +
+                        "Bu sürüm Android bildirimlerine erişmez. " +
+                        "İçerik adları, hesap etiketleri ve profil bağlantıları yalnız cihazdaki SQLite veritabanında tutulur. " +
+                        "Bulut eşitlemesi ve internet izni yoktur. Uygulama yedeği devre dışıdır.")
+                    Spacer(Modifier.height(12.dp))
+                    Text(remember {
+                        context.assets.open("legal/licenses.txt").bufferedReader().use { it.readText() }
+                    })
+                }
+            },
+            confirmButton = { TextButton(onClick = { showLicenses = false }) { Text("Kapat") } }
+        )
+        if (feedback.isNotBlank()) AlertDialog(
+            onDismissRequest = { feedback = "" },
+            title = { Text("Bilgi") },
+            text = { Text(feedback) },
+            confirmButton = { TextButton(onClick = { feedback = "" }) { Text("Tamam") } }
+        )
+    }
+}
+
+@Composable
+private fun LightCard(content: @Composable () -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = cardWhite),
+        shape = shape,
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    ) { content() }
+}
+
+@Composable
+private fun MainButton(text: String, onClick: () -> Unit) {
+    Button(
+        onClick = onClick, modifier = Modifier.fillMaxWidth(),
+        colors = ButtonDefaults.buttonColors(containerColor = darkWhite, contentColor = ink),
+        shape = RoundedCornerShape(15.dp)
+    ) { Text(text, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(6.dp)) }
+}
+
+@Composable
+private fun PlatformTile(
+    platform: Platform, selected: Boolean, onSelect: () -> Unit
+) {
+    Column(
+        modifier = Modifier.width(78.dp).clip(RoundedCornerShape(16.dp))
+            .background(if (selected) darkWhite else cardWhite)
+            .clickable(onClick = onSelect).padding(10.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        SocialAppIcon(platform.packageName, platform.name, Modifier.size(45.dp))
+        Spacer(Modifier.height(6.dp))
+        Text(platform.name, style = MaterialTheme.typography.labelSmall, maxLines = 1)
+    }
+}
+
+@Composable
+private fun SocialAppIcon(
+    packageName: String, platform: String, modifier: Modifier = Modifier,
+    logoFile: String = ""
+) {
+    val context = LocalContext.current
+    val image = remember(packageName, logoFile) {
+        val custom = if (logoFile.isNotBlank()) LocalLogos.load(context, logoFile) else null
+        if (custom != null) custom.asImageBitmap()
+        else if (packageName.isBlank()) null else try {
+            val icon = context.packageManager.getApplicationIcon(packageName)
+            val bitmap = Bitmap.createBitmap(96, 96, Bitmap.Config.ARGB_8888)
+            icon.setBounds(0, 0, 96, 96)
+            icon.draw(Canvas(bitmap))
+            bitmap.asImageBitmap()
+        } catch (_: Exception) { null }
+    }
+    if (image != null) Image(
+        bitmap = image, contentDescription = platform,
+        modifier = modifier.clip(RoundedCornerShape(12.dp))
+    ) else Box(
+        modifier = modifier.background(
+            when (platform) {
+                "Instagram" -> Color(0xFFB73D83)
+                "Facebook" -> Color(0xFF2465B3)
+                "YouTube" -> Color(0xFFE5362D)
+                "TikTok" -> Color(0xFF1C1C20)
+                else -> Color(0xFF605D57)
+            }, RoundedCornerShape(12.dp)
+        ), contentAlignment = Alignment.Center
+    ) {
+        Text(when (platform) {
+            "Instagram" -> "◎"
+            "Facebook" -> "f"
+            "YouTube" -> "▶"
+            "TikTok" -> "♪"
+            else -> platform.firstOrNull()?.uppercase() ?: "+"
+        }, color = Color.White, fontWeight = FontWeight.Black,
+            style = MaterialTheme.typography.titleLarge)
+    }
+}
+
+@Composable
+private fun NewCreatorDialog(onDismiss: () -> Unit, onCreate: (String) -> String?) {
+    var name by remember { mutableStateOf("") }
+    var error by remember { mutableStateOf("") }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Yeni içerik üreticisi") },
+        text = {
+            Column {
+                Text("İçerik ismini yazın. İstediğiniz kadar ayrı sayfa oluşturabilirsiniz.")
+                Spacer(Modifier.height(12.dp))
+                OutlinedTextField(name, onValueChange = { name = it.take(80) },
+                    label = { Text("İçerik adı") }, singleLine = true,
+                    modifier = Modifier.fillMaxWidth())
+                if (error.isNotBlank()) Text(error, color = alertRed)
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { error = onCreate(name).orEmpty() }) { Text("Oluştur") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Vazgeç") } }
+    )
+}
+
+@Composable
+private fun NewAccountDialog(
+    initial: String, onDismiss: () -> Unit,
+    onAdd: (String, String, String, String, Uri?) -> String?
+) {
+    var selected by remember { mutableStateOf(initial) }
+    var customPlatform by remember { mutableStateOf("") }
+    var label by remember { mutableStateOf("") }
+    var url by remember { mutableStateOf("") }
+    var customPackage by remember { mutableStateOf("") }
+    var error by remember { mutableStateOf("") }
+    var selectedLogo by remember { mutableStateOf<Uri?>(null) }
+    val logoPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        selectedLogo = uri
+    }
+    val isCustom = selected == "Diğer"
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Sosyal medya hesabı ekle") },
+        text = {
+            Column(Modifier.heightIn(max = 520.dp).verticalScroll(rememberScrollState())) {
+                Text("Platform", fontWeight = FontWeight.SemiBold)
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    items(SocialCatalog.presets.map { it.name } + "Diğer") { option ->
+                        FilterChip(selected == option, onClick = { selected = option },
+                            label = { Text(option) })
+                    }
+                }
+                if (isCustom) {
+                    OutlinedTextField(customPlatform, { customPlatform = it.take(50) },
+                        label = { Text("Sosyal medya adı") },
+                        modifier = Modifier.fillMaxWidth(), singleLine = true)
+                    OutlinedTextField(customPackage, { customPackage = it.trim().take(150) },
+                        label = { Text("Android paket adı (isteğe bağlı)") },
+                        modifier = Modifier.fillMaxWidth(), singleLine = true)
+                    OutlinedButton(onClick = { logoPicker.launch("image/*") }) {
+                        Text(if (selectedLogo == null) "＋ Logo seç (galeriden)" else "✓ Logo seçildi")
+                    }
+                }
+                OutlinedTextField(label, { label = it.take(80) },
+                    label = { Text("Hesap / profil ismi") }, singleLine = true,
+                    modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(url, { url = it.take(2048) },
+                    label = { Text("Profil bağlantısı (https://...)") },
+                    modifier = Modifier.fillMaxWidth())
+                Spacer(Modifier.height(8.dp))
+                Text("Giriş bu uygulamada yapılmaz. Aç düğmesi, varsa telefondaki resmi uygulamayı açar. Şifre istemeyiz.",
+                    color = slate, style = MaterialTheme.typography.bodySmall)
+                if (error.isNotBlank()) Text(error, color = alertRed)
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = {
+                val platform = if (isCustom) customPlatform.trim() else selected
+                val packageName = if (isCustom) customPackage.trim() else
+                    SocialCatalog.find(platform)?.packageName.orEmpty()
+                error = onAdd(platform, label, url, packageName, if (isCustom) selectedLogo else null).orEmpty()
+            }) { Text("Hesabı ekle") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Vazgeç") } }
+    )
+}
+
+@Composable
+private fun ConfirmDelete(title: String, body: String, onCancel: () -> Unit, onDelete: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onCancel,
+        title = { Text(title) },
+        text = { Text(body) },
+        confirmButton = { TextButton(onClick = onDelete) { Text("Sil", color = alertRed) } },
+        dismissButton = { TextButton(onClick = onCancel) { Text("Vazgeç") } }
+    )
+}
+
