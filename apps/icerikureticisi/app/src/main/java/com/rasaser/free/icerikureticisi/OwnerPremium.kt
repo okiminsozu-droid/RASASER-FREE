@@ -203,7 +203,7 @@ fun OwnerPremiumDialog(context: Context, onDismiss: () -> Unit) {
                 Spacer(Modifier.height(12.dp))
                 OutlinedButton(onClick = {
                     if (!OwnerPremium.openGooglePlay(context)) {
-                        result = tr("Play Store'da henüz yayınlanmadı")
+                        result = Translations.text(AppLanguage.get(context), "Play Store'da henüz yayınlanmadı")
                     }
                 }, modifier = Modifier.fillMaxWidth()) {
                     Text(tr("Google Play'de aç"))

@@ -145,7 +145,7 @@ object FingerprintGate {
             .setTitle(title)
             .setSubtitle("RaSaSeR İçerik Üreticisi")
             .setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_STRONG)
-            .setNegativeButtonText(tr("PIN kullan"))
+            .setNegativeButtonText(Translations.text(AppLanguage.get(activity), "PIN kullan"))
             .build()
         prompt.authenticate(info)
     }

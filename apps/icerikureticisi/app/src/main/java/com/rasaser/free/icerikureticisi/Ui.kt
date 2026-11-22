@@ -99,6 +99,11 @@ fun CreatorHubApp(initialCreatorId: Long = -1L) {
     var showLockSettings by remember { mutableStateOf(false) }
     var nameTranslationsFor by remember { mutableStateOf<Creator?>(null) }
     var profileImageFor by remember { mutableStateOf(-1L) }
+    fun reload() {
+        creators = database.creators()
+        accounts = if (creatorId >= 0) database.accounts(creatorId) else emptyList()
+    }
+
     val profileImagePicker = rememberLauncherForActivityResult(
         ActivityResultContracts.GetContent()
     ) { uri ->
@@ -128,11 +133,6 @@ fun CreatorHubApp(initialCreatorId: Long = -1L) {
                 ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS)
                     != PackageManager.PERMISSION_GRANTED
         )
-    }
-
-    fun reload() {
-        creators = database.creators()
-        accounts = if (creatorId >= 0) database.accounts(creatorId) else emptyList()
     }
 
     LaunchedEffect(initialCreatorId) {

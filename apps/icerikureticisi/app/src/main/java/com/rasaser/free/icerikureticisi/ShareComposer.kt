@@ -129,7 +129,7 @@ object SocialIntents {
                 if (description.isNotBlank()) {
                     // Some social apps ignore EXTRA_TEXT when receiving a media URI.
                     (context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager)
-                        .setPrimaryClip(ClipData.newPlainText(tr("Paylaşım açıklaması"), description))
+                        .setPrimaryClip(ClipData.newPlainText("Paylaşım açıklaması", description))
                 }
                 context.startActivity(share)
             } else {
