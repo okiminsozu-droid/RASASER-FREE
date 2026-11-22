@@ -1,42 +1,36 @@
-# RaSaSeR İçerik Üreticisi — Medya ve Zamanlama 0.2.0
+# RaSaSeR İçerik Üreticisi — 0.3.0 Özellik Testi
 
-Bu Android uygulaması telefonunuzdaki sosyal medya içerik profillerini, fotoğraf/video taslaklarını ve paylaşım hatırlatmalarını düzenler. Krem tema, profiller, kayıtlı hesaplar ve yerel gizlilik ilkesi korunur.
+**Kapsam:** Yalnızca `apps/icerikureticisi/`, ayrı `feature/icerik-ureticisi-brand-secure-multilang-v030` dalı. Çalışan 0.2.0 sürümü ve önceki tüm Android projeleri değiştirilmez.
 
-## Yeni özellikler
-- **Sosyal medya uygulamasını doğrudan açma:** Kayıtlı platformun paketinde uygun dışa açık görüntüleme ekranı tespit edilirse açıkça belirtilmiş Android component'i açılır. Böylece aynı uygulamanın normal/kopya sürümleri arasındaki sistem seçicisi mümkün olduğunda atlanır; o platformun resmî uygulamasının mevcut oturumu kullanılır. Uygulama yüklü değilse HTTPS profil bağlantısına geçilir.
-- **Resim/video seçimi:** Android'in sistem belge seçicisi ile sadece kullanıcının seçtiği içerik alınır. Tüm galeriye erişim izni istenmez. Zamanlanmış taslaklarda URI için Android'in kalıcı okuma izni kullanılır.
-- **Açıklama:** Seçilen medya altında paylaşım metni yazılır; hedef uygulamaya `EXTRA_TEXT` ile gönderilir, bazı uygulamalar medya paylaşımı sırasında bunu almadığından ayrıca cihaz panosuna kopyalanır.
-- **Sınırsız hesap kaydı ve tekli/toplu seçim:** Her hesap kartında kutucuk bulunur; paylaşım panelinde **Hepsini seç**, **➤ Gönder**, **◷ Zaman** kontrolleri yer alır.
-- **Gönder:** İlk seçilen hesabın yüklü resmî uygulamasına Android'in `ACTION_SEND`/URI izinleri ile medya aktarılır. Birden fazla seçildiyse uygulamaya geri dönünce **Sıradaki hesaba aktar** düğmesiyle hedefler sırayla açılır. Her platformda son yayın onayı ve gerekirse doğru hesap seçimi kullanıcı tarafından yapılır.
-- **Zamanlama:** İleride bir tarih/saat seçilir. Android WorkManager yaklaşık zamanda **yerel bildirim** oluşturur; bildirimden uygulama ve zamanlanmış taslak açılır, seçilen hesaplara paylaşım hazırlığı yapılır. Zamanlanmış taslaklar cihazda SQLite ile saklanır, silinebilir ve yeniden açılabilir. **Kendiliğinden sosyal medya hesabına yüklemez.**
-- **İzinler:** Android 13 ve üzerinde ilk açılışta yalnız zamanlanmış paylaşım hatırlatmaları için bildirim iznini açıklayan tek bir isteğe bağlı ekran gösterilir. Kullanıcı Android izin penceresinden onaylar veya reddeder; izin hiçbir zaman otomatik onaylanamaz. Sosyal medya bildirimlerini okumaya yönelik hassas NotificationListenerService izni bu sürümde yoktur.
-- **Arayüz:** Eski "Güvenli kurulum sürümü" bilgi kartı çıkarıldı; yerine medya oluşturma kartı yerleştirildi. Liste uzun olduğunda bütün profil sayfası dikey kaydırılır.
+## Yeni eklenenler
+- İçerik üreticisi profili oluştururken galeriden fotoğraf/logo; var olan profile görsel değiştirme. Görsel SQLite'ta yalnız dosya yolu ve `filesDir` içinde özel küçük PNG olarak tutulur. Liste kartındaki varsayılan numara yerine profil görseli görünür. SQLite v3→v4 veri silmeyen migration.
+- 🇹🇷 Türkçe, 🇬🇧 İngilizce, 🇩🇪 Almanca, 🇪🇸 İspanyolca, 🇯🇵 Japonca, 🇸🇦 Arapça dil açılır menüsü; bilinen arayüz etiketleri yerel çeviri tablosundan değişir. Kullanıcının yazdığı profil/hesap adları yanlış otomatik çevrilmez; profiller için 🌐 menüsünden her dile isteğe bağlı karşılık girilebilir. Bilinmeyen dinamik metin kaynak dilde kalabilir.
+- Krem/açık tema ve antrasit/koyu tema seçimi; cihazda kalıcı tercih.
+- Sol üst Premium simgesi, Google Play'de RaSaSeR araması ve ortak RaSaSeR promosyon kodu doğrulama alanı. Google Play satış/abonelik entegrasyonu **yoktur**, mağazada yayımlanmamış bir uygulama için uydurma ürün bağlantısı kullanılmaz.
+- Premium kodu APK'ya veya GitHub'a konmaz. Halihazırdaki Cloudflare `/v1/promo/redeem` servisi üzerinden **HTTPS ve sunucuda D1 whitelist** kontrolü; `owner_lifetime` yanıtı alınırsa cihazdaki hak Android Keystore HMAC ile mühürlenir. İlk etkinleştirme internet gerektirir. Bu paketin Cloudflare izin listesinde yetkili olması ayrıca gereklidir; aksi durumda başarısız doğrulama, Premium hakkı vermez.
+- Üst çubukta 🔐 PIN oluştur/değiştir + parmak izi aç/kapat. PIN 6–12 rakam, rastgele tuzla PBKDF2-HMAC-SHA256 (180.000 yineleme), beş yanlış denemede 30 sn kilit. Güçlü parmak izi destekli cihazda kullanıcı onayıyla BiometricPrompt; PIN yedeği her zaman var. PIN kurulduktan sonra sonraki uygulama açılışı kilitli başlar; başarıyla kimlik doğrulanınca uygulama otomatik açılır.
+- Ana sayfa altında `RaSaSeR APPS & TECHNOLOGY` + tıklanabilir `www.okiminsozu.com`.
+- Uygulama ikonunda özgün krem, altın ve siyah klaket/kamera çizimi; tüm ekranlarda ölçeklenebilir vektör kaynak.
 
-## Resmî platform sınırlamaları
-Bu sürüm kullanıcının **mevcut telefon uygulamasına paylaşım akışı** oluşturur. Instagram, Facebook, YouTube ve TikTok'a her türlü hesabı tek dokunuşla/arka planda otomatik yayınlayan bir servisin var olduğu iddia edilmez. OAuth yetkileri, geliştirici uygulama onayları, işletme/creator hesabı koşulları ve platforma özel yükleme API'leri ayrı ayrı sağlanmadan gerçek otomatik yayınlama yasal ve teknik olarak uygulanamaz. Kodda sosyal medya parolası, access token, gizli anahtar veya sunucu API'si yoktur.
+## Korunan özellikler
+Sınırsız içerik profili/sosyal medya kısayolları, Instagram/Facebook/YouTube/TikTok ve özel platformlar, resmî uygulamayı doğrudan açma, fotoğraf/video seçip açıklama yazma, hesap kutucukları/Hepsini seç, sırayla paylaşım aktarımı, WorkManager ile zamanlanmış **hatırlatma**.
 
-Bildirim izni yalnız **kendi planlı paylaşım hatırlatmalarımız** içindir; başkalarının bildirimlerini, sosyal medya mesajlarını veya okunmamış sayaçlarını göstermez.
+**Önemli:** Zamanlanan medya resmî sosyal medyaya kendi kendine yüklenmez. Yayın onayı kullanıcının ilgili platform uygulamasında verilir. Instagram/Facebook/YouTube/TikTok paylaşımları için platform OAuth/API yetkileri olmadan gerçek, otomatik, hesap bazlı yayın yapılmaz.
 
-## Kurulum ve mevcut kayıtların korunması
-**Önemli:** 0.1.1'in public GitHub Actions debug imza anahtarı geçici olduğundan, sonraki debug APK aynı Android paketini güncellemek yerine `com.rasaser.free.icerikureticisi.preview` kimliğiyle ayrı **İçerik Üreticisi Test** uygulaması olarak üretilir. Böylece telefondaki 0.1.1 ve içindeki hesaplar **silinmez**. Test uygulamasına hesapları yeniden tanımlamak gerekir. Test sürümü başarılı olduktan sonra kalıcı, korunmuş bir imza anahtarıyla yayın süreci planlanmalıdır; public GitHub'a keystore veya şifre konmaz.
+## Güvenlik ve uyumluluk
+- `android.permission.INTERNET` sadece Premium HTTPS doğrulaması ve tarayıcı/site açılışları için gerekir; profiller, PIN ve medya verileri buluta yüklenmez.
+- `USE_BIOMETRIC` Android normal iznidir. Parmak izi kullanımı sistemin açık onay ekranıyla gerçekleşir. Başka uygulamaların bildirimlerini okuyan NotificationListenerService yoktur.
+- Galeriden fotoğraf seçimi Android sistem seçicisiyle; geniş depolama izni verilmez.
+- İlk açılıştaki yayın hatırlatması bildirim izni Android 13+ üzerinde kullanıcı onayıyla istenir. Sistem izinleri otomatik onaylanamaz.
+- PIN sıfırlama güvenlik nedeniyle kolaylaştırılmadı; hem PIN hem biyometrik erişim kaybolursa uygulama verilerini silmeden kurtarma mekanizması yoktur.
+- Debug APK `com.rasaser.free.icerikureticisi.v030` paket kimliğiyle mevcut 0.1.1/0.2.0 testlerini silmeden ayrı kurulur. Bu yüzden hesaplar yeni test sürümüne otomatik taşınmaz. Google Play üretim sürümünün imza/yükseltme stratejisi ayrıca gerekir.
+- Ortak promosyon kodu sunucuda doğrulanmadan Premium etkin sayılmaz. **Diğer uygulamalara otomatik entegrasyon yapılmaz.** Kod tek olsa bile uygulama bazında API entegrasyonu gerekir.
+- Logoda RaSaSeR marka dışı tescilli sosyal platform ikonlarının yetkileri ayrı değerlendirilmelidir.
 
-- Kaynak applicationId: `com.rasaser.free.icerikureticisi`
-- GitHub debug/önizleme applicationId: `com.rasaser.free.icerikureticisi.preview`
-- Sürüm: 0.2.0 (3), Android minSdk 26; internet izni yok
-- Zamanlama WorkManager'a bağlıdır, Android batarya optimizasyonu nedeniyle saniye hassasiyetinde garanti edilmez. Cihaz kapalıyken veya uygulama zorla durdurulduğunda hatırlatma gecikebilir.
-- Kullanıcı seçtiği belgeyi taşır/silerse kalıcı URI erişimi sona erebilir; taslak yeniden medya seçimi gerektirir.
-- Android clipboard ve içerik paylaşımı cihazın diğer uygulamalarıyla kullanıcı yönlendirmesi üzerinden çalışır. İçerik sunucularımıza yüklenmez.
+## Derleme
+```bash
+gradle --no-daemon --project-dir apps/icerikureticisi :app:assembleDebug :app:testDebugUnitTest
+```
+Derlemeden önce sürüm ve en az bir kimlik doğrulama testi doğrulanmalıdır. GitHub Actions iş akışı yeni dala özel koşacak, hassas NotificationListenerService bulunmadığını ve debug kimliğinin `.v030` olduğunu kontrol edecek.
 
-## Derleme ve güvenlik
-`gradle --no-daemon --project-dir apps/icerikureticisi :app:assembleDebug :app:testDebugUnitTest`
-
-GitHub Actions `.github/workflows/04-icerik-ureticisi-debug.yml` üzerinden yalnız güvenli debug APK üretir. Bildirim dinleyici servisinin bulunmadığı ve test paketinin `.preview` olduğu derleme sonrası denetlenir. Üretim Play AAB, OAuth entegrasyonu ve gerçek cihaz otomasyonu henüz hazır değildir.
-
-Kaynaklar:
-- https://developer.android.com/develop/ui/compose/sharing/send
-- https://developer.android.com/training/data-storage/shared/documents-files
-- https://developer.android.com/develop/background-work/background-tasks/persistent/getting-started/define-work
-- https://developers.tiktok.com/products/content-posting-api/
-- https://developers.google.com/youtube/data/guides/authentication
-
-Diğer RaSaSeR projelerine ve PRIVATE motorlara dokunulmaz.
+Kaynaklar: AndroidX Biometric, Android Keystore, Android per-app language, Google Play Billing promo ve Cloudflare Workers resmî belgeleri.
