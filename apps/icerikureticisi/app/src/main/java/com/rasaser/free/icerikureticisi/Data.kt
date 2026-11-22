@@ -18,6 +18,18 @@ data class SocialAccount(
 )
 data class Platform(val name: String, val packageName: String, val homeUrl: String)
 
+data class ScheduledShare(
+    val id: Long,
+    val creatorId: Long,
+    val mediaUri: String,
+    val mediaMime: String,
+    val caption: String,
+    val targetIds: List<Long>,
+    val scheduledAt: Long,
+    val ready: Boolean
+)
+
+
 object SocialCatalog {
     val presets = listOf(
         Platform("Instagram", "com.instagram.android", "https://www.instagram.com/"),
@@ -51,7 +63,7 @@ object SocialCatalog {
 
 /** Device-only SQLite. No internet, login, password or cloud sync. */
 class CreatorDatabase(context: Context) :
-    SQLiteOpenHelper(context.applicationContext, "creator_hub.db", null, 2) {
+    SQLiteOpenHelper(context.applicationContext, "creator_hub.db", null, 3) {
     private val appContext = context.applicationContext
 
     override fun onConfigure(db: SQLiteDatabase) {
@@ -79,12 +91,30 @@ class CreatorDatabase(context: Context) :
             )"""
         )
         db.execSQL("CREATE INDEX idx_accounts_creator ON accounts(creator_id)")
+        createScheduledTable(db)
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
         if (oldVersion < 2) {
             db.execSQL("ALTER TABLE accounts ADD COLUMN logo_file TEXT NOT NULL DEFAULT ''")
         }
+        if (oldVersion < 3) createScheduledTable(db)
+    }
+
+    private fun createScheduledTable(db: SQLiteDatabase) {
+        db.execSQL(
+            """CREATE TABLE IF NOT EXISTS scheduled_shares (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                creator_id INTEGER NOT NULL REFERENCES creators(id) ON DELETE CASCADE,
+                media_uri TEXT NOT NULL,
+                media_mime TEXT NOT NULL,
+                caption TEXT NOT NULL,
+                target_ids TEXT NOT NULL,
+                scheduled_at INTEGER NOT NULL,
+                ready INTEGER NOT NULL DEFAULT 0
+            )"""
+        )
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_share_creator ON scheduled_shares(creator_id)")
     }
 
     fun creators(): List<Creator> = buildList {
@@ -162,4 +192,59 @@ class CreatorDatabase(context: Context) :
         writableDatabase.delete("accounts", "id=?", arrayOf(id.toString()))
         LocalLogos.delete(appContext, file)
     }
+
+    fun addScheduledShare(
+        creatorId: Long, mediaUri: String, mime: String,
+        caption: String, targets: List<Long>, whenMillis: Long
+    ): Long {
+        require(mediaUri.startsWith("content://")) { "Medya dosyası seçin." }
+        require(mime.startsWith("image/") || mime.startsWith("video/")) { "Fotoğraf veya video seçin." }
+        require(targets.isNotEmpty()) { "En az bir hesap seçin." }
+        require(whenMillis > System.currentTimeMillis()) { "Gelecekte bir zaman seçin." }
+        return writableDatabase.insertOrThrow("scheduled_shares", null, ContentValues().apply {
+            put("creator_id", creatorId)
+            put("media_uri", mediaUri)
+            put("media_mime", mime)
+            put("caption", caption.take(5000))
+            put("target_ids", targets.distinct().joinToString(","))
+            put("scheduled_at", whenMillis)
+            put("ready", 0)
+        })
+    }
+
+    private fun fromScheduleCursor(c: android.database.Cursor): ScheduledShare =
+        ScheduledShare(
+            id = c.getLong(0),
+            creatorId = c.getLong(1),
+            mediaUri = c.getString(2),
+            mediaMime = c.getString(3),
+            caption = c.getString(4),
+            targetIds = c.getString(5).split(",").mapNotNull { it.toLongOrNull() },
+            scheduledAt = c.getLong(6),
+            ready = c.getInt(7) != 0
+        )
+
+    fun scheduledShare(id: Long): ScheduledShare? =
+        readableDatabase.rawQuery(
+            "SELECT id, creator_id, media_uri, media_mime, caption, target_ids, scheduled_at, ready " +
+                "FROM scheduled_shares WHERE id=?", arrayOf(id.toString())
+        ).use { c -> if (c.moveToFirst()) fromScheduleCursor(c) else null }
+
+    fun scheduledFor(creatorId: Long): List<ScheduledShare> = buildList {
+        readableDatabase.rawQuery(
+            "SELECT id, creator_id, media_uri, media_mime, caption, target_ids, scheduled_at, ready " +
+                "FROM scheduled_shares WHERE creator_id=? ORDER BY scheduled_at DESC",
+            arrayOf(creatorId.toString())
+        ).use { c -> while (c.moveToNext()) add(fromScheduleCursor(c)) }
+    }
+
+    fun markScheduleReady(id: Long) {
+        writableDatabase.update("scheduled_shares", ContentValues().apply { put("ready", 1) },
+            "id=?", arrayOf(id.toString()))
+    }
+
+    fun deleteScheduledShare(id: Long) {
+        writableDatabase.delete("scheduled_shares", "id=?", arrayOf(id.toString()))
+    }
 }
+

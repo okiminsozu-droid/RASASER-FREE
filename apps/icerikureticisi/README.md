@@ -1,34 +1,42 @@
-# RaSaSeR İçerik Üreticisi — Güvenli kurulum sürümü 0.1.1
+# RaSaSeR İçerik Üreticisi — Medya ve Zamanlama 0.2.0
 
-Android telefonlarda içerik profilleri ve sosyal medya kısayollarını düzenleyen, tamamen cihaz içi çalışan uygulama.
+Bu Android uygulaması telefonunuzdaki sosyal medya içerik profillerini, fotoğraf/video taslaklarını ve paylaşım hatırlatmalarını düzenler. Krem tema, profiller, kayıtlı hesaplar ve yerel gizlilik ilkesi korunur.
 
-## Özellikler
-- Krem arka plan, koyu beyaz butonlar; modern Jetpack Compose.
-- Ana sayfada **İçerik Üreticisi +**; sınırsız sayıda isimli içerik profili (pratik sınır cihaz depolamasıdır).
-- Her içerik profiline sınırsız sosyal medya bağlantısı ekleme.
-- Instagram, Facebook, YouTube, TikTok hazır kısayolları; farklı sosyal medya adı, profil adresi, isteğe bağlı Android paket adı ve galeriden özel logo.
-- Cihazda kurulu resmi uygulamayı/HTTPS profil bağlantısını açar, uygulama yoksa tarayıcıyı kullanır.
-- İsim, hesap etiketi, profil bağlantısı ve logolar yalnızca telefonda saklanır. Şifre/çerez/token saklamaz.
-- Doğrudan INTERNET izni, hesap giriş ekranı, reklam/takip SDK'sı ve bulut senkronizasyonu yok.
+## Yeni özellikler
+- **Sosyal medya uygulamasını doğrudan açma:** Kayıtlı platformun paketinde uygun dışa açık görüntüleme ekranı tespit edilirse açıkça belirtilmiş Android component'i açılır. Böylece aynı uygulamanın normal/kopya sürümleri arasındaki sistem seçicisi mümkün olduğunda atlanır; o platformun resmî uygulamasının mevcut oturumu kullanılır. Uygulama yüklü değilse HTTPS profil bağlantısına geçilir.
+- **Resim/video seçimi:** Android'in sistem belge seçicisi ile sadece kullanıcının seçtiği içerik alınır. Tüm galeriye erişim izni istenmez. Zamanlanmış taslaklarda URI için Android'in kalıcı okuma izni kullanılır.
+- **Açıklama:** Seçilen medya altında paylaşım metni yazılır; hedef uygulamaya `EXTRA_TEXT` ile gönderilir, bazı uygulamalar medya paylaşımı sırasında bunu almadığından ayrıca cihaz panosuna kopyalanır.
+- **Sınırsız hesap kaydı ve tekli/toplu seçim:** Her hesap kartında kutucuk bulunur; paylaşım panelinde **Hepsini seç**, **➤ Gönder**, **◷ Zaman** kontrolleri yer alır.
+- **Gönder:** İlk seçilen hesabın yüklü resmî uygulamasına Android'in `ACTION_SEND`/URI izinleri ile medya aktarılır. Birden fazla seçildiyse uygulamaya geri dönünce **Sıradaki hesaba aktar** düğmesiyle hedefler sırayla açılır. Her platformda son yayın onayı ve gerekirse doğru hesap seçimi kullanıcı tarafından yapılır.
+- **Zamanlama:** İleride bir tarih/saat seçilir. Android WorkManager yaklaşık zamanda **yerel bildirim** oluşturur; bildirimden uygulama ve zamanlanmış taslak açılır, seçilen hesaplara paylaşım hazırlığı yapılır. Zamanlanmış taslaklar cihazda SQLite ile saklanır, silinebilir ve yeniden açılabilir. **Kendiliğinden sosyal medya hesabına yüklemez.**
+- **İzinler:** Android 13 ve üzerinde ilk açılışta yalnız zamanlanmış paylaşım hatırlatmaları için bildirim iznini açıklayan tek bir isteğe bağlı ekran gösterilir. Kullanıcı Android izin penceresinden onaylar veya reddeder; izin hiçbir zaman otomatik onaylanamaz. Sosyal medya bildirimlerini okumaya yönelik hassas NotificationListenerService izni bu sürümde yoktur.
+- **Arayüz:** Eski "Güvenli kurulum sürümü" bilgi kartı çıkarıldı; yerine medya oluşturma kartı yerleştirildi. Liste uzun olduğunda bütün profil sayfası dikey kaydırılır.
 
-## Play Protect uyarısına yönelik düzeltme
-**0.1.0** sürümünde Android NotificationListenerService ve `android.permission.BIND_NOTIFICATION_LISTENER_SERVICE` servis izni vardı. Google Play Protect bazı cihazlarda tarayıcı/dosya yöneticisi üzerinden indirilen, hassas bildirim erişimi isteyen APK'ların kurulumunu engeller. Uyarının ardından **0.1.1** güvenli kurulum sürümünde:
-- Bildirim dinleme servisi, erişim izni ve ilgili uygulama içi izin yönlendirmeleri **tamamen kaldırıldı**.
-- Kullanıcıdan telefonun tüm bildirimlerini okuyabilen özel erişim istenmez.
-- Bu sürümde sosyal medyanın bildirim sayılarını ve metinlerini **göstermez**; bildirimler ilgili resmi sosyal medya uygulamalarında görülür.
-- Önceki bildirimli prototip kaynak kodu `archive/icerik-ureticisi-bildirimli-v010` dalında ayrı tutulur. Bildirim özelliğinin ileride Google Play üzerinden dağıtımı ayrıca incelenecektir.
+## Resmî platform sınırlamaları
+Bu sürüm kullanıcının **mevcut telefon uygulamasına paylaşım akışı** oluşturur. Instagram, Facebook, YouTube ve TikTok'a her türlü hesabı tek dokunuşla/arka planda otomatik yayınlayan bir servisin var olduğu iddia edilmez. OAuth yetkileri, geliştirici uygulama onayları, işletme/creator hesabı koşulları ve platforma özel yükleme API'leri ayrı ayrı sağlanmadan gerçek otomatik yayınlama yasal ve teknik olarak uygulanamaz. Kodda sosyal medya parolası, access token, gizli anahtar veya sunucu API'si yoktur.
 
-**Önemli:** Bildirim servisini kaldırmak Play Protect uyarı ihtimalini azaltır; Google'ın diğer güvenlik kontrollerine karşı **kurulum garantisi vermez**. Play Protect'i kapatmayı önermiyoruz.
+Bildirim izni yalnız **kendi planlı paylaşım hatırlatmalarımız** içindir; başkalarının bildirimlerini, sosyal medya mesajlarını veya okunmamış sayaçlarını göstermez.
 
-## Derleme / test
-- Gradle 8.9, JDK 17, Android SDK 35; `gradle :app:assembleDebug :app:testDebugUnitTest`
-- GitHub Actions `.github/workflows/04-icerik-ureticisi-debug.yml` özel anahtarsız debug APK üretir, oluşturulan APK'nın son AndroidManifest'inde notification listener servisi bulunmadığını da kontrol eder.
-- Debug imzası sadece cihaz testi içindir; Google Play yayın AAB'si değildir. Telefon üzerinde gerçek kurulum/işlev testleri kullanıcının cihazında tamamlanmalıdır.
+## Kurulum ve mevcut kayıtların korunması
+**Önemli:** 0.1.1'in public GitHub Actions debug imza anahtarı geçici olduğundan, sonraki debug APK aynı Android paketini güncellemek yerine `com.rasaser.free.icerikureticisi.preview` kimliğiyle ayrı **İçerik Üreticisi Test** uygulaması olarak üretilir. Böylece telefondaki 0.1.1 ve içindeki hesaplar **silinmez**. Test uygulamasına hesapları yeniden tanımlamak gerekir. Test sürümü başarılı olduktan sonra kalıcı, korunmuş bir imza anahtarıyla yayın süreci planlanmalıdır; public GitHub'a keystore veya şifre konmaz.
 
-## Gizlilik
-- Paket: `com.rasaser.free.icerikureticisi`, sürüm: `0.1.1` (`versionCode 2`).
-- Android yedeği devre dışı. İmza anahtarı, kullanıcı giriş bilgisi, sosyal medya hesabı parolası veya API tokenı GitHub'a kaydedilmez.
-- Yalnızca `apps/icerikureticisi/` ve ona özel test workflow'u değiştirilir; diğer RaSaSeR uygulamaları ve PRIVATE motor korunur.
-- Üçüncü taraf marka/logoların kullanım koşulları yayın öncesinde kontrol edilmelidir.
+- Kaynak applicationId: `com.rasaser.free.icerikureticisi`
+- GitHub debug/önizleme applicationId: `com.rasaser.free.icerikureticisi.preview`
+- Sürüm: 0.2.0 (3), Android minSdk 26; internet izni yok
+- Zamanlama WorkManager'a bağlıdır, Android batarya optimizasyonu nedeniyle saniye hassasiyetinde garanti edilmez. Cihaz kapalıyken veya uygulama zorla durdurulduğunda hatırlatma gecikebilir.
+- Kullanıcı seçtiği belgeyi taşır/silerse kalıcı URI erişimi sona erebilir; taslak yeniden medya seçimi gerektirir.
+- Android clipboard ve içerik paylaşımı cihazın diğer uygulamalarıyla kullanıcı yönlendirmesi üzerinden çalışır. İçerik sunucularımıza yüklenmez.
 
-Referans: https://developers.google.com/android/play-protect/warning-dev-guidance
+## Derleme ve güvenlik
+`gradle --no-daemon --project-dir apps/icerikureticisi :app:assembleDebug :app:testDebugUnitTest`
+
+GitHub Actions `.github/workflows/04-icerik-ureticisi-debug.yml` üzerinden yalnız güvenli debug APK üretir. Bildirim dinleyici servisinin bulunmadığı ve test paketinin `.preview` olduğu derleme sonrası denetlenir. Üretim Play AAB, OAuth entegrasyonu ve gerçek cihaz otomasyonu henüz hazır değildir.
+
+Kaynaklar:
+- https://developer.android.com/develop/ui/compose/sharing/send
+- https://developer.android.com/training/data-storage/shared/documents-files
+- https://developer.android.com/develop/background-work/background-tasks/persistent/getting-started/define-work
+- https://developers.tiktok.com/products/content-posting-api/
+- https://developers.google.com/youtube/data/guides/authentication
+
+Diğer RaSaSeR projelerine ve PRIVATE motorlara dokunulmaz.

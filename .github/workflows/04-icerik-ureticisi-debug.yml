@@ -1,4 +1,4 @@
-name: İçerik Üreticisi — Güvenli Debug APK
+name: İçerik Üreticisi — Medya ve Zamanlama Test APK
 on:
   push:
     branches:
@@ -12,7 +12,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: icerikureticisi-guvenli-v011-${{ github.ref }}
+  group: icerikureticisi-v020-preview-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -72,12 +72,16 @@ jobs:
             exit 1
           fi
           "$AAPT" dump badging "$APK" | head -n 4
+          if ! "$AAPT" dump badging "$APK" | grep -q "name='com.rasaser.free.icerikureticisi.preview' versionCode='3' versionName='0.2.0'"; then
+            echo "ERROR: Debug preview identity mismatch"
+            exit 1
+          fi
           sha256sum "$APK"
 
       - name: Upload installable debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: RaSaSeR-Icerik-Ureticisi-v011-guvenli-debug-${{ github.run_number }}
+          name: RaSaSeR-Icerik-Ureticisi-v020-preview-debug-${{ github.run_number }}
           path: apps/icerikureticisi/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 7
           if-no-files-found: error

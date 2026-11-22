@@ -1,14 +1,22 @@
 RaSaSeR Apps & Technology — İçerik Üreticisi
-Sürüm: 0.1.1
+Sürüm: 0.2.0 (Test)
 © 2026 RaSaSeR. Tüm hakları saklıdır.
 
-GÜVENLİ KURULUM
-Bu sürüm Android bildirim okuma izni ve bildirim dinleme servisi içermez.
-Sosyal medya bildirimleri ilgili resmi uygulamadan görüntülenebilir.
-Uygulama sosyal medya şifresi, çerez veya API tokenı saklamaz.
+İÇERİK PAYLAŞIMI
+Fotoğraf/video seçimleri yalnız cihazda yapılır. Seçilen medya, kullanıcının
+seçtiği resmî sosyal medya uygulamasına Android paylaşım mekanizmasıyla
+aktarılır. Yayınlama ilgili platformda kullanıcı tarafından onaylanır.
+Zamanlama yalnız yerel hatırlatma oluşturur; sosyal medyaya otomatik
+gönderme yapıldığı anlamına gelmez.
 
-ÜÇÜNCÜ TARAF BİLDİRİMLERİ
-Bu proje Jetpack Compose, AndroidX ve Kotlin kullanır. Gerçek yayın öncesinde
-ilgili üçüncü taraf lisans ve ticari marka bildirimleri kontrol edilmelidir.
-Instagram, Facebook, YouTube ve TikTok ilgili hak sahiplerinin markalarıdır;
-RaSaSeR bu platformların resmi temsilcisi değildir.
+GİZLİLİK VE İZİNLER
+Şifre, OAuth token, erişim anahtarı veya giriş oturumu saklanmaz.
+Android bildirim izni yalnız planlanan gönderi hatırlatmaları için
+isteğe bağlı kullanılır. Diğer uygulamaların bildirimleri okunmaz.
+Özel kişisel medya, uygulama sunucusuna gönderilmez.
+
+ÜÇÜNCÜ TARAF
+Jetpack Compose, AndroidX, Kotlin ve Android WorkManager kullanılır.
+Instagram, Facebook, YouTube ve TikTok ilgili sahiplerinin markalarıdır;
+RaSaSeR bu servislerin resmî temsilcisi değildir. Üretim sürümünde tam
+bağımlılık lisansları ve ticari marka koşulları incelenmelidir.
