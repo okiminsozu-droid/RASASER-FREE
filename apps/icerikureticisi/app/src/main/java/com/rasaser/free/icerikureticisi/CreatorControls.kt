@@ -2,8 +2,8 @@ package com.rasaser.free.icerikureticisi
 
 import android.content.Context
 import android.content.Intent
-import android.graphics.Color as AndroidColor
 import android.net.Uri
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -75,7 +75,7 @@ fun CreatorTopControls(
             modifier = Modifier.size(42.dp))
         Spacer(Modifier.weight(1f))
         IconButton(onClick = onLock) {
-            Text("♢", style = MaterialTheme.typography.headlineSmall,
+            Text("🔐", style = MaterialTheme.typography.headlineSmall,
                 color = MaterialTheme.colorScheme.onBackground)
         }
         IconButton(onClick = { onDark(!isDark) }) {
