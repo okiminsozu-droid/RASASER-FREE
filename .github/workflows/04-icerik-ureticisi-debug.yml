@@ -1,8 +1,9 @@
-name: İçerik Üreticisi — Medya ve Zamanlama Test APK
+name: İçerik Üreticisi — v0.3.0 Premium Dil Kilit Testi
 on:
   push:
     branches:
       - feature/icerik-ureticisi-android-v1
+      - feature/icerik-ureticisi-brand-secure-multilang-v030
     paths:
       - 'apps/icerikureticisi/**'
       - '.github/workflows/04-icerik-ureticisi-debug.yml'
@@ -12,7 +13,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: icerikureticisi-v020-preview-${{ github.ref }}
+  group: icerikureticisi-v030-security-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -56,6 +57,14 @@ jobs:
           set -euo pipefail
           python3 tools/check_repo.py
           python3 tools/validate_app.py icerikureticisi true
+          if grep -R -E -q 'RSR(-[A-HJ-NP-Z2-9]{6}){4}' apps/icerikureticisi/app/src/main; then
+            echo "ERROR: owner promo code pattern detected in public APK sources"
+            exit 1
+          fi
+          if ! grep -q 'android.permission.INTERNET' apps/icerikureticisi/app/src/main/AndroidManifest.xml; then
+            echo "ERROR: HTTPS verification requires INTERNET permission"
+            exit 1
+          fi
 
       - name: Build debug APK and unit tests
         shell: bash
@@ -72,7 +81,7 @@ jobs:
             exit 1
           fi
           "$AAPT" dump badging "$APK" | head -n 4
-          if ! "$AAPT" dump badging "$APK" | grep -q "name='com.rasaser.free.icerikureticisi.preview' versionCode='3' versionName='0.2.0'"; then
+          if ! "$AAPT" dump badging "$APK" | grep -q "name='com.rasaser.free.icerikureticisi.v030' versionCode='4' versionName='0.3.0'"; then
             echo "ERROR: Debug preview identity mismatch"
             exit 1
           fi
@@ -81,7 +90,7 @@ jobs:
       - name: Upload installable debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: RaSaSeR-Icerik-Ureticisi-v020-preview-debug-${{ github.run_number }}
+          name: RaSaSeR-Icerik-Ureticisi-v030-secure-debug-${{ github.run_number }}
           path: apps/icerikureticisi/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 7
           if-no-files-found: error
