@@ -2,6 +2,13 @@
 
 **Kapsam:** Yalnızca `apps/icerikureticisi/`, ayrı `feature/icerik-ureticisi-biometric-trial-cloudflare-v031` dalı. Çalışan 0.2.0 sürümü ve önceki tüm Android projeleri değiştirilmez.
 
+## Güvenli yan yana kurulum (0.3.2 TEST)
+- Önceki 0.3.1 test APK'sıyla GitHub Actions üzerinde üretilen 0.3.2'nin imza anahtarları karşılaştırıldı ve **farklı oldukları doğrulandı**. Aynı paket kimliğiyle doğrudan güncelleme Android tarafından reddedilebilir.
+- Veri kaybını önlemek için bu ayrı test dalında debug kimliği `com.rasaser.free.icerikureticisi.v032` olarak değiştirildi. 0.3.1 `.v030` cihazda korunur, yeni uygulama **yan yana** kurulur.
+- Android güvenlik izolasyonu sebebiyle yeni paket eski paketin SQLite içerik profillerini/hesaplarını **otomatik aktaramaz**. Test için hesaplar yeni uygulamaya ayrı eklenir. Eski uygulamayı silmeyin.
+- Cloudflare ortak Premium yetki tablosuna yeni test paketi eklendi. Bu işlem promosyon kodunun kendisini ifşa etmez.
+- Play Store için release kimliği `com.rasaser.free.icerikureticisi` değişmedi. Bu APK üretim yayını veya ücretli satın alma sürümü değildir.
+
 ## 0.3.2 düzeltmeleri (23 Kasım 2026)
 - İçerik profili açılınca kaydedilmiş hesaplar **varsayılan olarak seçili**; kullanıcı istediği hesapların işaretini kaldırabilir. Yeni eklenen hesap da otomatik işaretlenir.
 - Kaydedilen uygulama için **doğrudan başlatma intenti** öncelenir. Mevcut `ACTION_SEND` medya paylaşımı uygun uygulamaya açık bileşen üzerinden aktarılır. **Telefonun uygulama klonlama sistemi** (örneğin Vivo'nun `Ⅱ·Instagram` seçicisi) farklı kullanıcı profilleri açtığından Android'in sistem seçim penceresi her durumda otomatik atlanamayabilir.
