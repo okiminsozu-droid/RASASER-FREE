@@ -170,7 +170,7 @@ fun IndependentConnectionsPanel(creatorId: Long) {
                                                 "✓ Telegram tarafından yayınlandı (#$messageId)"
                                         } catch (e: Exception) {
                                             "${channel.channelTitle}: " +
-                                                "✕ " + (e.message ?: "Yayınlama başarısız.")
+                                                "✕ " + TelegramBotApi.safeMessage(e)
                                         }
                                     }
                                 }
@@ -288,7 +288,7 @@ private fun TelegramAddChannelDialog(
                             token = ""
                         } catch (e: Exception) {
                             // Never reflect the secret token in user-visible errors.
-                            message = e.message ?: "Bağlantı doğrulanamadı."
+                            message = TelegramBotApi.safeMessage(e)
                         } finally {
                             checking = false
                         }
