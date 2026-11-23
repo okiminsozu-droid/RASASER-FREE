@@ -1,4 +1,4 @@
-name: İçerik Üreticisi — v0.3.9 Doğrudan Sosyal Uygulama Kısayolu APK
+name: İçerik Üreticisi — v0.4.0 Telefonda Bağımsız Yayın Motoru
 on:
   push:
     branches:
@@ -14,6 +14,7 @@ on:
       - feature/icerik-ureticisi-shortcut-browser-fix-v037
       - feature/icerik-ureticisi-independent-multichannel-v038
       - feature/icerik-ureticisi-direct-app-routing-v039
+      - feature/icerik-ureticisi-ondevice-publish-v040
     paths:
       - 'apps/icerikureticisi/**'
       - '.github/workflows/04-icerik-ureticisi-debug.yml'
@@ -72,7 +73,15 @@ jobs:
             exit 1
           fi
           if ! grep -q 'android.permission.INTERNET' apps/icerikureticisi/app/src/main/AndroidManifest.xml; then
-            echo "ERROR: HTTPS verification requires INTERNET permission"
+            echo "ERROR: direct social API calls need INTERNET permission"
+            exit 1
+          fi
+          if grep -R -E -q 'workers[.]dev|https://www[.]okiminsozu[.]com|BEGIN.*PRIVATE KEY' apps/icerikureticisi/app/src/main; then
+            echo "ERROR: external publisher backend or embedded signing private key found in local-only APK"
+            exit 1
+          fi
+          if ! grep -q 'OfflinePremiumLicense.valid' apps/icerikureticisi/app/src/main/java/com/rasaser/free/icerikureticisi/OwnerPremium.kt; then
+            echo "ERROR: offline voucher verification is absent"
             exit 1
           fi
 
@@ -122,7 +131,7 @@ jobs:
             exit 1
           fi
           "$AAPT" dump badging "$APK" | head -n 4
-          if ! "$AAPT" dump badging "$APK" | grep -q "name='com.rasaser.free.icerikureticisi.v039' versionCode='13' versionName='0.3.9'"; then
+          if ! "$AAPT" dump badging "$APK" | grep -q "name='com.rasaser.free.icerikureticisi.v040' versionCode='14' versionName='0.4.0'"; then
             echo "ERROR: Debug preview identity mismatch"
             exit 1
           fi
@@ -131,7 +140,7 @@ jobs:
       - name: Upload installable debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: RaSaSeR-Icerik-Ureticisi-v039-Dogrudan-Uygulama-${{ github.run_number }}
+          name: RaSaSeR-Icerik-Ureticisi-v040-Tamamen-Yerel-${{ github.run_number }}
           path: apps/icerikureticisi/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 7
           if-no-files-found: error

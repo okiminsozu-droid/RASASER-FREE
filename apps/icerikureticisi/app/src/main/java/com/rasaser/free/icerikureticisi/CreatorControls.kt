@@ -223,13 +223,8 @@ fun CreatorFooter(context: Context) {
             "www.okiminsozu.com",
             color = MaterialTheme.colorScheme.secondary,
             style = MaterialTheme.typography.labelSmall,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.clickable {
-                try {
-                    context.startActivity(Intent(Intent.ACTION_VIEW,
-                        Uri.parse("https://www.okiminsozu.com")))
-                } catch (_: Exception) {}
-            }
+            textAlign = TextAlign.Center
+            // This label is deliberately NOT a network link in the device-only edition.
         )
     }
 }
