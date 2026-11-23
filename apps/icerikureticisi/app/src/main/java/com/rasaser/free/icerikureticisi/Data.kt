@@ -221,6 +221,13 @@ class CreatorDatabase(context: Context) :
         require(label.trim().isNotBlank() && label.length <= 80)
         require(SocialCatalog.validPackage(packageName.trim())) { "Android paket adı geçersiz." }
         val verifiedUrl = SocialCatalog.secureUrl(url, SocialCatalog.find(platform)?.homeUrl ?: "")
+        // Validate an explicitly supplied well-known social URL without changing
+        // legacy manual profiles that only store a label and app package.
+        if (url.isNotBlank() && OfficialSocialLinks.isRecognized(platform)) {
+            require(OfficialSocialLinks.isOfficialProfile(platform, verifiedUrl)) {
+                "Resmî hesap profil adresi girin (ör. Instagram /kullaniciadi)."
+            }
+        }
         require(verifiedUrl.isNotBlank() || packageName.isNotBlank()) {
             "Hesap bağlantısı veya uygulama paket adı ekleyin."
         }
