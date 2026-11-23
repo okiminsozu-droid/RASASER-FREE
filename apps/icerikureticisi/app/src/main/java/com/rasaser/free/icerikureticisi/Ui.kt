@@ -253,7 +253,7 @@ fun CreatorHubApp(initialCreatorId: Long = -1L) {
                                 reload()
                                 selectedAccountIds = accounts.map { it.id }.toSet()
                             }.padding(18.dp), verticalAlignment = Alignment.CenterVertically) {
-                                CreatorAvatar(context, creator.logoFile, "${index + 1}", size = 48)
+                                CreatorAvatar(context, creator.logoFile, "${index + 1}", size = 76)
                                 Spacer(Modifier.width(12.dp))
                                 Column(Modifier.weight(1f)) {
                                     Text(creator.displayName(language), fontWeight = FontWeight.Bold,
@@ -295,7 +295,7 @@ fun CreatorHubApp(initialCreatorId: Long = -1L) {
                 if (current != null) {
                     Row(verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        CreatorAvatar(context, current.logoFile, current.name, size = 42)
+                        CreatorAvatar(context, current.logoFile, current.name, size = 64)
                         TextButton(onClick = {
                             profileImageFor = current.id
                             profileImagePicker.launch("image/*")
@@ -340,7 +340,7 @@ fun CreatorHubApp(initialCreatorId: Long = -1L) {
                         )
                         Spacer(Modifier.height(14.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(if (filterPlatform == null) tr("Bağlantılarım")
+                            Text(if (filterPlatform == null) tr("Bağlantılarım") + " • " + accounts.size
                                  else filterPlatform.orEmpty(),
                                 fontWeight = FontWeight.Bold,
                                 style = MaterialTheme.typography.titleMedium,
@@ -376,6 +376,22 @@ fun CreatorHubApp(initialCreatorId: Long = -1L) {
                                         maxLines = 2, overflow = TextOverflow.Ellipsis)
                                     Text(account.platform, color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         style = MaterialTheme.typography.bodySmall)
+                                    if (OfficialSocialLinks.isOfficialProfile(account.platform, account.profileUrl)) {
+                                        Text(
+                                            tr("Resmî profili aç") + " • " + tr("API yetkisi yok"),
+                                            modifier = Modifier.clickable {
+                                                if (!OfficialSocialLinks.launchProfile(context, account)) {
+                                                    feedback = "Profil bağlantısı açılamadı."
+                                                }
+                                            }.padding(top = 5.dp),
+                                            color = MaterialTheme.colorScheme.primary,
+                                            style = MaterialTheme.typography.labelSmall
+                                        )
+                                    } else {
+                                        Text(tr("Manuel profil bağlantısı"),
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
                                 }
                                 Column(horizontalAlignment = Alignment.End) {
                                     TextButton(onClick = {
@@ -679,7 +695,23 @@ private fun NewAccountDialog(
                 OutlinedTextField(url, { url = it.take(2048) },
                     label = { Text(tr("Profil bağlantısı (https://...)")) },
                     modifier = Modifier.fillMaxWidth())
+                if (!isCustom) {
+                    Spacer(Modifier.height(8.dp))
+                    OutlinedButton(onClick = {
+                        if (!OfficialSocialLinks.launchPlatformHome(LocalContext.current, selected)) {
+                            error = "Resmî sosyal medya sitesi açılamadı."
+                        }
+                    }) {
+                        Text(tr("Resmî siteyi aç"))
+                    }
+                }
                 Spacer(Modifier.height(8.dp))
+                Text(tr("Aynı platformdan sınırsız hesap ekleyebilirsiniz."),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodySmall)
+                Text(tr("Resmî siteden profil adresinizi kopyalayın. Profil bağlantısı tek başına otomatik yayınlama veya bildirim izni vermez."),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodySmall)
                 Text(tr("Giriş bu uygulamada yapılmaz. Aç düğmesi, varsa telefondaki resmi uygulamayı açar. Şifre istemeyiz."),
                     color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
                 if (error.isNotBlank()) Text(error, color = alertRed)
