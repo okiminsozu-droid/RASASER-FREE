@@ -38,6 +38,7 @@ object SocialAccountInput {
                 when (platform) {
                     "Instagram" -> "https://www.instagram.com/$handle/"
                     "Facebook" -> "https://www.facebook.com/$handle"
+                    "X" -> "https://x.com/$handle"
                     "TikTok" -> "https://www.tiktok.com/@$handle"
                     "YouTube" -> {
                         require(value.startsWith("@")) {
