@@ -88,6 +88,20 @@ jobs:
             fi
             echo "---- Gradle error overview ----"
             grep -n -E '^e: |^error: |^FAILURE:|^\* What went wrong:|^Execution failed|^> Task.*FAILED|^Caused by:' /tmp/creator-gradle-build.log | head -n 65 || true
+            echo "---- Unit test failures ----"
+            python3 - <<'PY'
+          import glob, xml.etree.ElementTree as ET
+          for path in glob.glob('apps/icerikureticisi/app/build/test-results/testDebugUnitTest/*.xml'):
+              try:
+                  root = ET.parse(path).getroot()
+                  for test in root.iter('testcase'):
+                      fail = test.find('failure') or test.find('error')
+                      if fail is not None:
+                          print(f"{test.attrib.get('classname')} / {test.attrib.get('name')}: {fail.attrib.get('message')}")
+                          print((fail.text or '')[:1100])
+              except Exception as e:
+                  print('Cannot read test report:', type(e).__name__)
+          PY
             tail -n 25 /tmp/creator-gradle-build.log
             if ! grep -E -q 'status code 429|Too Many Requests|HTTP 429' /tmp/creator-gradle-build.log || [ "$attempt" -ge 3 ]; then
               echo "ERROR: Gradle failed (non-429 error or retry limit reached)"
