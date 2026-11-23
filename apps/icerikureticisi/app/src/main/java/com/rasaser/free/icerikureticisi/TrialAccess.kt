@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.Button
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -113,7 +115,7 @@ object TrialAccess {
 @Composable
 fun TrialExpiredScreen(onActivated: () -> Unit) {
     val context = LocalContext.current
-    var showPremium by remember { mutableStateOf(false) }
+    var showPremium by remember { mutableStateOf(true) }
 
     MaterialTheme {
         Surface(modifier = Modifier.fillMaxSize(), color = Color(0xFFF7F1E7)) {
@@ -124,6 +126,12 @@ fun TrialExpiredScreen(onActivated: () -> Unit) {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
+                PremiumCrownMark(active = false, size = 78.dp)
+                Spacer(Modifier.height(16.dp))
+                Text("RaSaSeR PREMIUM",
+                    color = Color(0xFF8E6731),
+                    style = MaterialTheme.typography.titleMedium)
+                Spacer(Modifier.height(8.dp))
                 Text(
                     tr("Deneme süresi doldu"),
                     style = MaterialTheme.typography.headlineMedium,
@@ -137,7 +145,7 @@ fun TrialExpiredScreen(onActivated: () -> Unit) {
                     textAlign = TextAlign.Center
                 )
                 Button(onClick = { showPremium = true }) {
-                    Text(tr("Promosyon kodu ile etkinleştir"))
+                    Text(tr("Premium'u etkinleştir"))
                 }
             }
         }
