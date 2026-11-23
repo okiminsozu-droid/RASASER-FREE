@@ -42,10 +42,7 @@ object OfficialSocialLinks {
         return true
     }
 
-    /**
-     * Browser path is intentionally distinct from Android's social app intent.
-     * API 30+ REQUIRE_NON_BROWSER stops instagram.com from silently opening Instagram.
-     */
+    /** A platform homepage can be saved as an unverified app/web shortcut. */
     fun isPlatformShortcut(platform: String, link: String): Boolean {
         val homepage = platformHome(platform) ?: return false
         return link.trimEnd('/').equals(homepage.trimEnd('/'), ignoreCase = true)
