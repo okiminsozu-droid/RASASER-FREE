@@ -46,9 +46,25 @@ object OfficialSocialLinks {
      * Browser path is intentionally distinct from Android's social app intent.
      * API 30+ REQUIRE_NON_BROWSER stops instagram.com from silently opening Instagram.
      */
+    fun isPlatformShortcut(platform: String, link: String): Boolean {
+        val homepage = platformHome(platform) ?: return false
+        return link.trimEnd('/').equals(homepage.trimEnd('/'), ignoreCase = true)
+    }
+
+    /**
+     * A social deep link may be captured by Instagram/Facebook rather than the
+     * user's browser. The website action MUST use a real browser activity.
+     */
     fun launchOfficialWebsite(context: Context, platform: String, profileUrl: String? = null): Boolean {
-        val url = if (profileUrl.isNullOrBlank()) platformHome(platform)
-                  else profileUrl.takeIf { !isRecognized(platform) || isOfficialProfile(platform, it) }
+        val url = when {
+            profileUrl.isNullOrBlank() -> platformHome(platform)
+            !isRecognized(platform) -> profileUrl.takeIf {
+                it.startsWith("https://", ignoreCase = true)
+            }
+            isOfficialProfile(platform, profileUrl) || isPlatformShortcut(platform, profileUrl) ->
+                profileUrl
+            else -> null
+        }
         return url?.let { launchBrowser(context, it) } ?: false
     }
 
@@ -88,22 +104,41 @@ object OfficialSocialLinks {
     /** Safe browser route for the URL saved with each account. */
     fun launchProfile(context: Context, account: SocialAccount): Boolean {
         val url = account.profileUrl
-        if (isRecognized(account.platform) && !isOfficialProfile(account.platform, url)) {
-            return false
-        }
+        if (isRecognized(account.platform) &&
+            !isOfficialProfile(account.platform, url) &&
+            !isPlatformShortcut(account.platform, url)) return false
         if (!url.startsWith("https://", ignoreCase = true)) return false
         return launchBrowser(context, url)
     }
 
-    private fun launchBrowser(context: Context, url: String): Boolean = try {
-        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
+    private val browserPackages = listOf(
+        "com.android.chrome", "com.vivo.browser", "com.heytap.browser",
+        "com.sec.android.app.sbrowser", "com.mi.globalbrowser",
+        "org.mozilla.firefox", "org.mozilla.fenix", "com.brave.browser",
+        "com.microsoft.emmx", "com.opera.browser", "com.android.browser"
+    )
+
+    private fun launchBrowser(context: Context, url: String): Boolean {
+        val uri = Uri.parse(url)
+        if (uri.scheme != "https" || uri.host.isNullOrBlank()) return false
+        val base = Intent(Intent.ACTION_VIEW, uri).apply {
             addCategory(Intent.CATEGORY_BROWSABLE)
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            if (android.os.Build.VERSION.SDK_INT >= 30) {
-                addFlags(Intent.FLAG_ACTIVITY_REQUIRE_NON_BROWSER)
-            }
         }
-        context.startActivity(intent)
-        true
-    } catch (_: Exception) { false }
+        // Android FLAG_ACTIVITY_REQUIRE_NON_BROWSER was wrong here: that flag
+        // explicitly REFUSES browsers. Try real browser packages, never a social
+        // media package, before falling back to the Android selection screen.
+        for (browser in browserPackages) {
+            try {
+                context.startActivity(Intent(base).setPackage(browser))
+                return true
+            } catch (_: Exception) { /* Browser not installed or unavailable. */ }
+        }
+        return try {
+            context.startActivity(Intent.createChooser(base, "İnternet tarayıcısını seç").apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            })
+            true
+        } catch (_: Exception) { false }
+    }
 }
