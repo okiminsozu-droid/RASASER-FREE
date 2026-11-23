@@ -9,6 +9,10 @@ import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Base64
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.ui.Alignment
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -192,7 +196,13 @@ fun OwnerPremiumDialog(context: Context, onDismiss: () -> Unit) {
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(tr("Premium")) },
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                PremiumCrownMark(active = active, size = 50.dp)
+                Text(tr("Premium"), style = MaterialTheme.typography.headlineSmall)
+            }
+        },
         text = {
             Column {
                 Text(
@@ -201,12 +211,13 @@ fun OwnerPremiumDialog(context: Context, onDismiss: () -> Unit) {
                     style = MaterialTheme.typography.bodyMedium
                 )
                 Spacer(Modifier.height(12.dp))
-                OutlinedButton(onClick = {
-                    if (!OwnerPremium.openGooglePlay(context)) {
-                        result = Translations.text(AppLanguage.get(context), "Play Store'da henüz yayınlanmadı")
-                    }
-                }, modifier = Modifier.fillMaxWidth()) {
-                    Text(tr("Google Play'de aç"))
+                if (!active) {
+                    Text(
+                        tr("Google Play satın alma henüz etkin değil. Geçerli promosyon koduyla erişim açılabilir."),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(Modifier.height(8.dp))
                 }
                 Spacer(Modifier.height(12.dp))
                 OutlinedTextField(

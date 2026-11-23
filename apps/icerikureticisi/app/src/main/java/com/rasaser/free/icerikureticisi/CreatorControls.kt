@@ -6,6 +6,7 @@ import android.net.Uri
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,6 +21,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -34,11 +36,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.sp
 import org.json.JSONObject
 
 object CreatorAppearance {
@@ -58,7 +63,8 @@ fun CreatorTopControls(
     onLanguage: (String) -> Unit,
     onDark: (Boolean) -> Unit,
     onPremium: () -> Unit,
-    onLock: () -> Unit
+    onLock: () -> Unit,
+    premiumActive: Boolean = false
 ) {
     var menu by remember { mutableStateOf(false) }
     Row(
@@ -67,8 +73,7 @@ fun CreatorTopControls(
         horizontalArrangement = Arrangement.SpaceEvenly
     ) {
         IconButton(onClick = onPremium) {
-            Text("♛", color = Color(0xFFD1AB5C),
-                style = MaterialTheme.typography.headlineMedium)
+            PremiumCrownMark(active = premiumActive)
         }
         Image(painter = painterResource(R.drawable.ic_launcher_creator),
             contentDescription = "İçerik Üreticisi logosu",
@@ -98,6 +103,37 @@ fun CreatorTopControls(
                     )
                 }
             }
+        }
+    }
+}
+
+/** Original vector premium mark; scales without using system emoji fonts. */
+@Composable
+fun PremiumCrownMark(active: Boolean, size: Dp = 46.dp) {
+    val shape = RoundedCornerShape(13.dp)
+    Box(
+        modifier = Modifier.size(size).clip(shape)
+            .background(Brush.linearGradient(
+                listOf(Color(0xFF352719), Color(0xFF121418), Color(0xFF22201D))
+            ))
+            .border(1.dp, Color(0xFFE9C36E), shape),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center) {
+            Icon(
+                painter = painterResource(R.drawable.ic_rasaser_premium),
+                contentDescription = "Premium",
+                tint = Color.Unspecified,
+                modifier = Modifier.size(size * 0.65f)
+            )
+            Text(
+                if (active) "✓ PRO" else "PRO",
+                fontSize = if (size > 52.dp) 10.sp else 8.sp,
+                fontWeight = FontWeight.Black,
+                color = Color(0xFFF8E2B5),
+                lineHeight = 11.sp
+            )
         }
     }
 }
