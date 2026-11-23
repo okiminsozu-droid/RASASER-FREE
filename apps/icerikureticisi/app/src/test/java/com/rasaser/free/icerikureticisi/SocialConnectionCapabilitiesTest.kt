@@ -6,11 +6,11 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class SocialConnectionCapabilitiesTest {
-    @Test fun allSevenBrandProvidersHaveExplicitPolicy() {
-        assertEquals(7, SocialCatalog.presets.size)
+    @Test fun allEightBrandProvidersHaveExplicitPolicy() {
+        assertEquals(8, SocialCatalog.presets.size)
         val names = SocialCatalog.presets.map { it.name }.toSet()
         assertEquals(
-            setOf("Instagram", "Facebook", "YouTube", "TikTok",
+            setOf("Instagram", "Facebook", "X", "YouTube", "TikTok",
                 "Pinterest", "Bluesky", "Telegram"),
             names
         )
@@ -24,7 +24,7 @@ class SocialConnectionCapabilitiesTest {
         assertTrue(SocialConnectionCapabilities.isDirect("Telegram"))
         assertTrue(SocialConnectionCapabilities.capability("Bluesky").canDirectPublishPhoto)
         assertTrue(SocialConnectionCapabilities.capability("Telegram").canDirectPublishText)
-        for (name in listOf("Instagram", "Facebook", "YouTube", "TikTok", "Pinterest")) {
+        for (name in listOf("Instagram", "Facebook", "X", "YouTube", "TikTok", "Pinterest")) {
             assertFalse(SocialConnectionCapabilities.isDirect(name))
             assertFalse(SocialConnectionCapabilities.capability(name).canDirectPublishPhoto)
             assertFalse(SocialConnectionCapabilities.capability(name).canDirectPublishText)
