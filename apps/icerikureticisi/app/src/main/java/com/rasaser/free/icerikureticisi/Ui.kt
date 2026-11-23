@@ -382,7 +382,13 @@ fun CreatorHubApp(initialCreatorId: Long = -1L) {
                                         maxLines = 2, overflow = TextOverflow.Ellipsis)
                                     Text(account.platform, color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         style = MaterialTheme.typography.bodySmall)
-                                    if (OfficialSocialLinks.isOfficialProfile(account.platform, account.profileUrl)) {
+                                    if (OfficialSocialLinks.isPlatformShortcut(account.platform, account.profileUrl)) {
+                                        Text(
+                                            tr("Kısayol kaydedildi • Hesap yetkisi yok"),
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    } else if (OfficialSocialLinks.isOfficialProfile(account.platform, account.profileUrl)) {
                                         Text(
                                             tr("Resmî profili aç") + " • " +
                                                 tr(AuthorizedChannelRules.verifiedLabel(account.authState)),
@@ -440,7 +446,12 @@ fun CreatorHubApp(initialCreatorId: Long = -1L) {
         }
 
         addAccountFor?.let { initial ->
-            NewAccountDialog(initial, onDismiss = { addAccountFor = null }) {
+            NewAccountDialog(
+                initial = initial,
+                existingAccounts = accounts,
+                onDismiss = { addAccountFor = null },
+                onMessage = { feedback = it }
+            ) {
                     platform, label, url, packageName, logoUri ->
                 var logoPath = ""
                 try {
@@ -665,7 +676,10 @@ private fun NewCreatorDialog(onDismiss: () -> Unit, onCreate: (String, Uri?) -> 
 
 @Composable
 private fun NewAccountDialog(
-    initial: String, onDismiss: () -> Unit,
+    initial: String,
+    existingAccounts: List<SocialAccount>,
+    onDismiss: () -> Unit,
+    onMessage: (String) -> Unit,
     onAdd: (String, String, String, String, Uri?) -> String?
 ) {
     val context = LocalContext.current
@@ -687,29 +701,57 @@ private fun NewAccountDialog(
         return try {
             val platform = if (isCustom) customPlatform.trim() else selected
             require(platform.isNotBlank()) { "Önce sosyal medya platformunu seçin." }
-            val profile = SocialAccountInput.profileUrl(platform, url)
-            val accountLabel = SocialAccountInput.displayLabel(platform, label, profile)
+
+            // A user can save an APP/WEB SHORTCUT without entering their username.
+            // This is NOT a linked account and does not grant platform OAuth access.
+            val shortcut = url.isBlank() && openAfterSaving != null && !isCustom
+            val profile = if (shortcut) "" else SocialAccountInput.profileUrl(platform, url)
+            val localCount = existingAccounts.count {
+                it.platform.equals(platform, ignoreCase = true)
+            } + 1
+            val accountLabel = if (shortcut) {
+                label.trim().ifBlank {
+                    "$platform ${if (openAfterSaving == "app") "uygulama" else "web"} $localCount"
+                }
+            } else SocialAccountInput.displayLabel(platform, label, profile)
+            require(accountLabel.length <= 80) { "Hesap adı en fazla 80 karakter olabilir." }
+
             val packageName = if (isCustom) customPackage.trim() else
                 SocialCatalog.find(platform)?.packageName.orEmpty()
             val outcome = onAdd(
                 platform, accountLabel, profile, packageName, if (isCustom) selectedLogo else null
             )
             error = outcome.orEmpty()
-            if (outcome == null) {
-                if (openAfterSaving == "web") {
-                    OfficialSocialLinks.launchOfficialWebsite(context, platform, profile)
-                } else if (openAfterSaving == "app") {
-                    val bookmark = SocialAccount(-1L, -1L, platform, accountLabel, profile, packageName, "")
-                    if (!OfficialSocialLinks.launchProfileInApp(context, bookmark)) {
-                        OfficialSocialLinks.launchPlatformApp(context, platform)
-                    }
-                }
-                true
-            } else false
+            if (outcome != null) return false
+
+            // The record is saved before launching either external application.
+            // Avoid success pop-ups that would obscure the target app (ACTION_SEND).
+            if (openAfterSaving == "app") {
+                val bookmarked = SocialAccount(
+                    -1L, -1L, platform, accountLabel,
+                    if (shortcut) SocialCatalog.find(platform)?.homeUrl.orEmpty() else profile,
+                    packageName, ""
+                )
+                val opened = (!shortcut &&
+                    OfficialSocialLinks.launchProfileInApp(context, bookmarked)) ||
+                    OfficialSocialLinks.launchPlatformApp(context, platform)
+                if (!opened) onMessage(
+                    "Kısayol kaydedildi. Ancak telefondaki $platform uygulaması açılamadı."
+                )
+            } else if (openAfterSaving == "web") {
+                val opened = OfficialSocialLinks.launchOfficialWebsite(
+                    context, platform, if (shortcut) null else profile
+                )
+                if (!opened) onMessage(
+                    "Web kısayolu kaydedildi. İnternet tarayıcısı açılamadı; " +
+                        "telefonunuzdaki tarayıcı ayarlarını kontrol edin."
+                )
+            }
+            true
         } catch (e: IllegalArgumentException) {
             error = e.message ?: "Profil bilgilerini kontrol edin."
             false
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             error = "Hesap kaydedilemedi. Bilgileri kontrol edip yeniden deneyin."
             false
         }
@@ -754,31 +796,15 @@ private fun NewAccountDialog(
                 )
                 if (!isCustom) {
                     Spacer(Modifier.height(10.dp))
-                    OutlinedButton(onClick = {
-                        if (url.trim().isNotBlank()) {
-                            saveAccount("app")
-                        } else {
-                            val launched = OfficialSocialLinks.launchPlatformApp(context, selected)
-                            error = if (launched) {
-                                "Uygulamadaki profil adresinizi kopyalayıp burada kaydedebilirsiniz."
-                            } else "Sosyal medya uygulaması bulunamadı. Resmî site bağlantısını kullanın."
-                        }
-                    }, modifier = Modifier.fillMaxWidth()) {
-                        Text(tr("Telefondaki uygulamaya bağla"))
-                    }
+                    OutlinedButton(
+                        onClick = { saveAccount("app") },
+                        modifier = Modifier.fillMaxWidth()
+                    ) { Text(tr("Telefondaki uygulamaya bağla ve kaydet")) }
                     Spacer(Modifier.height(5.dp))
-                    OutlinedButton(onClick = {
-                        if (url.trim().isNotBlank()) {
-                            saveAccount("web")
-                        } else {
-                            val launched = OfficialSocialLinks.launchOfficialWebsite(context, selected)
-                            error = if (launched) {
-                                "Resmî siteden profil bağlantınızı kopyalayıp buraya yapıştırın."
-                            } else "İnternet tarayıcısı açılamadı."
-                        }
-                    }, modifier = Modifier.fillMaxWidth()) {
-                        Text(tr("Resmî siteye bağla"))
-                    }
+                    OutlinedButton(
+                        onClick = { saveAccount("web") },
+                        modifier = Modifier.fillMaxWidth()
+                    ) { Text(tr("Resmî siteye bağla ve kaydet")) }
                 }
                 Spacer(Modifier.height(10.dp))
                 Text(
