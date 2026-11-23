@@ -1,4 +1,4 @@
-name: İçerik Üreticisi — v0.3.7 Sosyal Kısayol Tarayıcı Düzeltmesi
+name: İçerik Üreticisi — v0.3.8 Bağımsız 7 Platform Telegram Test APK
 on:
   push:
     branches:
@@ -12,6 +12,7 @@ on:
       - feature/icerik-ureticisi-independent-oauth-core-v035
       - feature/icerik-ureticisi-account-bridge-v036
       - feature/icerik-ureticisi-shortcut-browser-fix-v037
+      - feature/icerik-ureticisi-independent-multichannel-v038
     paths:
       - 'apps/icerikureticisi/**'
       - '.github/workflows/04-icerik-ureticisi-debug.yml'
@@ -85,7 +86,24 @@ jobs:
               cat /tmp/creator-gradle-build.log
               break
             fi
-            tail -n 120 /tmp/creator-gradle-build.log
+            echo "---- Gradle error overview ----"
+            grep -n -E '^e: |^error: |^FAILURE:|^\* What went wrong:|^Execution failed|^> Task.*FAILED|^Caused by:' /tmp/creator-gradle-build.log | head -n 65 || true
+            echo "---- Unit test failures ----"
+            python3 - <<'PY'
+          import glob, xml.etree.ElementTree as ET
+          for path in glob.glob('apps/icerikureticisi/app/build/test-results/testDebugUnitTest/*.xml'):
+              try:
+                  root = ET.parse(path).getroot()
+                  for test in root.iter('testcase'):
+                      fail = test.find('failure')
+                      if fail is None: fail = test.find('error')
+                      if fail is not None:
+                          print(f"{test.attrib.get('classname')} / {test.attrib.get('name')}: {fail.attrib.get('message')}")
+                          print((fail.text or '')[:1100])
+              except Exception as e:
+                  print('Cannot read test report:', type(e).__name__)
+          PY
+            tail -n 25 /tmp/creator-gradle-build.log
             if ! grep -E -q 'status code 429|Too Many Requests|HTTP 429' /tmp/creator-gradle-build.log || [ "$attempt" -ge 3 ]; then
               echo "ERROR: Gradle failed (non-429 error or retry limit reached)"
               exit 1
@@ -103,7 +121,7 @@ jobs:
             exit 1
           fi
           "$AAPT" dump badging "$APK" | head -n 4
-          if ! "$AAPT" dump badging "$APK" | grep -q "name='com.rasaser.free.icerikureticisi.v037' versionCode='11' versionName='0.3.7'"; then
+          if ! "$AAPT" dump badging "$APK" | grep -q "name='com.rasaser.free.icerikureticisi.v038' versionCode='12' versionName='0.3.8'"; then
             echo "ERROR: Debug preview identity mismatch"
             exit 1
           fi
@@ -112,7 +130,7 @@ jobs:
       - name: Upload installable debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: RaSaSeR-Icerik-Ureticisi-v037-Kaydet-Site-${{ github.run_number }}
+          name: RaSaSeR-Icerik-Ureticisi-v038-Telegram-Kanal-${{ github.run_number }}
           path: apps/icerikureticisi/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 7
           if-no-files-found: error

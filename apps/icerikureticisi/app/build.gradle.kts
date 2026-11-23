@@ -10,13 +10,13 @@ android {
         applicationId = "com.rasaser.free.icerikureticisi"
         minSdk = 26
         targetSdk = 35
-        versionCode = 11
-        versionName = "0.3.7"
+        versionCode = 12
+        versionName = "0.3.8"
     }
     buildTypes {
         debug {
             // Side-by-side preview preserves the installed v0.1.1 app and its data.
-            applicationIdSuffix = ".v037"
+            applicationIdSuffix = ".v038"
         }
         release {
             isMinifyEnabled = true

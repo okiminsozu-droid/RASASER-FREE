@@ -45,6 +45,9 @@ object SocialAccountInput {
                         }
                         "https://www.youtube.com/@$handle"
                     }
+                    "Pinterest" -> "https://www.pinterest.com/$handle/"
+                    "Bluesky" -> "https://bsky.app/profile/$handle"
+                    "Telegram" -> "https://t.me/$handle"
                     else -> throw IllegalArgumentException("Platform seçin.")
                 }
             }

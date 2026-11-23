@@ -25,7 +25,10 @@ enum class RaSaSeRProvider(val platformName: String) {
     INSTAGRAM("Instagram"),
     FACEBOOK("Facebook"),
     TIKTOK("TikTok"),
-    YOUTUBE("YouTube");
+    YOUTUBE("YouTube"),
+    PINTEREST("Pinterest"),
+    BLUESKY("Bluesky"),
+    TELEGRAM("Telegram");
 
     companion object {
         fun fromPlatform(name: String): RaSaSeRProvider? =

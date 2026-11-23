@@ -52,7 +52,10 @@ object SocialCatalog {
         Platform("Instagram", "com.instagram.android", "https://www.instagram.com/"),
         Platform("Facebook", "com.facebook.katana", "https://www.facebook.com/"),
         Platform("YouTube", "com.google.android.youtube", "https://www.youtube.com/"),
-        Platform("TikTok", "com.zhiliaoapp.musically", "https://www.tiktok.com/")
+        Platform("TikTok", "com.zhiliaoapp.musically", "https://www.tiktok.com/"),
+        Platform("Pinterest", "com.pinterest", "https://www.pinterest.com/"),
+        Platform("Bluesky", "xyz.blueskyweb.app", "https://bsky.app/"),
+        Platform("Telegram", "org.telegram.messenger", "https://t.me/")
     )
 
     fun find(name: String): Platform? = presets.firstOrNull { it.name == name }
