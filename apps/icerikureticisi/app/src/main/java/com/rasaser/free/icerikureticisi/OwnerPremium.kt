@@ -1,9 +1,6 @@
 package com.rasaser.free.icerikureticisi
 
-import android.content.ActivityNotFoundException
 import android.content.Context
-import android.content.Intent
-import android.net.Uri
 import android.os.Build
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
@@ -34,26 +31,21 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import org.json.JSONObject
-import java.net.URL
 import java.security.KeyStore
 import java.security.MessageDigest
 import java.security.SecureRandom
 import javax.crypto.KeyGenerator
 import javax.crypto.Mac
 import javax.crypto.SecretKey
-import javax.net.ssl.HttpsURLConnection
 
 /**
- * Owner promo is validated ONLY on the private Cloudflare Worker, never against
- * a value/hash embedded into APK or GitHub. Activation is sealed by Android Keystore.
- * No plain promo code is persisted locally; offline entitlement is a signed local receipt.
+ * Offline Premium verification by owner-signed public-key voucher.
+ * The signing private key is NEVER part of APK/GitHub.
+ * Existing local HMAC receipts are preserved; no remote requests.
  */
 object OwnerPremium {
     private const val PREF = "creator_premium"
     private const val KEY_ALIAS = "rasaser.creator.owner.premium.v1"
-    private const val ENDPOINT =
-        "https://rasaser-bagimsiz-kullanici-girisi.okiminsozu.workers.dev/v1/promo/redeem"
 
     private fun prefs(context: Context) =
         context.getSharedPreferences(PREF, Context.MODE_PRIVATE)
@@ -106,84 +98,34 @@ object OwnerPremium {
 
     data class VerifyResult(val granted: Boolean, val message: String)
 
-    suspend fun redeem(context: Context, input: String): VerifyResult = withContext(Dispatchers.IO) {
-        val code = input.trim().uppercase().replace(Regex("\\s+"), "")
-        if (code.length !in 15..64) {
-            return@withContext VerifyResult(false, "Geçerli promosyon kodunu girin.")
-        }
-        var connection: HttpsURLConnection? = null
-        try {
-            val id = installationId(context)
-            val body = JSONObject().apply {
-                put("packageName", context.packageName)
-                put("installationId", id)
-                put("code", code)
-            }.toString()
-            connection = (URL(ENDPOINT).openConnection() as HttpsURLConnection).apply {
-                requestMethod = "POST"
-                connectTimeout = 12000
-                readTimeout = 12000
-                instanceFollowRedirects = false
-                doOutput = true
-                setRequestProperty("Content-Type", "application/json; charset=utf-8")
-                setRequestProperty("Accept", "application/json")
+    /**
+     * The voucher is signed OFFLINE by the owner's separate private key.
+     * The APK only has a public key. Existing valid local Premium receipts remain valid.
+     * No code, account identifier or installation identifier is sent anywhere.
+     */
+    suspend fun redeem(context: Context, input: String): VerifyResult =
+        withContext(Dispatchers.Default) {
+            if (!OfflinePremiumLicense.valid(input, context.packageName)) {
+                return@withContext VerifyResult(false,
+                    "Kod geçersiz, süresi dolmuş veya bu uygulama için düzenlenmemiş.")
             }
-            connection.outputStream.use { it.write(body.toByteArray(Charsets.UTF_8)) }
-            val status = connection.responseCode
-            val content = (
-                if (status in 200..299) connection.inputStream else connection.errorStream
-            )?.bufferedReader()?.use { it.readText().take(4096) }.orEmpty()
-            val response = JSONObject(content)
-            val accepted = status == 200 &&
-                response.optBoolean("ok", false) &&
-                response.optBoolean("active", false) &&
-                response.optString("scope") == "owner_lifetime" &&
-                response.optString("packageName") == context.packageName &&
-                response.optString("installationId") == id &&
-                !response.optBoolean("renewalRequired", true)
-            if (!accepted) {
-                val reason = response.optString("error", "INVALID_CODE")
-                val notice = when (reason) {
-                    "APP_NOT_AUTHORIZED" -> "Bu uygulama henüz ortak promosyon servisine yetkilendirilmedi."
-                    "INVALID_CODE_OR_RATE_LIMIT" -> "Kod geçersiz veya deneme limiti doldu."
-                    "SERVICE_UNAVAILABLE" -> "Doğrulama servisi kullanılamıyor."
-                    else -> "Promosyon doğrulanamadı."
-                }
-                return@withContext VerifyResult(false, notice)
+            return@withContext try {
+                val installId = installationId(context)
+                val receipt = context.packageName + "|" + installId + "|" +
+                    System.currentTimeMillis() + "|owner_lifetime"
+                val mac = Base64.encodeToString(seal(receipt), Base64.NO_WRAP)
+                check(prefs(context).edit()
+                    .putString("receipt", receipt)
+                    .putString("receipt_hmac", mac)
+                    .commit()) { "Premium kaydı diske yazılamadı." }
+                VerifyResult(true, "Premium etkin • Çevrimdışı doğrulandı")
+            } catch (_: Exception) {
+                VerifyResult(false, "Cihazda Premium doğrulaması kaydedilemedi.")
             }
-            val receipt = context.packageName + "|" + id + "|" +
-                response.getLong("issuedAt") + "|owner_lifetime"
-            val mac = Base64.encodeToString(seal(receipt), Base64.NO_WRAP)
-            prefs(context).edit()
-                .putString("receipt", receipt)
-                .putString("receipt_hmac", mac).apply()
-            VerifyResult(true, "Premium etkin")
-        } catch (_: Exception) {
-            VerifyResult(false, "Bağlantı veya güvenli doğrulama hatası. İnternetinizi kontrol edin.")
-        } finally {
-            connection?.disconnect()
         }
-    }
 
-    fun openGooglePlay(context: Context): Boolean {
-        // The new app may not be published yet, so we search rather than invent a product page.
-        val targets = listOf(
-            "market://search?q=RaSaSeR",
-            "https://play.google.com/store/search?q=RaSaSeR&c=apps"
-        )
-        for (target in targets) {
-            try {
-                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(target)).apply {
-                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    if (target.startsWith("market:")) setPackage("com.android.vending")
-                })
-                return true
-            } catch (_: ActivityNotFoundException) {
-                // Fall back from the native store to its website.
-            } catch (_: SecurityException) {}
-        }
-        return false
-    }
+    // Local-only build: no purchase website or external RaSaSeR account service.
+    fun openGooglePlay(context: Context): Boolean = false
 }
 
 @Composable
@@ -211,7 +153,7 @@ fun OwnerPremiumDialog(context: Context, onDismiss: () -> Unit) {
                 )
                 Spacer(Modifier.height(18.dp))
                 OutlinedTextField(
-                    value = code, onValueChange = { code = it.take(64) },
+                    value = code, onValueChange = { code = it.take(1024) },
                     label = { Text(tr("Promosyon kodu")) },
                     modifier = Modifier.fillMaxWidth(),
                     visualTransformation = PasswordVisualTransformation(),
