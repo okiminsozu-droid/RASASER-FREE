@@ -804,16 +804,16 @@ private fun NewAccountDialog(
                     OutlinedButton(
                         onClick = { saveAccount("app") },
                         modifier = Modifier.fillMaxWidth()
-                    ) { Text(tr("Telefondaki uygulamaya bağla ve kaydet")) }
+                    ) { Text(tr("Uygulama kısayolunu kaydet ve aç")) }
                     Spacer(Modifier.height(5.dp))
                     OutlinedButton(
                         onClick = { saveAccount("web") },
                         modifier = Modifier.fillMaxWidth()
-                    ) { Text(tr("Resmî siteye bağla ve kaydet")) }
+                    ) { Text(tr("Web kısayolunu kaydet ve aç")) }
                 }
                 Spacer(Modifier.height(10.dp))
                 Text(
-                    tr("Sınırsız hesabı ayrı ayrı kaydedebilirsiniz. Profil bağlantısı yayınlama izni değildir."),
+                    tr("Sınırsız kısayol kaydedilebilir. Uygulamayı açmak hesaba OAuth bağlantısı veya otomatik gönderim izni vermez."),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodySmall
                 )
