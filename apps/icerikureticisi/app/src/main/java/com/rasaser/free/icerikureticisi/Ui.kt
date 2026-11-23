@@ -159,8 +159,8 @@ fun CreatorHubApp(initialCreatorId: Long = -1L) {
     LaunchedEffect(initialCreatorId) {
         if (initialCreatorId >= 0L && creators.any { it.id == initialCreatorId }) {
             creatorId = initialCreatorId
-            selectedAccountIds = emptySet()
             reload()
+            selectedAccountIds = accounts.map { it.id }.toSet()
         }
     }
 
@@ -248,9 +248,9 @@ fun CreatorHubApp(initialCreatorId: Long = -1L) {
                         LightCard {
                             Row(Modifier.fillMaxWidth().clickable {
                                 creatorId = creator.id
-                                selectedAccountIds = emptySet()
                                 filterPlatform = null
                                 reload()
+                                selectedAccountIds = accounts.map { it.id }.toSet()
                             }.padding(18.dp), verticalAlignment = Alignment.CenterVertically) {
                                 CreatorAvatar(context, creator.logoFile, "${index + 1}", size = 48)
                                 Spacer(Modifier.width(12.dp))
@@ -415,8 +415,9 @@ fun CreatorHubApp(initialCreatorId: Long = -1L) {
                 var logoPath = ""
                 try {
                     logoPath = logoUri?.let { LocalLogos.importImage(context, it) }.orEmpty()
-                    database.addAccount(creatorId, platform, label, url, packageName, logoPath)
+                    val addedId = database.addAccount(creatorId, platform, label, url, packageName, logoPath)
                     reload()
+                    selectedAccountIds = selectedAccountIds + addedId
                     filterPlatform = null
                     addAccountFor = null
                     null
