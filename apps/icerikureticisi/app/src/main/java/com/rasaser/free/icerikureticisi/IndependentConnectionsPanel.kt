@@ -70,6 +70,10 @@ fun IndependentConnectionsPanel(
     var showAdd by remember(creatorId) { mutableStateOf(false) }
     var deleteChannel by remember(creatorId) { mutableStateOf<TelegramChannel?>(null) }
     var selected by remember(creatorId) { mutableStateOf<Set<String>>(emptySet()) }
+    var checkingConnection by remember(creatorId) { mutableStateOf<String?>(null) }
+    var verificationMessages by remember(creatorId) {
+        mutableStateOf<Map<String, String>>(emptyMap())
+    }
     var caption by remember(creatorId) { mutableStateOf("") }
     var photo by remember(creatorId) { mutableStateOf<Uri?>(null) }
     var sending by remember(creatorId) { mutableStateOf(false) }
@@ -116,6 +120,11 @@ fun IndependentConnectionsPanel(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+            Text(
+                tr("↻ simgesi bağlantı yetkisini yeniden doğrular; hesap şifreleri uygulamada gösterilmez."),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
             if (expanded) {
                 Text("Telegram Bot API • " + tr("Bağlı kanal") + ": " + channels.size,
                     fontWeight = FontWeight.SemiBold)
@@ -147,7 +156,40 @@ fun IndependentConnectionsPanel(
                                 maxLines = 2, overflow = TextOverflow.Ellipsis)
                             Text("@" + channel.botUsername + " • " + tr("Yayın yetkisi doğrulandı"),
                                 style = MaterialTheme.typography.labelSmall)
+                            verificationMessages[channel.id]?.let { result ->
+                                Text(result, style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
                         }
+                        TextButton(
+                            enabled = checkingConnection == null,
+                            onClick = {
+                                checkingConnection = channel.id
+                                scope.launch {
+                                    val result = try {
+                                        val credential = TelegramSecureStore.credential(
+                                            context, channel.id, creatorId
+                                        ) ?: error("Şifreli bağlantı bulunamadı.")
+                                        val fresh = TelegramBotApi.verify(
+                                            credential.token, credential.channel.channelId
+                                        )
+                                        check(fresh.channelId == credential.channel.channelId) {
+                                            "Doğrulanan kanal kimliği değişti."
+                                        }
+                                        check(TelegramSecureStore.markReverified(
+                                            context, creatorId, channel.id, System.currentTimeMillis()
+                                        )) { "Kanal doğrulaması kaydedilemedi." }
+                                        refresh()
+                                        "✓ " + tr("Bağlantı doğrulandı")
+                                    } catch (e: Exception) {
+                                        "✕ " + TelegramBotApi.safeMessage(e)
+                                    }
+                                    verificationMessages = verificationMessages +
+                                        (channel.id to result)
+                                    checkingConnection = null
+                                }
+                            }
+                        ) { Text(if (checkingConnection == channel.id) "…" else "↻") }
                         TextButton(onClick = { deleteChannel = channel }) {
                             Text(tr("Kaldır"))
                         }
@@ -180,7 +222,35 @@ fun IndependentConnectionsPanel(
                             Text("@" + account.handle, fontWeight = FontWeight.SemiBold)
                             Text(tr("Cihazda şifreli oturum"),
                                 style = MaterialTheme.typography.labelSmall)
+                            verificationMessages[account.id]?.let { result ->
+                                Text(result, style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
                         }
+                        TextButton(
+                            enabled = checkingConnection == null,
+                            onClick = {
+                                checkingConnection = account.id
+                                scope.launch {
+                                    val result = try {
+                                        val credential = BlueskySecureStore.credential(
+                                            context, creatorId, account.id
+                                        ) ?: error("Şifreli Bluesky bağlantısı bulunamadı.")
+                                        val rotated = BlueskyNativeApi.verifyAndRefresh(credential)
+                                        check(BlueskySecureStore.renew(
+                                            context, creatorId, account.id, rotated
+                                        )) { "Yenilenen oturum kaydedilemedi." }
+                                        refresh()
+                                        "✓ " + tr("Bağlantı doğrulandı")
+                                    } catch (e: Exception) {
+                                        "✕ " + BlueskyNativeApi.safeMessage(e)
+                                    }
+                                    verificationMessages = verificationMessages +
+                                        (account.id to result)
+                                    checkingConnection = null
+                                }
+                            }
+                        ) { Text(if (checkingConnection == account.id) "…" else "↻") }
                         TextButton(onClick = { blueskyToDelete = account }) {
                             Text(tr("Kaldır"))
                         }
