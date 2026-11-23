@@ -1,3 +1,12 @@
+## v0.3.9 — Hesap açılışında tekrar uygulama seçilmesini azaltma
+
+- Ekrandaki hesap avatarına, hesap adına veya `Uygulama ›` düğmesine dokunulduğunda artık web `ACTION_VIEW` bağlantısı yerine `SocialIntents.openAccount` çağrılır. Android'de kurulu sosyal medya uygulamasının **belirli ana launcher bileşeni** doğrudan açılır.
+- `Uygulama kısayolunu kaydet ve aç` da aynı yolu kullanır. Böylece daha önceki sürümde oluşan `web bağlantısı → Android seçici → Instagram` tekrarı çoğu tek kurulumda kaldırılır.
+- Sadece `Site ›` resmî web profilini tarayıcıda açar; kurulu sosyal uygulama bulunamadığında kayıtlı profil URL'si güvenli tarayıcı yoluna gider.
+- Önemli Android/OEM sınırı: Vivo `Ⅱ·Instagram` gibi **klon** uygulamalarda sosyal medya paylaşım niyeti Android'in ayrı kullanıcı/profil seçicisini açabilir. Üçüncü taraf uygulamalar profil korumalarını atlayamaz. İşletim sisteminde varsa **varsayılan klon/main Instagram** tercihi ayrı ayarlanabilir. `ACTION_SEND` ile belirli Instagram oturumundaki hesaba direkt otomatik post göndermek mümkün değildir.
+- Eski kayıtlar korunur, SQLite şeması değişmez. *Uygulama kısayolunun kaydedilmesi resmî OAuth veya yayınlama yetkisi değildir.* Gerçek OAuth hesap bağlantısı Meta/TikTok/Google vb. geliştirici kayıt ve onaylarıyla ayrı yapılmalıdır.
+- v0.3.9 / versionCode 13; ayrı debug kimliği `com.rasaser.free.icerikureticisi.v039`. `www.okiminsozu.com`, mevcut site ve başka uygulamalar değiştirilmedi.
+
 # RaSaSeR İçerik Üreticisi — 0.3.4 Resmî Profil Bağlantıları ve Görseller
 
 **Kapsam:** Yalnızca `apps/icerikureticisi/`, ayrı `feature/icerik-ureticisi-biometric-trial-cloudflare-v031` dalı. Çalışan 0.2.0 sürümü ve önceki tüm Android projeleri değiştirilmez.

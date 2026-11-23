@@ -371,14 +371,14 @@ fun CreatorHubApp(initialCreatorId: Long = -1L) {
                                 SocialAppIcon(
                                     account.packageName, account.platform,
                                     Modifier.size(44.dp).clickable {
-                                        val opened = OfficialSocialLinks.launchProfile(context, account)
-                                        if (!opened) feedback = "Kayıtlı profil adresi açılamadı."
+                                        val opened = SocialIntents.openAccount(context, account)
+                                        if (!opened) feedback = "Kaydedilen uygulama açılamadı. Site seçeneğini deneyin."
                                     }, account.logoFile
                                 )
                                 Spacer(Modifier.width(9.dp))
                                 Column(Modifier.weight(1f).clickable {
-                                    val opened = OfficialSocialLinks.launchProfile(context, account)
-                                    if (!opened) feedback = "Kayıtlı profil adresi açılamadı."
+                                    val opened = SocialIntents.openAccount(context, account)
+                                    if (!opened) feedback = "Kaydedilen uygulama açılamadı. Site seçeneğini deneyin."
                                 }) {
                                     Text(account.label, fontWeight = FontWeight.Bold,
                                         maxLines = 2, overflow = TextOverflow.Ellipsis)
@@ -386,7 +386,7 @@ fun CreatorHubApp(initialCreatorId: Long = -1L) {
                                         style = MaterialTheme.typography.bodySmall)
                                     if (OfficialSocialLinks.isPlatformShortcut(account.platform, account.profileUrl)) {
                                         Text(
-                                            tr("Kısayol kaydedildi • Hesap yetkisi yok"),
+                                            tr("Uygulama kısayolu kayıtlı • API bağlantısı yok"),
                                             style = MaterialTheme.typography.labelSmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
@@ -414,8 +414,7 @@ fun CreatorHubApp(initialCreatorId: Long = -1L) {
                                             feedback = "Kayıtlı profil adresi açılamadı."
                                     }) { Text(tr("Site ›")) }
                                     TextButton(onClick = {
-                                        if (!OfficialSocialLinks.launchProfileInApp(context, account) &&
-                                            !OfficialSocialLinks.launchPlatformApp(context, account.platform)) {
+                                        if (!SocialIntents.openAccount(context, account)) {
                                             feedback = "Telefondaki uygulama açılamadı. Siteyi kullanabilirsiniz."
                                         }
                                     }) { Text(tr("Uygulama ›")) }
@@ -740,9 +739,7 @@ private fun NewAccountDialog(
                     if (shortcut) SocialCatalog.find(platform)?.homeUrl.orEmpty() else profile,
                     packageName, ""
                 )
-                val opened = (!shortcut &&
-                    OfficialSocialLinks.launchProfileInApp(context, bookmarked)) ||
-                    OfficialSocialLinks.launchPlatformApp(context, platform)
+                val opened = SocialIntents.openAccount(context, bookmarked)
                 if (!opened) onMessage(
                     "Kısayol kaydedildi. Ancak telefondaki $platform uygulaması açılamadı."
                 )
@@ -807,16 +804,16 @@ private fun NewAccountDialog(
                     OutlinedButton(
                         onClick = { saveAccount("app") },
                         modifier = Modifier.fillMaxWidth()
-                    ) { Text(tr("Telefondaki uygulamaya bağla ve kaydet")) }
+                    ) { Text(tr("Uygulama kısayolunu kaydet ve aç")) }
                     Spacer(Modifier.height(5.dp))
                     OutlinedButton(
                         onClick = { saveAccount("web") },
                         modifier = Modifier.fillMaxWidth()
-                    ) { Text(tr("Resmî siteye bağla ve kaydet")) }
+                    ) { Text(tr("Web kısayolunu kaydet ve aç")) }
                 }
                 Spacer(Modifier.height(10.dp))
                 Text(
-                    tr("Sınırsız hesabı ayrı ayrı kaydedebilirsiniz. Profil bağlantısı yayınlama izni değildir."),
+                    tr("Sınırsız kısayol kaydedilebilir. Uygulamayı açmak hesaba OAuth bağlantısı veya otomatik gönderim izni vermez."),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodySmall
                 )

@@ -92,12 +92,9 @@ object SocialIntents {
             } catch (_: Exception) {}
         }
         // Web fallback is only for a missing app or an unconfigured custom platform.
-        return url?.let {
-            try {
-                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(it)))
-                true
-            } catch (_: Exception) { false }
-        } ?: false
+        // Explicit browser route prevents a second social-app selection sheet
+        // when the stored native app was removed or cannot handle this link.
+        return OfficialSocialLinks.launchProfile(context, account)
     }
 
     fun handoff(
