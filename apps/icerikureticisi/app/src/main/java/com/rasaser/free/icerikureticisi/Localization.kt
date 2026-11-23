@@ -111,6 +111,9 @@ object Translations {
         "Site ›" to mapOf("en" to "Website ›", "de" to "Website ›", "es" to "Sitio ›", "ja" to "サイト ›", "ar" to "الموقع ›"),
         "Uygulama ›" to mapOf("en" to "App ›", "de" to "App ›", "es" to "App ›", "ja" to "アプリ ›", "ar" to "التطبيق ›"),
         "Sınırsız hesabı ayrı ayrı kaydedebilirsiniz. Profil bağlantısı yayınlama izni değildir." to mapOf("en" to "Save as many accounts as you like. A profile link does not grant publishing access.", "de" to "Speichern Sie beliebig viele Konten. Ein Profillink ist keine Veröffentlichungsberechtigung.", "es" to "Guarde tantas cuentas como quiera. Un enlace no autoriza la publicación.", "ja" to "アカウント数に制限なく登録できます。URLは投稿権限を与えません。", "ar" to "يمكنك حفظ حسابات غير محدودة. رابط الملف لا يمنح إذن النشر."),
+        "Telefondaki uygulamaya bağla ve kaydet" to mapOf("en" to "Save and open mobile app", "de" to "Speichern und App öffnen", "es" to "Guardar y abrir aplicación", "ja" to "保存してアプリを開く", "ar" to "حفظ وفتح التطبيق"),
+        "Resmî siteye bağla ve kaydet" to mapOf("en" to "Save and open official website", "de" to "Speichern und offizielle Seite öffnen", "es" to "Guardar y abrir sitio oficial", "ja" to "保存して公式サイトを開く", "ar" to "حفظ وفتح الموقع الرسمي"),
+        "Kısayol kaydedildi • Hesap yetkisi yok" to mapOf("en" to "Shortcut saved • Not authorized", "de" to "Verknüpfung gespeichert • Keine Berechtigung", "es" to "Acceso directo guardado • Sin autorización", "ja" to "ショートカット保存済み・未認証", "ar" to "تم حفظ الاختصار • لم يتم التفويض"),
         "Abone olun" to mapOf("en" to "Subscribe", "de" to "Abonnieren", "es" to "Suscribirse", "ja" to "登録する", "ar" to "اشترك"),
         "Premium etkin" to mapOf("en" to "Premium active", "de" to "Premium aktiv", "es" to "Premium activo", "ja" to "プレミアム有効", "ar" to "المميز مفعل"),
 

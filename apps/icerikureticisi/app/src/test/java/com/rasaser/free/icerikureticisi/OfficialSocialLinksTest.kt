@@ -26,4 +26,13 @@ class OfficialSocialLinksTest {
         assertFalse(OfficialSocialLinks.isOfficialProfile("Facebook", "https://www.instagram.com/account/"))
         assertFalse(OfficialSocialLinks.isOfficialProfile("TikTok", "https://www.youtube.com/@channel"))
     }
+    @Test fun homepageShortcutsRemainUnverifiedAndPlatformSpecific() {
+        assertTrue(OfficialSocialLinks.isPlatformShortcut("Instagram", "https://www.instagram.com/"))
+        assertTrue(OfficialSocialLinks.isPlatformShortcut("Facebook", "https://www.facebook.com"))
+        assertFalse(OfficialSocialLinks.isPlatformShortcut("TikTok", "https://www.instagram.com/"))
+        assertFalse(OfficialSocialLinks.isPlatformShortcut("Instagram", "https://www.instagram.com/creator/"))
+        assertFalse(OfficialSocialLinks.isPlatformShortcut("Instagram", "https://instagram.com.evil.example/"))
+        assertFalse(OfficialSocialLinks.isOfficialProfile("Instagram", "https://www.instagram.com/"))
+    }
+
 }

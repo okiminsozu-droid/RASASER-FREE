@@ -2,14 +2,14 @@
   "slug": "icerikureticisi",
   "display_name": "İçerik Üreticisi",
   "package_id": "com.rasaser.free.icerikureticisi",
-  "version_code": 10,
-  "version_name": "0.3.6",
+  "version_code": 11,
+  "version_name": "0.3.7",
   "private_engine_required": false,
   "allow_public_debug_artifacts": true,
   "license_review_completed": false,
   "release_signing_location": "PRIVATE_ONLY",
   "credentials_stored": false,
-  "debug_application_id": "com.rasaser.free.icerikureticisi.v036",
+  "debug_application_id": "com.rasaser.free.icerikureticisi.v037",
   "debug_side_by_side": true,
   "content_upload_api_enabled": false,
   "schedule_mode": "local_reminder_not_automatic_publish",
@@ -52,5 +52,9 @@
   "quick_add_by_profile_url": true,
   "account_label_auto_from_profile_url": true,
   "social_account_auto_discovery": false,
-  "official_web_visited_means_authorized": false
+  "official_web_visited_means_authorized": false,
+  "empty_profile_app_shortcut": "saved_unverified",
+  "empty_profile_web_shortcut": "saved_unverified",
+  "official_website_routing": "browser_package_first_then_system_chooser",
+  "shortcut_implies_oauth_authorized": false
 }
