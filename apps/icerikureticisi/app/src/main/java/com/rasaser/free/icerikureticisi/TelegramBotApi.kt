@@ -29,6 +29,19 @@ object TelegramBotApi {
 
     fun validBotToken(value: String): Boolean = TOKEN.matches(value.trim())
 
+    /** Never show exceptions that might contain a token-bearing Telegram endpoint URL. */
+    fun safeMessage(cause: Throwable): String {
+        val message = cause.message.orEmpty()
+        if (cause !is IllegalArgumentException && cause !is IllegalStateException) {
+            return "Telegram bağlantısı başarısız. İnternet erişimini kontrol edin."
+        }
+        if (message.contains("api.telegram.org", ignoreCase = true) ||
+            TOKEN.containsMatchIn(message) || message.length > 260) {
+            return "Telegram bağlantısı başarısız. İnternet erişimini ve izinleri kontrol edin."
+        }
+        return message.ifBlank { "Telegram işlemi tamamlanamadı." }
+    }
+
     suspend fun verify(token: String, requestedChat: String): TelegramVerification =
         withContext(Dispatchers.IO) {
             require(validBotToken(token)) { "BotFather tarafından verilen geçerli bot tokenını girin." }
