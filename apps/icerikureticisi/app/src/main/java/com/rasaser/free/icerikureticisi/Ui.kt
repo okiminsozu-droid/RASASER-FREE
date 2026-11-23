@@ -378,7 +378,8 @@ fun CreatorHubApp(initialCreatorId: Long = -1L) {
                                         style = MaterialTheme.typography.bodySmall)
                                     if (OfficialSocialLinks.isOfficialProfile(account.platform, account.profileUrl)) {
                                         Text(
-                                            tr("Resmî profili aç") + " • " + tr("API yetkisi yok"),
+                                            tr("Resmî profili aç") + " • " +
+                                                tr(AuthorizedChannelRules.verifiedLabel(account.authState)),
                                             modifier = Modifier.clickable {
                                                 if (!OfficialSocialLinks.launchProfile(context, account)) {
                                                     feedback = "Profil bağlantısı açılamadı."
@@ -388,7 +389,7 @@ fun CreatorHubApp(initialCreatorId: Long = -1L) {
                                             style = MaterialTheme.typography.labelSmall
                                         )
                                     } else {
-                                        Text(tr("Manuel profil bağlantısı"),
+                                        Text(tr(AuthorizedChannelRules.verifiedLabel(account.authState)),
                                             style = MaterialTheme.typography.labelSmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                                     }

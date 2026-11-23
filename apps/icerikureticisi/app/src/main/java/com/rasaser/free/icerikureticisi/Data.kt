@@ -27,7 +27,11 @@ data class SocialAccount(
     val label: String,
     val profileUrl: String,
     val packageName: String,
-    val logoFile: String
+    val logoFile: String,
+    val authState: ChannelAuthState = ChannelAuthState.MANUAL,
+    val providerChannelId: String = "",
+    val connectionId: String = "",
+    val lastVerifiedAt: Long = 0L
 )
 data class Platform(val name: String, val packageName: String, val homeUrl: String)
 
@@ -76,7 +80,7 @@ object SocialCatalog {
 
 /** Device-only SQLite. No internet, login, password or cloud sync. */
 class CreatorDatabase(context: Context) :
-    SQLiteOpenHelper(context.applicationContext, "creator_hub.db", null, 4) {
+    SQLiteOpenHelper(context.applicationContext, "creator_hub.db", null, 5) {
     private val appContext = context.applicationContext
 
     override fun onConfigure(db: SQLiteDatabase) {
@@ -102,10 +106,15 @@ class CreatorDatabase(context: Context) :
                 display_name TEXT NOT NULL,
                 profile_url TEXT NOT NULL,
                 package_name TEXT NOT NULL,
-                logo_file TEXT NOT NULL DEFAULT ''
+                logo_file TEXT NOT NULL DEFAULT '',
+                auth_state TEXT NOT NULL DEFAULT 'manual',
+                provider_channel_id TEXT NOT NULL DEFAULT '',
+                connection_id TEXT NOT NULL DEFAULT '',
+                last_verified_at INTEGER NOT NULL DEFAULT 0
             )"""
         )
         db.execSQL("CREATE INDEX idx_accounts_creator ON accounts(creator_id)")
+        db.execSQL("CREATE INDEX idx_accounts_channel ON accounts(platform,provider_channel_id)")
         createScheduledTable(db)
     }
 
@@ -117,6 +126,14 @@ class CreatorDatabase(context: Context) :
         if (oldVersion < 4) {
             db.execSQL("ALTER TABLE creators ADD COLUMN logo_file TEXT NOT NULL DEFAULT ''")
             db.execSQL("ALTER TABLE creators ADD COLUMN translated_names TEXT NOT NULL DEFAULT '{}'")
+        }
+        if (oldVersion < 5) {
+            // All legacy accounts remain manual; authorization is never inferred from URLs.
+            db.execSQL("ALTER TABLE accounts ADD COLUMN auth_state TEXT NOT NULL DEFAULT 'manual'")
+            db.execSQL("ALTER TABLE accounts ADD COLUMN provider_channel_id TEXT NOT NULL DEFAULT ''")
+            db.execSQL("ALTER TABLE accounts ADD COLUMN connection_id TEXT NOT NULL DEFAULT ''")
+            db.execSQL("ALTER TABLE accounts ADD COLUMN last_verified_at INTEGER NOT NULL DEFAULT 0")
+            db.execSQL("CREATE INDEX IF NOT EXISTS idx_accounts_channel ON accounts(platform,provider_channel_id)")
         }
     }
 
@@ -148,12 +165,15 @@ class CreatorDatabase(context: Context) :
 
     fun accounts(creatorId: Long): List<SocialAccount> = buildList {
         readableDatabase.rawQuery(
-            "SELECT id, creator_id, platform, display_name, profile_url, package_name, logo_file " +
+            "SELECT id, creator_id, platform, display_name, profile_url, package_name, logo_file, " +
+                "auth_state, provider_channel_id, connection_id, last_verified_at " +
                 "FROM accounts WHERE creator_id=? ORDER BY id DESC", arrayOf(creatorId.toString())
         ).use { c ->
             while (c.moveToNext()) add(
                 SocialAccount(c.getLong(0), c.getLong(1), c.getString(2),
-                    c.getString(3), c.getString(4), c.getString(5), c.getString(6))
+                    c.getString(3), c.getString(4), c.getString(5), c.getString(6),
+                    ChannelAuthState.fromStored(c.getString(7)), c.getString(8),
+                    c.getString(9), c.getLong(10))
             )
         }
     }
@@ -239,6 +259,34 @@ class CreatorDatabase(context: Context) :
             put("package_name", packageName.trim())
             put("logo_file", logoFile)
         })
+    }
+
+    /**
+     * Only a future validated OAuth backend response may call this after checking
+     * the platform identity and scopes. This stores public channel metadata only.
+     */
+    internal fun recordVerifiedChannel(accountId: Long, grant: VerifiedChannel) {
+        val existing = readableDatabase.rawQuery(
+            "SELECT platform FROM accounts WHERE id=?", arrayOf(accountId.toString())
+        ).use { c -> if (c.moveToFirst()) c.getString(0) else null }
+        require(existing == grant.provider.platformName) {
+            "Yetkilendirilen platform kaydedilen hesap ile eşleşmiyor."
+        }
+        val updated = writableDatabase.update("accounts", ContentValues().apply {
+            put("auth_state", ChannelAuthState.CONNECTED.storedValue)
+            put("provider_channel_id", grant.remoteChannelId)
+            put("connection_id", grant.connectionId)
+            put("last_verified_at", grant.lastVerifiedMillis)
+        }, "id=?", arrayOf(accountId.toString()))
+        check(updated == 1)
+    }
+
+    internal fun markConnectionInvalid(accountId: Long, state: ChannelAuthState) {
+        require(state in setOf(ChannelAuthState.REAUTH_REQUIRED, ChannelAuthState.REVOKED, ChannelAuthState.FAILED))
+        writableDatabase.update("accounts", ContentValues().apply {
+            put("auth_state", state.storedValue)
+            put("connection_id", "")
+        }, "id=?", arrayOf(accountId.toString()))
     }
 
     fun deleteAccount(id: Long) {
