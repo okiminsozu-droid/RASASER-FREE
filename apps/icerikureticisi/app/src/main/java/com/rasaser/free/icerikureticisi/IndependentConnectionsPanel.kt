@@ -54,6 +54,12 @@ fun IndependentConnectionsPanel(creatorId: Long) {
         mutableStateOf(runCatching { TelegramSecureStore.channels(context, creatorId) }
             .getOrElse { emptyList() })
     }
+    var bluesky by remember(creatorId) {
+        mutableStateOf(runCatching { BlueskySecureStore.channels(context, creatorId) }
+            .getOrElse { emptyList() })
+    }
+    var showBlueskyAdd by remember(creatorId) { mutableStateOf(false) }
+    var blueskyToDelete by remember(creatorId) { mutableStateOf<BlueskyChannel?>(null) }
     var showAdd by remember(creatorId) { mutableStateOf(false) }
     var deleteChannel by remember(creatorId) { mutableStateOf<TelegramChannel?>(null) }
     var selected by remember(creatorId) { mutableStateOf<Set<String>>(emptySet()) }
@@ -68,7 +74,8 @@ fun IndependentConnectionsPanel(creatorId: Long) {
 
     fun refresh() {
         channels = TelegramSecureStore.channels(context, creatorId)
-        selected = selected.intersect(channels.map { it.id }.toSet())
+        bluesky = BlueskySecureStore.channels(context, creatorId)
+        selected = selected.intersect((channels.map { it.id } + bluesky.map { it.id }).toSet())
     }
 
     Card(
@@ -120,9 +127,37 @@ fun IndependentConnectionsPanel(creatorId: Long) {
                         }
                     }
                 }
-                if (channels.isNotEmpty()) {
+                Spacer(Modifier.height(10.dp))
+                Text("Bluesky • " + tr("Bağlı hesap") + ": " + bluesky.size,
+                    fontWeight = FontWeight.SemiBold)
+                OutlinedButton(onClick = { showBlueskyAdd = true }) {
+                    Text("＋ " + tr("Bluesky hesabı bağla"))
+                }
+                if (bluesky.isEmpty()) {
+                    Text(tr("Bluesky'da uygulama parolasıyla bağlantı kurabilirsiniz."),
+                        style = MaterialTheme.typography.bodySmall)
+                }
+                bluesky.forEach { account ->
+                    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Checkbox(
+                            checked = selected.contains(account.id),
+                            onCheckedChange = { checked ->
+                                selected = if (checked) selected + account.id else selected - account.id
+                            }
+                        )
+                        Column(Modifier.weight(1f)) {
+                            Text("@" + account.handle, fontWeight = FontWeight.SemiBold)
+                            Text(tr("Cihazda şifreli oturum"),
+                                style = MaterialTheme.typography.labelSmall)
+                        }
+                        TextButton(onClick = { blueskyToDelete = account }) {
+                            Text(tr("Kaldır"))
+                        }
+                    }
+                }
+                if (channels.isNotEmpty() || bluesky.isNotEmpty()) {
                     Text(
-                        tr("Gönderilecek Telegram kanallarını seçin. Yayın, gönder tuşuna basınca başlar."),
+                        tr("Seçili hesaplara yalnızca Gönder düğmesine basınca yayınlanır."),
                         style = MaterialTheme.typography.bodySmall
                     )
                     OutlinedTextField(
@@ -142,16 +177,24 @@ fun IndependentConnectionsPanel(creatorId: Long) {
                         }
                     }
                     val hasContent = caption.isNotBlank() || photo != null
+                    val unsupportedBlueskyImage = photo != null &&
+                        bluesky.any { it.id in selected }
+                    if (unsupportedBlueskyImage) {
+                        Text(tr("Bluesky görselli yayın bu sürümde hazır değil. Fotoğrafı kaldırın veya Bluesky seçimini kaldırın."),
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall)
+                    }
                     Button(
                         onClick = {
                             sending = true
                             response = emptyList()
                             val targets = channels.filter { it.id in selected }
+                            val blueskyTargets = bluesky.filter { it.id in selected }
                             val message = caption
                             val image = photo
                             scope.launch {
                                 val results = withContext(Dispatchers.IO) {
-                                    targets.map { channel ->
+                                    val telegramResults = targets.map { channel ->
                                         try {
                                             val stored = TelegramSecureStore.credential(
                                                 context, channel.id, creatorId
@@ -173,13 +216,34 @@ fun IndependentConnectionsPanel(creatorId: Long) {
                                                 "✕ " + TelegramBotApi.safeMessage(e)
                                         }
                                     }
+                                    val blueskyResults = blueskyTargets.map { account ->
+                                        try {
+                                            val stored = BlueskySecureStore.credential(
+                                                context, creatorId, account.id
+                                            ) ?: error("Şifreli Bluesky oturumu bulunamadı.")
+                                            val posted = BlueskyNativeApi.publish(
+                                                stored,
+                                                onRenewed = { renewed ->
+                                                    check(BlueskySecureStore.renew(
+                                                        context, creatorId, account.id, renewed
+                                                    )) { "Bluesky oturumu kaydedilemedi." }
+                                                },
+                                                text = message
+                                            )
+                                            "@" + account.handle + ": ✓ Bluesky yayını (" + posted.uri + ")"
+                                        } catch (e: Exception) {
+                                            "@" + account.handle + ": ✕ " +
+                                                BlueskyNativeApi.safeMessage(e)
+                                        }
+                                    }
+                                    telegramResults + blueskyResults
                                 }
                                 response = results
                                 sending = false
                             }
                         },
                         enabled = !sending && selected.isNotEmpty() && hasContent &&
-                            (photo == null || caption.length <= 1024),
+                            !unsupportedBlueskyImage && (photo == null || caption.length <= 1024),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         if (sending) CircularProgressIndicator(
@@ -192,7 +256,7 @@ fun IndependentConnectionsPanel(creatorId: Long) {
                     }
                 }
                 Text(
-                    tr("Bluesky, Instagram, Facebook, YouTube, TikTok ve Pinterest: resmî OAuth izinleri hazırlanıyor; bu platformlarda otomatik yayın henüz etkin değil."),
+                    tr("Instagram, Facebook, YouTube, TikTok ve Pinterest için yerel-only resmî yayın yetkisi hazır değil; bu platformlarda mevcut manuel paylaşım korunur."),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodySmall
                 )
@@ -212,6 +276,33 @@ fun IndependentConnectionsPanel(creatorId: Long) {
             showAdd = false
         }
     )
+    if (showBlueskyAdd) BlueskyAddAccountDialog(
+        onDismiss = { showBlueskyAdd = false },
+        onVerified = { session ->
+            BlueskySecureStore.upsert(context, creatorId, session)
+            refresh()
+            showBlueskyAdd = false
+        }
+    )
+    blueskyToDelete?.let { account ->
+        AlertDialog(
+            onDismissRequest = { blueskyToDelete = null },
+            title = { Text(tr("Bluesky bağlantısını kaldır")) },
+            text = { Text("@" + account.handle + " • " +
+                tr("Şifreli oturum yalnız bu telefondan silinecek.")) },
+            confirmButton = {
+                TextButton(onClick = {
+                    BlueskySecureStore.remove(context, creatorId, account.id)
+                    refresh()
+                    blueskyToDelete = null
+                }) { Text(tr("Kaldır")) }
+            },
+            dismissButton = {
+                TextButton(onClick = { blueskyToDelete = null }) { Text(tr("Vazgeç")) }
+            }
+        )
+    }
+
     deleteChannel?.let { channel ->
         AlertDialog(
             onDismissRequest = { deleteChannel = null },
@@ -306,6 +397,78 @@ private fun TelegramAddChannelDialog(
             TextButton(onClick = onDismiss, enabled = !checking) {
                 Text(tr("Vazgeç"))
             }
+        }
+    )
+}
+
+@Composable
+private fun BlueskyAddAccountDialog(
+    onDismiss: () -> Unit,
+    onVerified: (BlueskySession) -> Unit
+) {
+    val scope = rememberCoroutineScope()
+    var handle by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+    var working by remember { mutableStateOf(false) }
+    var message by remember { mutableStateOf("") }
+    AlertDialog(
+        onDismissRequest = { if (!working) onDismiss() },
+        title = { Text(tr("Bluesky hesabı bağla")) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(
+                    tr("Bluesky Ayarlar → Uygulama Parolaları'ndan ayrı bir parola oluşturun. Ana hesap parolanızı ASLA kullanmayın."),
+                    style = MaterialTheme.typography.bodySmall
+                )
+                OutlinedTextField(
+                    value = handle,
+                    onValueChange = { handle = it.trim().take(253); message = "" },
+                    label = { Text(tr("Bluesky kullanıcı adı")) },
+                    singleLine = true, modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = password,
+                    onValueChange = { password = it.trim().take(64); message = "" },
+                    label = { Text(tr("Bluesky uygulama parolası")) },
+                    visualTransformation = PasswordVisualTransformation(),
+                    singleLine = true, modifier = Modifier.fillMaxWidth()
+                )
+                Text(
+                    tr("Uygulama parolası oturum açmak için doğrudan Bluesky'ye gönderilir; telefonunuzda yalnız oturum tokenları Android Keystore ile şifreli saklanır."),
+                    style = MaterialTheme.typography.bodySmall
+                )
+                if (message.isNotBlank()) {
+                    Text(message, color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall)
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                enabled = !working && BlueskyNativeApi.validHandle(handle) &&
+                    BlueskyNativeApi.validAppPassword(password),
+                onClick = {
+                    working = true
+                    scope.launch {
+                        try {
+                            val session = BlueskyNativeApi.connect(handle, password)
+                            onVerified(session)
+                            password = ""
+                        } catch (e: Exception) {
+                            message = BlueskyNativeApi.safeMessage(e)
+                        } finally {
+                            working = false
+                        }
+                    }
+                }
+            ) {
+                if (working) CircularProgressIndicator(
+                    modifier = Modifier.size(18.dp), strokeWidth = 2.dp
+                ) else Text(tr("Doğrula ve kaydet"))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss, enabled = !working) { Text(tr("Vazgeç")) }
         }
     )
 }
