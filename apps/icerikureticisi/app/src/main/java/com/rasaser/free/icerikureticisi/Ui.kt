@@ -639,6 +639,7 @@ private fun MainButton(text: String, onClick: () -> Unit) {
 internal fun brandIconRes(platform: String): Int? = when (platform) {
     "Instagram" -> R.drawable.brand_instagram
     "Facebook" -> R.drawable.brand_facebook
+    "X" -> R.drawable.brand_x
     "YouTube" -> R.drawable.brand_youtube
     "TikTok" -> R.drawable.brand_tiktok
     "Pinterest" -> R.drawable.brand_pinterest
