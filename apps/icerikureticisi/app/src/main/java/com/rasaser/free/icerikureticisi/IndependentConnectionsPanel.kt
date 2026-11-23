@@ -364,7 +364,7 @@ fun IndependentConnectionsPanel(
                     }
                 }
                 Text(
-                    tr("Instagram, Facebook, YouTube, TikTok ve Pinterest için yerel-only resmî yayın yetkisi hazır değil; bu platformlarda mevcut manuel paylaşım korunur."),
+                    tr("Instagram, Facebook, X, YouTube, TikTok ve Pinterest için resmî otomatik yayın izni kurulmadı; manuel paylaşım korunur."),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodySmall
                 )
