@@ -664,20 +664,57 @@ private fun NewAccountDialog(
     var customPackage by remember { mutableStateOf("") }
     var error by remember { mutableStateOf("") }
     var selectedLogo by remember { mutableStateOf<Uri?>(null) }
-    val logoPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        selectedLogo = uri
+    val logoPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) {
+        selectedLogo = it
     }
     val isCustom = selected == "Diğer"
+
+    // User consent and social login are not inferred from a visited website.
+    // Once a valid profile URL/handle is entered, saving needs only one tap.
+    fun saveAccount(openAfterSaving: String? = null): Boolean {
+        return try {
+            val platform = if (isCustom) customPlatform.trim() else selected
+            require(platform.isNotBlank()) { "Önce sosyal medya platformunu seçin." }
+            val profile = SocialAccountInput.profileUrl(platform, url)
+            val accountLabel = SocialAccountInput.displayLabel(platform, label, profile)
+            val packageName = if (isCustom) customPackage.trim() else
+                SocialCatalog.find(platform)?.packageName.orEmpty()
+            val outcome = onAdd(
+                platform, accountLabel, profile, packageName, if (isCustom) selectedLogo else null
+            )
+            error = outcome.orEmpty()
+            if (outcome == null) {
+                if (openAfterSaving == "web") {
+                    OfficialSocialLinks.launchOfficialWebsite(context, platform, profile)
+                } else if (openAfterSaving == "app") {
+                    val bookmark = SocialAccount(-1L, -1L, platform, accountLabel, profile, packageName, "")
+                    if (!OfficialSocialLinks.launchProfileInApp(context, bookmark)) {
+                        OfficialSocialLinks.launchPlatformApp(context, platform)
+                    }
+                }
+                true
+            } else false
+        } catch (e: IllegalArgumentException) {
+            error = e.message ?: "Profil bilgilerini kontrol edin."
+            false
+        } catch (e: Exception) {
+            error = "Hesap kaydedilemedi. Bilgileri kontrol edip yeniden deneyin."
+            false
+        }
+    }
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(tr("Sosyal medya hesabı ekle")) },
         text = {
-            Column(Modifier.heightIn(max = 520.dp).verticalScroll(rememberScrollState())) {
+            Column(Modifier.heightIn(max = 500.dp).verticalScroll(rememberScrollState())) {
                 Text(tr("Platform"), fontWeight = FontWeight.SemiBold)
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     items(SocialCatalog.presets.map { it.name } + "Diğer") { option ->
-                        FilterChip(selected == option, onClick = { selected = option },
-                            label = { Text(option) })
+                        FilterChip(selected == option, onClick = {
+                            selected = option
+                            error = ""
+                        }, label = { Text(option) })
                     }
                 }
                 if (isCustom) {
@@ -691,41 +728,60 @@ private fun NewAccountDialog(
                         Text(if (selectedLogo == null) "＋ Logo seç (galeriden)" else "✓ Logo seçildi")
                     }
                 }
-                OutlinedTextField(label, { label = it.take(80) },
-                    label = { Text(tr("Hesap / profil ismi")) }, singleLine = true,
-                    modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(url, { url = it.take(2048) },
-                    label = { Text(tr("Profil bağlantısı (https://...)")) },
-                    modifier = Modifier.fillMaxWidth())
+
+                OutlinedTextField(
+                    url, { url = it.take(2048); error = "" },
+                    label = { Text(tr("Profil bağlantısı veya @kullanıcıadı")) },
+                    modifier = Modifier.fillMaxWidth(), singleLine = true
+                )
+                OutlinedTextField(
+                    label, { label = it.take(80); error = "" },
+                    label = { Text(tr("Hesap adı (isteğe bağlı)")) },
+                    supportingText = { Text(tr("Boş kalırsa profil bağlantısından alınır.")) },
+                    modifier = Modifier.fillMaxWidth(), singleLine = true
+                )
                 if (!isCustom) {
-                    Spacer(Modifier.height(8.dp))
+                    Spacer(Modifier.height(10.dp))
                     OutlinedButton(onClick = {
-                        if (!OfficialSocialLinks.launchPlatformHome(context, selected)) {
-                            error = "Resmî sosyal medya sitesi açılamadı."
+                        if (url.trim().isNotBlank()) {
+                            saveAccount("app")
+                        } else {
+                            val launched = OfficialSocialLinks.launchPlatformApp(context, selected)
+                            error = if (launched) {
+                                "Uygulamadaki profil adresinizi kopyalayıp burada kaydedebilirsiniz."
+                            } else "Sosyal medya uygulaması bulunamadı. Resmî site bağlantısını kullanın."
                         }
-                    }) {
-                        Text(tr("Resmî siteyi aç"))
+                    }, modifier = Modifier.fillMaxWidth()) {
+                        Text(tr("Telefondaki uygulamaya bağla"))
+                    }
+                    Spacer(Modifier.height(5.dp))
+                    OutlinedButton(onClick = {
+                        if (url.trim().isNotBlank()) {
+                            saveAccount("web")
+                        } else {
+                            val launched = OfficialSocialLinks.launchOfficialWebsite(context, selected)
+                            error = if (launched) {
+                                "Resmî siteden profil bağlantınızı kopyalayıp buraya yapıştırın."
+                            } else "İnternet tarayıcısı açılamadı."
+                        }
+                    }, modifier = Modifier.fillMaxWidth()) {
+                        Text(tr("Resmî siteye bağla"))
                     }
                 }
-                Spacer(Modifier.height(8.dp))
-                Text(tr("Aynı platformdan sınırsız hesap ekleyebilirsiniz."),
+                Spacer(Modifier.height(10.dp))
+                Text(
+                    tr("Sınırsız hesabı ayrı ayrı kaydedebilirsiniz. Profil bağlantısı yayınlama izni değildir."),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    style = MaterialTheme.typography.bodySmall)
-                Text(tr("Resmî siteden profil adresinizi kopyalayın. Profil bağlantısı tek başına otomatik yayınlama veya bildirim izni vermez."),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    style = MaterialTheme.typography.bodySmall)
-                Text(tr("Giriş bu uygulamada yapılmaz. Aç düğmesi, varsa telefondaki resmi uygulamayı açar. Şifre istemeyiz."),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
-                if (error.isNotBlank()) Text(error, color = alertRed)
+                    style = MaterialTheme.typography.bodySmall
+                )
+                if (error.isNotBlank()) {
+                    Spacer(Modifier.height(7.dp))
+                    Text(error, color = alertRed, style = MaterialTheme.typography.bodySmall)
+                }
             }
         },
         confirmButton = {
-            TextButton(onClick = {
-                val platform = if (isCustom) customPlatform.trim() else selected
-                val packageName = if (isCustom) customPackage.trim() else
-                    SocialCatalog.find(platform)?.packageName.orEmpty()
-                error = onAdd(platform, label, url, packageName, if (isCustom) selectedLogo else null).orEmpty()
-            }) { Text(tr("Hesabı ekle")) }
+            TextButton(onClick = { saveAccount() }) { Text(tr("Hesabı kaydet")) }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(tr("Vazgeç")) } }
     )
