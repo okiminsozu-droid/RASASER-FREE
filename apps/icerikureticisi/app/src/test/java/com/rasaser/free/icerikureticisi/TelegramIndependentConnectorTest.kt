@@ -22,12 +22,12 @@ class TelegramIndependentConnectorTest {
         assertTrue(TelegramBotApi.validBotToken("123456789:" + "x".repeat(35)))
     }
 
-    @Test fun allSevenPlatformsHaveDistinctLocalCatalogRecords() {
-        val values = setOf("Instagram", "Facebook", "YouTube", "TikTok",
+    @Test fun allEightPlatformsHaveDistinctLocalCatalogRecords() {
+        val values = setOf("Instagram", "Facebook", "X", "YouTube", "TikTok",
             "Pinterest", "Bluesky", "Telegram")
         assertEquals(values, SocialCatalog.presets.map { it.name }.toSet())
-        assertEquals(7, SocialCatalog.presets.size)
-        assertEquals(7, RaSaSeRProvider.entries.size)
+        assertEquals(8, SocialCatalog.presets.size)
+        assertEquals(8, RaSaSeRProvider.entries.size)
     }
 
     @Test fun telegramAndBlueskyAreNotAuthorizedFromJustUrl() {
