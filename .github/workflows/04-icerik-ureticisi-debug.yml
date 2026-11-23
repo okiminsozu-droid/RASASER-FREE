@@ -95,7 +95,8 @@ jobs:
               try:
                   root = ET.parse(path).getroot()
                   for test in root.iter('testcase'):
-                      fail = test.find('failure') or test.find('error')
+                      fail = test.find('failure')
+                      if fail is None: fail = test.find('error')
                       if fail is not None:
                           print(f"{test.attrib.get('classname')} / {test.attrib.get('name')}: {fail.attrib.get('message')}")
                           print((fail.text or '')[:1100])
