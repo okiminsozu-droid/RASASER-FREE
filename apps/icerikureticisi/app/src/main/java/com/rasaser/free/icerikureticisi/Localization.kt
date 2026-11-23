@@ -87,6 +87,10 @@ object Translations {
         "Promosyon Kodu Gir" to mapOf("en" to "Enter promo code", "de" to "Promocode eingeben", "es" to "Introducir código promocional", "ja" to "プロモコードを入力", "ar" to "أدخل رمز الترويج"),
         "Google Play'de aç" to mapOf("en" to "Open in Google Play", "de" to "In Google Play öffnen", "es" to "Abrir en Google Play", "ja" to "Google Playで開く", "ar" to "فتح في Google Play"),
         "Doğrula" to mapOf("en" to "Verify", "de" to "Prüfen", "es" to "Verificar", "ja" to "確認", "ar" to "تحقق"),
+        "Premium'u etkinleştir" to mapOf("en" to "Activate Premium", "de" to "Premium aktivieren", "es" to "Activar Premium", "ja" to "プレミアムを有効化", "ar" to "تفعيل المميز"),
+        "Gönderildi olarak işaretle" to mapOf("en" to "Mark as posted", "de" to "Als veröffentlicht markieren", "es" to "Marcar como publicado", "ja" to "投稿済みとして記録", "ar" to "تحديد كمنشور"),
+        "Gönderilmedi" to mapOf("en" to "Not posted", "de" to "Nicht veröffentlicht", "es" to "No publicado", "ja" to "未投稿", "ar" to "لم ينشر"),
+        "Google Play satın alma henüz etkin değil. Geçerli promosyon koduyla erişim açılabilir." to mapOf("en" to "Google Play purchases are not enabled yet. You can activate access with a valid promo code.", "de" to "Google Play-Käufe sind noch nicht aktiviert. Mit einem gültigen Promocode ist die Aktivierung möglich.", "es" to "Las compras de Google Play aún no están activadas. Puede activar el acceso con un código válido.", "ja" to "Google Play購入はまだ利用できません。有効なプロモコードでアクセスを有効にできます。", "ar" to "الشراء عبر Google Play غير متاح بعد. يمكنك التفعيل باستخدام رمز ترويجي صالح."),
         "Premium etkin" to mapOf("en" to "Premium active", "de" to "Premium aktiv", "es" to "Premium activo", "ja" to "プレミアム有効", "ar" to "المميز مفعل"),
 
         "Ücretsiz deneme" to mapOf("en" to "Free trial", "de" to "Kostenlos testen", "es" to "Prueba gratis", "ja" to "無料お試し", "ar" to "تجربة مجانية"),
