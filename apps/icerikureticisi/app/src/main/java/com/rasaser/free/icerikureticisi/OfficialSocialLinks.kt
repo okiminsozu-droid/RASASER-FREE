@@ -15,6 +15,7 @@ object OfficialSocialLinks {
     private val officialHosts = mapOf(
         "Instagram" to setOf("instagram.com", "www.instagram.com"),
         "Facebook" to setOf("facebook.com", "www.facebook.com", "m.facebook.com", "web.facebook.com"),
+        "X" to setOf("x.com", "www.x.com", "twitter.com", "www.twitter.com", "mobile.twitter.com"),
         "YouTube" to setOf("youtube.com", "www.youtube.com", "m.youtube.com"),
         "TikTok" to setOf("tiktok.com", "www.tiktok.com", "m.tiktok.com"),
         "Pinterest" to setOf("pinterest.com", "www.pinterest.com"),
@@ -42,6 +43,7 @@ object OfficialSocialLinks {
         if (platform == "TikTok" && !path.startsWith("@")) return false
         if (platform == "Facebook" && path in setOf("login", "home.php", "watch", "marketplace")) return false
         if (platform == "Instagram" && path in setOf("accounts", "explore", "reels", "p")) return false
+        if (platform == "X" && (path.contains("/") || path.startsWith("i/") || path in setOf("home","explore","settings","messages","login","search"))) return false
         if (platform == "Bluesky" && (!path.startsWith("profile/") || path.length <= 8)) return false
         if (platform == "Pinterest" && path in setOf("pin", "ideas", "search", "today", "settings")) return false
         if (platform == "Telegram" && (path.contains('/') || path in setOf("joinchat", "addstickers", "proxy", "socks", "share"))) return false
