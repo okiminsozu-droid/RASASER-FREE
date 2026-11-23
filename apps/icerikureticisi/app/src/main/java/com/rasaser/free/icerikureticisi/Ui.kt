@@ -368,10 +368,16 @@ fun CreatorHubApp(initialCreatorId: Long = -1L) {
                                 )
                                 SocialAppIcon(
                                     account.packageName, account.platform,
-                                    Modifier.size(40.dp), account.logoFile
+                                    Modifier.size(44.dp).clickable {
+                                        val opened = OfficialSocialLinks.launchProfile(context, account)
+                                        if (!opened) feedback = "Kayıtlı profil adresi açılamadı."
+                                    }, account.logoFile
                                 )
                                 Spacer(Modifier.width(9.dp))
-                                Column(Modifier.weight(1f)) {
+                                Column(Modifier.weight(1f).clickable {
+                                    val opened = OfficialSocialLinks.launchProfile(context, account)
+                                    if (!opened) feedback = "Kayıtlı profil adresi açılamadı."
+                                }) {
                                     Text(account.label, fontWeight = FontWeight.Bold,
                                         maxLines = 2, overflow = TextOverflow.Ellipsis)
                                     Text(account.platform, color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -396,9 +402,15 @@ fun CreatorHubApp(initialCreatorId: Long = -1L) {
                                 }
                                 Column(horizontalAlignment = Alignment.End) {
                                     TextButton(onClick = {
-                                        if (!SocialIntents.openAccount(context, account))
-                                            feedback = "Uygulama veya bağlantı açılamadı."
-                                    }) { Text(tr("Aç ›")) }
+                                        if (!OfficialSocialLinks.launchProfile(context, account))
+                                            feedback = "Kayıtlı profil adresi açılamadı."
+                                    }) { Text(tr("Site ›")) }
+                                    TextButton(onClick = {
+                                        if (!OfficialSocialLinks.launchProfileInApp(context, account) &&
+                                            !OfficialSocialLinks.launchPlatformApp(context, account.platform)) {
+                                            feedback = "Telefondaki uygulama açılamadı. Siteyi kullanabilirsiniz."
+                                        }
+                                    }) { Text(tr("Uygulama ›")) }
                                     TextButton(onClick = { deleteAccount = account }) {
                                         Text(tr("Kaldır"), color = alertRed)
                                     }
