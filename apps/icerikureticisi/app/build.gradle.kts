@@ -16,7 +16,7 @@ android {
     buildTypes {
         debug {
             // Side-by-side preview preserves the installed v0.1.1 app and its data.
-            applicationIdSuffix = ".v030"
+            applicationIdSuffix = ".v033"
         }
         release {
             isMinifyEnabled = true
