@@ -42,23 +42,66 @@ object OfficialSocialLinks {
         return true
     }
 
-    fun launchPlatformHome(context: Context, platform: String): Boolean {
-        val uri = platformHome(platform) ?: return false
-        return launchTrusted(context, uri)
+    /**
+     * Browser path is intentionally distinct from Android's social app intent.
+     * API 30+ REQUIRE_NON_BROWSER stops instagram.com from silently opening Instagram.
+     */
+    fun launchOfficialWebsite(context: Context, platform: String, profileUrl: String? = null): Boolean {
+        val url = if (profileUrl.isNullOrBlank()) platformHome(platform)
+                  else profileUrl.takeIf { !isRecognized(platform) || isOfficialProfile(platform, it) }
+        return url?.let { launchBrowser(context, it) } ?: false
     }
 
+    fun launchPlatformHome(context: Context, platform: String): Boolean =
+        launchOfficialWebsite(context, platform)
+
+    fun launchPlatformApp(context: Context, platform: String): Boolean {
+        val pkg = SocialCatalog.find(platform)?.packageName ?: return false
+        return try {
+            context.packageManager.getLaunchIntentForPackage(pkg)?.let {
+                it.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                context.startActivity(it)
+                true
+            } ?: if (android.os.Build.VERSION.SDK_INT >= 33) {
+                context.packageManager.getLaunchIntentSenderForPackage(pkg)
+                    .sendIntent(context, 0, null, null, null)
+                true
+            } else false
+        } catch (_: Exception) { false }
+    }
+
+    /** Prefer direct deep link to the SAVED profile, not the platform homepage. */
+    fun launchProfileInApp(context: Context, account: SocialAccount): Boolean {
+        if (isRecognized(account.platform) &&
+            !isOfficialProfile(account.platform, account.profileUrl)) return false
+        val pkg = account.packageName.takeIf { it.isNotBlank() } ?: return false
+        return try {
+            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(account.profileUrl)).apply {
+                addCategory(Intent.CATEGORY_BROWSABLE)
+                setPackage(pkg)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            })
+            true
+        } catch (_: Exception) { false }
+    }
+
+    /** Safe browser route for the URL saved with each account. */
     fun launchProfile(context: Context, account: SocialAccount): Boolean {
         val url = account.profileUrl
-        if (isRecognized(account.platform) &&
-            !isOfficialProfile(account.platform, url)) return false
+        if (isRecognized(account.platform) && !isOfficialProfile(account.platform, url)) {
+            return false
+        }
         if (!url.startsWith("https://", ignoreCase = true)) return false
-        return launchTrusted(context, url)
+        return launchBrowser(context, url)
     }
 
-    private fun launchTrusted(context: Context, url: String): Boolean = try {
+    private fun launchBrowser(context: Context, url: String): Boolean = try {
         val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
             addCategory(Intent.CATEGORY_BROWSABLE)
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            if (android.os.Build.VERSION.SDK_INT >= 30) {
+                addFlags(Intent.FLAG_ACTIVITY_REQUIRE_NON_BROWSER)
+            }
         }
         context.startActivity(intent)
         true
