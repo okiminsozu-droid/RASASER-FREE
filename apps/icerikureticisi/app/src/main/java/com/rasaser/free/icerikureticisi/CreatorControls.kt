@@ -38,6 +38,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -145,7 +146,8 @@ fun CreatorAvatar(context: Context, logoFile: String, fallback: String, size: In
     }
     val modifier = Modifier.size(size.dp).clip(RoundedCornerShape(14.dp))
     if (bitmap != null) {
-        Image(bitmap = bitmap, contentDescription = "Profil resmi", modifier = modifier)
+        Image(bitmap = bitmap, contentDescription = "Profil resmi",
+            contentScale = ContentScale.Crop, modifier = modifier)
     } else {
         Box(
             modifier.background(MaterialTheme.colorScheme.surfaceVariant),

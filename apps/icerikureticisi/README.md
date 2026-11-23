@@ -1,6 +1,17 @@
-# RaSaSeR İçerik Üreticisi — 0.3.2 Paylaşım ve Premium Geliştirme
+# RaSaSeR İçerik Üreticisi — 0.3.4 Resmî Profil Bağlantıları ve Görseller
 
 **Kapsam:** Yalnızca `apps/icerikureticisi/`, ayrı `feature/icerik-ureticisi-biometric-trial-cloudflare-v031` dalı. Çalışan 0.2.0 sürümü ve önceki tüm Android projeleri değiştirilmez.
+
+## 0.3.4 resmî profil adresleri ve büyük görseller (23 Kasım 2026)
+
+- Mevcut `CreatorAvatar` görselleri ana profil kartında **48 → 76 dp**, profil ekranında **42 → 64 dp** oldu. Uzun/dar fotoğraflar `ContentScale.Crop` ile alana sığacak şekilde görünür.
+- Android SQLite hesap tablosunda **platform başına veya toplam hesaba sabit bir sayı limiti zaten yoktu**. Bu sürüm aynı Instagram/Facebook/TikTok/YouTube platformunda çok sayıda farklı profil kaydetmeyi açık ve anlaşılır biçimde desteklemeye devam eder. Her kayıt bağımsız hesap etiketi ve HTTPS profil linki tutar.
+- Her bilinen platform için **"Resmî siteyi aç"** kontrolü eklendi. Kullanıcı resmî siteden kendi profil adresini alıp kaydedebilir. Adresin **gerçek platform alan adına** ait olduğu, başka alan adlarının taklidi olmadığı kontrol edilir. Önceden kaydedilmiş manuel hesaplar ve başka platformlar silinmez.
+- Hesap kartındaki resmî profil bağlantısı doğrudan açılabilir; **"API yetkisi yok"** ibaresi bunun bir OAuth bağlantısı olmadığını netleştirir. Tek bir Android Instagram paketi içindeki çok sayıda kullanıcı oturumu veya uygulama klonu `ACTION_SEND` üzerinden ayrı ayrı kontrol edilemez.
+- **Otomatik yayın veya resmî hesap bildirimleri bu sürümde başlatılmadı.** Instagram için Meta geliştirici uygulaması ve Business/Creator erişimi; Facebook için Pages izinleri; TikTok için onaylı Direct Post; YouTube için Google Cloud OAuth+Data API gerekir. Her kullanıcı ve her platform kimliği için ayrı OAuth izin akışı ve platforma göre yayın durumu sorgulaması/webhook gerekir. Platform bildirimleri genel sosyal uygulama mesaj kutusunun sınırsız kopyası değildir; API'nin desteklediği olaylarla sınırlıdır.
+- Güvenlik gereği hiçbir hesap parolası, OAuth erişim belirteci, kullanıcı bildirimi veya gizli API anahtarı uygulamaya/Cloudflare'e alınmaz. Resmî servis hesapları ve gerekli OAuth istemci kimlikleri henüz yapılandırılmadı. **Sadece profil linki ile otomatik gönderim / doğrulanmış 'Gönderildi' bildirimi üretmek mümkün değildir.**
+- Deneme süresi, PIN/parmak izi, Premium kodu ve başka uygulamalar korunur. Test kimliği `com.rasaser.free.icerikureticisi.v034` olarak ayrı kurulabilir; test hesaplarını otomatik olarak önceki imzalı uygulamadan alamaz.
+- **Sürüm:** 0.3.4 (versionCode 8). API onayları tamamlanmadan gerçek otomatik yayın vaat edilmez.
 
 ## 0.3.2 düzeltmeleri (23 Kasım 2026)
 - İçerik profili açılınca kaydedilmiş hesaplar **varsayılan olarak seçili**; kullanıcı istediği hesapların işaretini kaldırabilir. Yeni eklenen hesap da otomatik işaretlenir.
