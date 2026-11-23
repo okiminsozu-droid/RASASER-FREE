@@ -200,7 +200,8 @@ fun CreatorHubApp(initialCreatorId: Long = -1L) {
                     CreatorAppearance.setDark(context, enabled)
                 },
                 onPremium = { showPremium = true },
-                onLock = { showLockSettings = true }
+                onLock = { showLockSettings = true },
+                premiumActive = ownerPremium
             )
             Spacer(Modifier.height(6.dp))
             if (creatorId < 0) {
