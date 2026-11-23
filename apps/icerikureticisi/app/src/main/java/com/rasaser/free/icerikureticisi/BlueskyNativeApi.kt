@@ -87,7 +87,7 @@ object BlueskyNativeApi {
             put("repo", stored.channel.did)
             put("collection", "app.bsky.feed.post")
             put("record", JSONObject().apply {
-                put("\u0024type", "app.bsky.feed.post")
+                put("$" + "type", "app.bsky.feed.post")
                 put("text", content)
                 put("createdAt", now)
             })
