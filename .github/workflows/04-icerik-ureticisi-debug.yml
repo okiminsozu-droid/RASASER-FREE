@@ -76,7 +76,21 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          gradle --no-daemon --stacktrace --project-dir apps/icerikureticisi :app:assembleDebug :app:testDebugUnitTest
+          # Maven Central may intermittently return HTTP 429. Retry only this
+          # transient network failure; do not hide compiler or test errors.
+          for attempt in 1 2 3; do
+            if gradle --no-daemon --stacktrace --project-dir apps/icerikureticisi :app:assembleDebug :app:testDebugUnitTest > /tmp/creator-gradle-build.log 2>&1; then
+              cat /tmp/creator-gradle-build.log
+              break
+            fi
+            tail -n 120 /tmp/creator-gradle-build.log
+            if ! grep -E -q 'status code 429|Too Many Requests|HTTP 429' /tmp/creator-gradle-build.log || [ "$attempt" -ge 3 ]; then
+              echo "ERROR: Gradle failed (non-429 error or retry limit reached)"
+              exit 1
+            fi
+            echo "Maven rate limit (429); retry $attempt/3"
+            sleep $((attempt * 20))
+          done
           APK="apps/icerikureticisi/app/build/outputs/apk/debug/app-debug.apk"
           test -s "$APK"
           AAPT="${ANDROID_HOME}/build-tools/35.0.0/aapt"
