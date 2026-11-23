@@ -9,12 +9,16 @@ class OfficialSocialLinksTest {
         assertTrue(OfficialSocialLinks.isOfficialProfile("Instagram", "https://www.instagram.com/account_1/"))
         assertTrue(OfficialSocialLinks.isOfficialProfile("Instagram", "https://www.instagram.com/account_2/"))
         assertTrue(OfficialSocialLinks.isOfficialProfile("Facebook", "https://www.facebook.com/profile.php?id=12345"))
+        assertTrue(OfficialSocialLinks.isOfficialProfile("X", "https://x.com/creator_1"))
+        assertTrue(OfficialSocialLinks.isOfficialProfile("X", "https://twitter.com/creator_2"))
         assertTrue(OfficialSocialLinks.isOfficialProfile("YouTube", "https://www.youtube.com/@channel_name"))
         assertTrue(OfficialSocialLinks.isOfficialProfile("TikTok", "https://www.tiktok.com/@creator"))
     }
 
     @Test fun rejectsSpoofedSitesAndPlainHomeLinks() {
         assertFalse(OfficialSocialLinks.isOfficialProfile("Instagram", "https://www.instagram.com.evil.example/me"))
+        assertFalse(OfficialSocialLinks.isOfficialProfile("X", "https://x.com.evil.example/alice"))
+        assertFalse(OfficialSocialLinks.isOfficialProfile("X", "https://x.com/home"))
         assertFalse(OfficialSocialLinks.isOfficialProfile("Instagram", "https://www.instagram.com/"))
         assertFalse(OfficialSocialLinks.isOfficialProfile("TikTok", "https://www.tiktok.com/"))
         assertFalse(OfficialSocialLinks.isOfficialProfile("YouTube", "https://www.youtube.com/watch?v=test"))
