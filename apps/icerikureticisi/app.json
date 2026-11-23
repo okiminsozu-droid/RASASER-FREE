@@ -4,7 +4,7 @@
   "package_id": "com.rasaser.free.icerikureticisi",
   "version_code": 14,
   "version_name": "0.4.0",
-  "private_engine_required": true,
+  "private_engine_required": false,
   "allow_public_debug_artifacts": true,
   "license_review_completed": false,
   "release_signing_location": "PRIVATE_ONLY",
@@ -102,5 +102,6 @@
   "privacy_cloud_sync": false,
   "owner_site_link_clickable": false,
   "owner_private_key_bundled": false,
-  "serverless_owner_premium_requires_signed_code": true
+  "serverless_owner_premium_requires_signed_code": true,
+  "private_engine_explanation": "All engine code is shipped in APK; no private backend or client secret required"
 }
