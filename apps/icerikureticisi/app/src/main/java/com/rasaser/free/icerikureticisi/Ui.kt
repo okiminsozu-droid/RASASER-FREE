@@ -75,6 +75,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.layout.ContentScale
 
 private val cream = Color(0xFFF7F1E7)
 private val cardWhite = Color(0xFFFFFDF8)
@@ -596,20 +598,50 @@ private fun MainButton(text: String, onClick: () -> Unit) {
     ) { Text(text, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(6.dp)) }
 }
 
+/**
+ * Seven authentic provider marks are included in APK resources. Each official
+ * mark comes from Simple Icons, not downloaded at runtime. A user's custom icon
+ * remains first priority. Trademarks belong to the respective networks.
+ */
+internal fun brandIconRes(platform: String): Int? = when (platform) {
+    "Instagram" -> R.drawable.brand_instagram
+    "Facebook" -> R.drawable.brand_facebook
+    "YouTube" -> R.drawable.brand_youtube
+    "TikTok" -> R.drawable.brand_tiktok
+    "Pinterest" -> R.drawable.brand_pinterest
+    "Bluesky" -> R.drawable.brand_bluesky
+    "Telegram" -> R.drawable.brand_telegram
+    else -> null
+}
+
 @Composable
 private fun PlatformTile(
-    platform: Platform, selected: Boolean, onSelect: () -> Unit
+    platform: Platform,
+    selected: Boolean,
+    connectedCount: Int,
+    onSelect: () -> Unit
 ) {
     Column(
-        modifier = Modifier.width(78.dp).clip(RoundedCornerShape(16.dp))
+        modifier = Modifier.width(94.dp).clip(RoundedCornerShape(18.dp))
             .background(if (selected) MaterialTheme.colorScheme.surfaceVariant
                         else MaterialTheme.colorScheme.surface)
-            .clickable(onClick = onSelect).padding(10.dp),
+            .clickable(onClick = onSelect)
+            .padding(vertical = 12.dp, horizontal = 9.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        SocialAppIcon(platform.packageName, platform.name, Modifier.size(45.dp))
-        Spacer(Modifier.height(6.dp))
-        Text(platform.name, style = MaterialTheme.typography.labelSmall, maxLines = 1)
+        SocialAppIcon(platform.packageName, platform.name, Modifier.size(54.dp))
+        Spacer(Modifier.height(7.dp))
+        Text(platform.name, style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.SemiBold, maxLines = 1)
+        Spacer(Modifier.height(3.dp))
+        Text(
+            if (connectedCount > 0) "$connectedCount " + tr("bağlı")
+            else tr("Hesap ekle"),
+            style = MaterialTheme.typography.labelSmall,
+            color = if (connectedCount > 0) Color(0xFF248550)
+                    else MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1
+        )
     }
 }
 
@@ -619,39 +651,46 @@ private fun SocialAppIcon(
     logoFile: String = ""
 ) {
     val context = LocalContext.current
-    val image = remember(packageName, logoFile) {
+    val officialBrand = brandIconRes(platform)
+    val bitmap = remember(packageName, logoFile, platform) {
         val custom = if (logoFile.isNotBlank()) LocalLogos.load(context, logoFile) else null
         if (custom != null) custom.asImageBitmap()
-        else if (packageName.isBlank()) null else try {
+        else if (officialBrand != null || packageName.isBlank()) null
+        else try {
             val icon = context.packageManager.getApplicationIcon(packageName)
-            val bitmap = Bitmap.createBitmap(96, 96, Bitmap.Config.ARGB_8888)
-            icon.setBounds(0, 0, 96, 96)
-            icon.draw(Canvas(bitmap))
-            bitmap.asImageBitmap()
+            Bitmap.createBitmap(96, 96, Bitmap.Config.ARGB_8888).apply {
+                icon.setBounds(0, 0, 96, 96)
+                icon.draw(Canvas(this))
+            }.asImageBitmap()
         } catch (_: Exception) { null }
     }
-    if (image != null) Image(
-        bitmap = image, contentDescription = platform,
-        modifier = modifier.clip(RoundedCornerShape(12.dp))
-    ) else Box(
-        modifier = modifier.background(
-            when (platform) {
-                "Instagram" -> Color(0xFFB73D83)
-                "Facebook" -> Color(0xFF2465B3)
-                "YouTube" -> Color(0xFFE5362D)
-                "TikTok" -> Color(0xFF1C1C20)
-                else -> Color(0xFF605D57)
-            }, RoundedCornerShape(12.dp)
-        ), contentAlignment = Alignment.Center
-    ) {
-        Text(when (platform) {
-            "Instagram" -> "◎"
-            "Facebook" -> "f"
-            "YouTube" -> "▶"
-            "TikTok" -> "♪"
-            else -> platform.firstOrNull()?.uppercase() ?: "+"
-        }, color = Color.White, fontWeight = FontWeight.Black,
-            style = MaterialTheme.typography.titleLarge)
+    when {
+        bitmap != null -> Image(
+            bitmap = bitmap, contentDescription = platform,
+            modifier = modifier.clip(RoundedCornerShape(12.dp)),
+            contentScale = ContentScale.Crop
+        )
+        officialBrand != null -> Box(
+            modifier = modifier.clip(RoundedCornerShape(14.dp))
+                .background(Color.White)
+                .padding(9.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Image(
+                painter = painterResource(officialBrand),
+                contentDescription = platform,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Fit
+            )
+        }
+        else -> Box(
+            modifier = modifier.clip(RoundedCornerShape(14.dp))
+                .background(Color(0xFF605D57)),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(platform.firstOrNull()?.uppercase() ?: "+",
+                color = Color.White, fontWeight = FontWeight.Bold)
+        }
     }
 }
 
