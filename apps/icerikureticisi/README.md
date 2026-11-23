@@ -2,6 +2,17 @@
 
 **Kapsam:** Yalnızca `apps/icerikureticisi/`, ayrı `feature/icerik-ureticisi-biometric-trial-cloudflare-v031` dalı. Çalışan 0.2.0 sürümü ve önceki tüm Android projeleri değiştirilmez.
 
+## v0.3.7 — Kısayol kaydı ve resmî tarayıcı düzeltmesi
+
+- `Telefondaki uygulamaya bağla ve kaydet`: kullanıcı adı boş olsa da platform için ayrı **yerel uygulama kısayolu** kaydedilir; sonra kurulu uygulama açılır. Kullanıcı adı veya resmî profil URL'si varsa hesap profili olarak kaydedilir. Kısayol herhangi bir hesap yetkisi vermez.
+- `Resmî siteye bağla ve kaydet`: profil boşsa platformun resmî ana sitesinin web kısayolunu kaydeder; profil URL'si veya kullanıcı adı varsa belirli profil bağlantısını kaydeder. Android'in `FLAG_ACTIVITY_REQUIRE_NON_BROWSER` bayrağı tarayıcıları reddettiği için kaldırıldı; bilinen **tarayıcı paketleri** (Chrome, Vivo Browser, Firefox vb.) doğrudan denenir, gerekirse Android seçim penceresi açılır.
+- Hesap kartı ana sayfa kısayollarını `Kısayol kaydedildi • Hesap yetkisi yok` şeklinde doğru etiketler; resmî URL bağlı görünen bir OAuth hesabı değildir. Aynı platformdan istediğiniz kadar ayrı kısayol eklenebilir.
+- Premium, PIN, biyometri, 15 günlük deneme, veri tabanı v5, mevcut hesaplar ve manuel paylaşım korunur. **Cloudflare promosyon servisi dışında hiçbir sunucu, okiminsozu.com veya başka uygulama değiştirilmez.**
+- Kaynak sürüm 0.3.7 / versionCode 11. Yan yana kurulan test APK kimliği `com.rasaser.free.icerikureticisi.v037`; önceki test kopyalarının verilerini otomatik aktarmaz.
+- Gerçek otomatik gönderim ve bağlantı yetkilendirmesi, ilgili platformların resmî OAuth uygulama kimlikleri, gerekli izinleri ve güvenli sunucu callback akışı kurulmadan devreye alınmamıştır.
+- Test: `OfficialSocialLinksTest` kısayol sınıflandırması ve önceki URL güvenlik testleri; `assembleDebug` ve `testDebugUnitTest` GitHub Actions.
+
+
 ## 0.3.4 resmî profil adresleri ve büyük görseller (23 Kasım 2026)
 
 - Mevcut `CreatorAvatar` görselleri ana profil kartında **48 → 76 dp**, profil ekranında **42 → 64 dp** oldu. Uzun/dar fotoğraflar `ContentScale.Crop` ile alana sığacak şekilde görünür.
