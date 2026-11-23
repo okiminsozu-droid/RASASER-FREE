@@ -655,6 +655,7 @@ private fun NewAccountDialog(
     initial: String, onDismiss: () -> Unit,
     onAdd: (String, String, String, String, Uri?) -> String?
 ) {
+    val context = LocalContext.current
     var selected by remember { mutableStateOf(initial) }
     var customPlatform by remember { mutableStateOf("") }
     var label by remember { mutableStateOf("") }
@@ -698,7 +699,7 @@ private fun NewAccountDialog(
                 if (!isCustom) {
                     Spacer(Modifier.height(8.dp))
                     OutlinedButton(onClick = {
-                        if (!OfficialSocialLinks.launchPlatformHome(LocalContext.current, selected)) {
+                        if (!OfficialSocialLinks.launchPlatformHome(context, selected)) {
                             error = "Resmî sosyal medya sitesi açılamadı."
                         }
                     }) {
