@@ -86,7 +86,9 @@ jobs:
               cat /tmp/creator-gradle-build.log
               break
             fi
-            tail -n 120 /tmp/creator-gradle-build.log
+            echo "---- Gradle error overview ----"
+            grep -n -E '^e: |^error: |^FAILURE:|^\* What went wrong:|^Execution failed|^> Task.*FAILED|^Caused by:' /tmp/creator-gradle-build.log | head -n 65 || true
+            tail -n 25 /tmp/creator-gradle-build.log
             if ! grep -E -q 'status code 429|Too Many Requests|HTTP 429' /tmp/creator-gradle-build.log || [ "$attempt" -ge 3 ]; then
               echo "ERROR: Gradle failed (non-429 error or retry limit reached)"
               exit 1
