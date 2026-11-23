@@ -31,6 +31,8 @@ object SocialConnectionCapabilities {
             false, false, false, true),
         SocialProviderCapability("Facebook", DeviceConnectionMode.OFFICIAL_OAUTH_NOT_CONFIGURED,
             false, false, false, true),
+        SocialProviderCapability("X", DeviceConnectionMode.OFFICIAL_OAUTH_NOT_CONFIGURED,
+            false, false, false, true),
         SocialProviderCapability("YouTube", DeviceConnectionMode.OFFICIAL_OAUTH_NOT_CONFIGURED,
             false, false, false, true),
         SocialProviderCapability("TikTok", DeviceConnectionMode.OFFICIAL_OAUTH_NOT_CONFIGURED,

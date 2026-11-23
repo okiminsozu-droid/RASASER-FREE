@@ -24,6 +24,7 @@ enum class ChannelAuthState(val storedValue: String) {
 enum class RaSaSeRProvider(val platformName: String) {
     INSTAGRAM("Instagram"),
     FACEBOOK("Facebook"),
+    X("X"),
     TIKTOK("TikTok"),
     YOUTUBE("YouTube"),
     PINTEREST("Pinterest"),

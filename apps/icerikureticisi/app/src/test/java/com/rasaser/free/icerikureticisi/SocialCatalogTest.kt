@@ -6,9 +6,9 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class SocialCatalogTest {
-    @Test fun allSevenPresetNetworksHaveRealAndroidPackages() {
+    @Test fun allEightPresetNetworksHaveRealAndroidPackages() {
         assertEquals(
-            listOf("Instagram", "Facebook", "YouTube", "TikTok", "Pinterest", "Bluesky", "Telegram"),
+            listOf("Facebook", "Instagram", "X", "YouTube", "TikTok", "Pinterest", "Bluesky", "Telegram"),
             SocialCatalog.presets.map { it.name }
         )
         SocialCatalog.presets.forEach {

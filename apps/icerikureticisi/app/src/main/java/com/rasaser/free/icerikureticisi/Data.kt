@@ -49,8 +49,9 @@ data class ScheduledShare(
 
 object SocialCatalog {
     val presets = listOf(
-        Platform("Instagram", "com.instagram.android", "https://www.instagram.com/"),
         Platform("Facebook", "com.facebook.katana", "https://www.facebook.com/"),
+        Platform("Instagram", "com.instagram.android", "https://www.instagram.com/"),
+        Platform("X", "com.twitter.android", "https://x.com/"),
         Platform("YouTube", "com.google.android.youtube", "https://www.youtube.com/"),
         Platform("TikTok", "com.zhiliaoapp.musically", "https://www.tiktok.com/"),
         Platform("Pinterest", "com.pinterest", "https://www.pinterest.com/"),

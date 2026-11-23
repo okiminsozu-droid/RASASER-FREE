@@ -12,6 +12,13 @@ class SocialAccountInputTest {
             SocialAccountInput.displayLabel("Instagram", "", "https://www.instagram.com/creator.64/"))
     }
 
+    @Test fun xTwitterAccountsHaveStableOfficialUrls() {
+        assertEquals("https://x.com/example_user",
+            SocialAccountInput.profileUrl("X", "@example_user"))
+        assertEquals("example_user", SocialAccountInput.displayLabel(
+            "X", "", "https://x.com/example_user"))
+    }
+
     @Test fun twoAccountsOnOnePlatformRemainSeparateUrls() {
         val first = SocialAccountInput.profileUrl("Instagram", "firstuser")
         val second = SocialAccountInput.profileUrl("Instagram", "seconduser")

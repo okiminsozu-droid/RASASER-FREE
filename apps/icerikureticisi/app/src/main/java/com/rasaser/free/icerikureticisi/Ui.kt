@@ -367,6 +367,11 @@ fun CreatorHubApp(initialCreatorId: Long = -1L) {
                             onConnectionsChanged = { connectionRevision += 1 }
                         )
                         Spacer(Modifier.height(10.dp))
+                        OfficialOAuthAccountsPanel(
+                            creatorId = creatorId,
+                            revision = accessRevision + connectionRevision
+                        )
+                        Spacer(Modifier.height(10.dp))
                         ShareComposer(
                             creatorId = creatorId,
                             accounts = accounts,
@@ -511,6 +516,7 @@ fun CreatorHubApp(initialCreatorId: Long = -1L) {
                 onDelete = {
                     TelegramSecureStore.removeForCreator(context, creator.id)
                     BlueskySecureStore.removeForCreator(context, creator.id)
+                    DeviceOAuthVault.removeForCreator(context, creator.id)
                     database.deleteCreator(creator.id)
                     creatorId = -1
                     selectedAccountIds = emptySet()
@@ -639,6 +645,7 @@ private fun MainButton(text: String, onClick: () -> Unit) {
 internal fun brandIconRes(platform: String): Int? = when (platform) {
     "Instagram" -> R.drawable.brand_instagram
     "Facebook" -> R.drawable.brand_facebook
+    "X" -> R.drawable.brand_x
     "YouTube" -> R.drawable.brand_youtube
     "TikTok" -> R.drawable.brand_tiktok
     "Pinterest" -> R.drawable.brand_pinterest
