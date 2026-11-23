@@ -1,6 +1,8 @@
 package com.rasaser.free.icerikureticisi
 
 import android.net.Uri
+import androidx.compose.foundation.Image
+import androidx.compose.ui.res.painterResource
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -47,7 +49,12 @@ import kotlinx.coroutines.withContext
  * provider OAuth connectors are actually installed and verified.
  */
 @Composable
-fun IndependentConnectionsPanel(creatorId: Long) {
+fun IndependentConnectionsPanel(
+    creatorId: Long,
+    requestedProvider: String? = null,
+    onRequestConsumed: () -> Unit = {},
+    onConnectionsChanged: () -> Unit = {}
+) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var channels by remember(creatorId) {
@@ -67,7 +74,7 @@ fun IndependentConnectionsPanel(creatorId: Long) {
     var photo by remember(creatorId) { mutableStateOf<Uri?>(null) }
     var sending by remember(creatorId) { mutableStateOf(false) }
     var response by remember(creatorId) { mutableStateOf<List<String>>(emptyList()) }
-    var expanded by remember(creatorId) { mutableStateOf(false) }
+    var expanded by remember(creatorId) { mutableStateOf(true) }
     val photoPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) {
         photo = it
     }
@@ -76,6 +83,18 @@ fun IndependentConnectionsPanel(creatorId: Long) {
         channels = TelegramSecureStore.channels(context, creatorId)
         bluesky = BlueskySecureStore.channels(context, creatorId)
         selected = selected.intersect((channels.map { it.id } + bluesky.map { it.id }).toSet())
+        onConnectionsChanged()
+    }
+
+    LaunchedEffect(creatorId, requestedProvider) {
+        if (requestedProvider != null) {
+            expanded = true
+            when (requestedProvider) {
+                "Telegram" -> showAdd = true
+                "Bluesky" -> showBlueskyAdd = true
+            }
+            onRequestConsumed()
+        }
     }
 
     Card(
@@ -84,7 +103,9 @@ fun IndependentConnectionsPanel(creatorId: Long) {
     ) {
         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("🔗 " + tr("Bağımsız hesap bağlantıları"), fontWeight = FontWeight.Bold,
+                Text("🔗 " + tr("Bağımsız hesap bağlantıları") + " • " +
+                    (channels.size + bluesky.size),
+                    fontWeight = FontWeight.Bold,
                     style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
                 TextButton(onClick = { expanded = !expanded }) {
                     Text(if (expanded) tr("Gizle") else tr("Aç"))
@@ -110,6 +131,11 @@ fun IndependentConnectionsPanel(creatorId: Long) {
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
+                        Image(
+                            painter = painterResource(R.drawable.brand_telegram),
+                            contentDescription = "Telegram",
+                            modifier = Modifier.size(30.dp)
+                        )
                         Checkbox(
                             checked = selected.contains(channel.id),
                             onCheckedChange = { checked ->
@@ -139,6 +165,11 @@ fun IndependentConnectionsPanel(creatorId: Long) {
                 }
                 bluesky.forEach { account ->
                     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Image(
+                            painter = painterResource(R.drawable.brand_bluesky),
+                            contentDescription = "Bluesky",
+                            modifier = Modifier.size(30.dp)
+                        )
                         Checkbox(
                             checked = selected.contains(account.id),
                             onCheckedChange = { checked ->
@@ -350,17 +381,25 @@ private fun TelegramAddChannelDialog(
                     style = MaterialTheme.typography.bodySmall
                 )
                 OutlinedTextField(
-                    value = token,
-                    onValueChange = { token = it.trim().take(256); message = "" },
-                    label = { Text(tr("BotFather bot tokenı")) },
-                    visualTransformation = PasswordVisualTransformation(),
+                    value = chatId,
+                    onValueChange = { chatId = it.trim().take(100); message = "" },
+                    label = { Text(tr("Kullanıcı adı / Kanal: @kanaladi veya -100...")) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
                 OutlinedTextField(
-                    value = chatId,
-                    onValueChange = { chatId = it.trim().take(100); message = "" },
-                    label = { Text(tr("Kanal: @kanaladi veya -100...")) },
+                    value = "",
+                    onValueChange = {},
+                    enabled = false,
+                    label = { Text(tr("Hesap şifresi gerekli değil")) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = token,
+                    onValueChange = { token = it.trim().take(256); message = "" },
+                    label = { Text(tr("API Key / BotFather tokenı")) },
+                    visualTransformation = PasswordVisualTransformation(),
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -429,14 +468,21 @@ private fun BlueskyAddAccountDialog(
                 OutlinedTextField(
                     value = handle,
                     onValueChange = { handle = it.trim().take(253); message = "" },
-                    label = { Text(tr("Bluesky kullanıcı adı")) },
+                    label = { Text(tr("Kullanıcı adı / Bluesky hesabı")) },
                     singleLine = true, modifier = Modifier.fillMaxWidth()
                 )
                 OutlinedTextField(
                     value = password,
                     onValueChange = { password = it.trim().take(64); message = "" },
-                    label = { Text(tr("Bluesky uygulama parolası")) },
+                    label = { Text(tr("Şifre / yalnız Bluesky uygulama parolası")) },
                     visualTransformation = PasswordVisualTransformation(),
+                    singleLine = true, modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = "",
+                    onValueChange = {},
+                    enabled = false,
+                    label = { Text(tr("API Key gerekli değil")) },
                     singleLine = true, modifier = Modifier.fillMaxWidth()
                 )
                 Text(
