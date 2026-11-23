@@ -1,4 +1,4 @@
-name: İçerik Üreticisi — v0.3.7 Sosyal Kısayol Tarayıcı Düzeltmesi
+name: İçerik Üreticisi — v0.3.8 Bağımsız 7 Platform Telegram Test APK
 on:
   push:
     branches:
@@ -12,6 +12,7 @@ on:
       - feature/icerik-ureticisi-independent-oauth-core-v035
       - feature/icerik-ureticisi-account-bridge-v036
       - feature/icerik-ureticisi-shortcut-browser-fix-v037
+      - feature/icerik-ureticisi-independent-multichannel-v038
     paths:
       - 'apps/icerikureticisi/**'
       - '.github/workflows/04-icerik-ureticisi-debug.yml'
@@ -103,7 +104,7 @@ jobs:
             exit 1
           fi
           "$AAPT" dump badging "$APK" | head -n 4
-          if ! "$AAPT" dump badging "$APK" | grep -q "name='com.rasaser.free.icerikureticisi.v037' versionCode='11' versionName='0.3.7'"; then
+          if ! "$AAPT" dump badging "$APK" | grep -q "name='com.rasaser.free.icerikureticisi.v038' versionCode='12' versionName='0.3.8'"; then
             echo "ERROR: Debug preview identity mismatch"
             exit 1
           fi
@@ -112,7 +113,7 @@ jobs:
       - name: Upload installable debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: RaSaSeR-Icerik-Ureticisi-v037-Kaydet-Site-${{ github.run_number }}
+          name: RaSaSeR-Icerik-Ureticisi-v038-Telegram-Kanal-${{ github.run_number }}
           path: apps/icerikureticisi/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 7
           if-no-files-found: error
