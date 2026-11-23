@@ -1,4 +1,4 @@
-name: İçerik Üreticisi — v0.3.4 Resmi Profil ve Avatar APK
+name: İçerik Üreticisi — v0.3.5 Bağımsız OAuth Çekirdeği Test APK
 on:
   push:
     branches:
@@ -9,6 +9,7 @@ on:
       - feature/icerik-ureticisi-premium-clean-v033
       - feature/icerik-ureticisi-premium-clean-v033-sideinstall
       - feature/icerik-ureticisi-official-accounts-avatar-v034
+      - feature/icerik-ureticisi-independent-oauth-core-v035
     paths:
       - 'apps/icerikureticisi/**'
       - '.github/workflows/04-icerik-ureticisi-debug.yml'
@@ -86,7 +87,7 @@ jobs:
             exit 1
           fi
           "$AAPT" dump badging "$APK" | head -n 4
-          if ! "$AAPT" dump badging "$APK" | grep -q "name='com.rasaser.free.icerikureticisi.v034' versionCode='8' versionName='0.3.4'"; then
+          if ! "$AAPT" dump badging "$APK" | grep -q "name='com.rasaser.free.icerikureticisi.v035' versionCode='9' versionName='0.3.5'"; then
             echo "ERROR: Debug preview identity mismatch"
             exit 1
           fi
@@ -95,7 +96,7 @@ jobs:
       - name: Upload installable debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: RaSaSeR-Icerik-Ureticisi-v034-Hesap-Avatar-${{ github.run_number }}
+          name: RaSaSeR-Icerik-Ureticisi-v035-Bagimsiz-OAuth-Test-${{ github.run_number }}
           path: apps/icerikureticisi/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 7
           if-no-files-found: error
