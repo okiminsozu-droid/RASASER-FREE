@@ -1,6 +1,16 @@
-# RaSaSeR İçerik Üreticisi — 0.3.1 Güvenlik ve Deneme Testi
+# RaSaSeR İçerik Üreticisi — 0.3.2 Paylaşım ve Premium Geliştirme
 
 **Kapsam:** Yalnızca `apps/icerikureticisi/`, ayrı `feature/icerik-ureticisi-biometric-trial-cloudflare-v031` dalı. Çalışan 0.2.0 sürümü ve önceki tüm Android projeleri değiştirilmez.
+
+## 0.3.2 düzeltmeleri (23 Kasım 2026)
+- İçerik profili açılınca kaydedilmiş hesaplar **varsayılan olarak seçili**; kullanıcı istediği hesapların işaretini kaldırabilir. Yeni eklenen hesap da otomatik işaretlenir.
+- Kaydedilen uygulama için **doğrudan başlatma intenti** öncelenir. Mevcut `ACTION_SEND` medya paylaşımı uygun uygulamaya açık bileşen üzerinden aktarılır. **Telefonun uygulama klonlama sistemi** (örneğin Vivo'nun `Ⅱ·Instagram` seçicisi) farklı kullanıcı profilleri açtığından Android'in sistem seçim penceresi her durumda otomatik atlanamayabilir.
+- Paylaşım uygulaması açılınca üzerine **“Bilgi” uyarısı bindirilmez**. Uygulamaya aktarılan içerik için yerel durum görüntülenir. Kullanıcı gerçek yayını platform uygulamasında tamamladıktan sonra **“Gönderildi olarak işaretle”** diyebilir. Bu, platform onayı değil **kullanıcının manuel teyididir**; sahte başarı bildirimi gösterilmez.
+- Profil bağlantısı kaydetmek, otomatik paylaşım yetkisi sağlamak anlamına gelmez. Instagram/Facebook/YouTube/TikTok'ta gerçek hesap bazlı yayın ve platform onaylı gönderim bildirimi **ancak resmi OAuth, yayın API yetkileri, developer uygulaması ve uygun platform incelemeleriyle** mümkündür. Bu sürümde otomatik API yayını yapılmaz.
+- Premium üst ikonu standart emoji yerine **özgün siyah-altın vektör taç** tasarımına çevrildi. Premium hakkı varsa aktif durumu gösterir.
+- 15 günlük deneme dolunca uygulama girişinde **Premium ekranı doğrudan açılır**; yeni Premium etkinleştirmesi ancak Cloudflare'de doğrulanan promosyon koduyla mümkündür. İçerikler silinmez. Doğrulama sonrasında ekran yenilenerek tam erişim açılır.
+- **Google Play ücretli satın alma**: Satış için bu uygulamanın Play Console'a eklenmesi, ürün/abonelik ve resmi Billing Library + güvenli sunucu satın alma onayı gerekir. Henüz yapılandırılmadığından satın alma düğmesi gibi yanıltıcı bir kontrol gösterilmez.
+- Yeni kaynak sürüm **0.3.2 (versionCode 6)**. Debug paket kimliği `com.rasaser.free.icerikureticisi.v030` olarak tutulur; farklı test imzaları yüzünden yükseltme zorunlu olarak başarılı olmayabilir. Önceki kurulum kaldırılmamalıdır.
 
 ## 0.3.1 düzenlemeleri (23 Kasım 2026)
 - **Telefonun yerel parmak izi:** PIN oluşturulunca biyometrik geçiş belirginleşir; parmak izini etkinleştirmek için Android BiometricPrompt üzerinden gerçekten başarılı cihaz doğrulaması istenir. PIN güvenli yedek olarak kalır. Parmak izi görüntüsü/şablonu uygulama tarafından alınmaz veya saklanmaz.
