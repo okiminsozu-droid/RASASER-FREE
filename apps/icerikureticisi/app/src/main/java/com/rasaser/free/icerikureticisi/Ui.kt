@@ -475,6 +475,7 @@ fun CreatorHubApp(initialCreatorId: Long = -1L) {
                 onCancel = { deleteCreator = null },
                 onDelete = {
                     TelegramSecureStore.removeForCreator(context, creator.id)
+                    BlueskySecureStore.removeForCreator(context, creator.id)
                     database.deleteCreator(creator.id)
                     creatorId = -1
                     selectedAccountIds = emptySet()
@@ -542,15 +543,19 @@ fun CreatorHubApp(initialCreatorId: Long = -1L) {
             title = { Text(tr("Gizlilik ve lisanslar")) },
             text = {
                 Column(Modifier.heightIn(max = 400.dp).verticalScroll(rememberScrollState())) {
-                    Text("Sosyal medya profil kısayolları cihazda saklanır. Telegram Bot API için " +
-                        "kullanıcının izin verdiği bot anahtarı yalnız Android Keystore ile şifreli olarak " +
-                        "cihazda saklanır, Cloudflare'e gönderilmez. Diğer sosyal medya hesap " +
-                        "şifreleri, erişim tokenları veya giriş oturumları saklanmaz. " +
-                        "Bu sürüm Android bildirimlerine erişmez. " +
-                        "İçerik adları, hesap etiketleri ve profil bağlantıları yalnız cihazdaki SQLite veritabanında tutulur. " +
-                        "Bulut eşitlemesi yoktur. İnternet izni Premium doğrulaması, profil bağlantıları ve " +
-                        "kullanıcının başlattığı Telegram Bot API yayınları için kullanılır. " +
-                        "Uygulama yedeği devre dışıdır.")
+                    Text("Bu sürümün veritabanı ve bağlantı motorları doğrudan telefonda çalışır. " +
+                        "İçerik profilleri, görseller, bağlantı adları, hesaplar ve gönderi taslakları " +
+                        "yalnız telefonda tutulur; RaSaSeR sunucusuna veya web sitesine gönderilmez. " +
+                        "Telegram kanal bot anahtarları ve Bluesky oturum tokenları Android Keystore " +
+                        "ile AES-GCM şifrelenerek cihazda saklanır. Bluesky ana hesap şifresi istenmez; " +
+                        "özel uygulama parolası doğrudan Bluesky sunucusuyla oturum açmak için kullanılır " +
+                        "ve bağlantı kurulunca cihazda bile saklanmaz. " +
+                        "Premium kodu imza kontrolü de cihaz içinde yapılır; internete çıkmaz. " +
+                        "Kullanıcı açıkça gönder dediğinde seçilen içerik, yalnız ilgili sosyal " +
+                        "medya platformuna gönderilir. İnternet yoksa bu gönderim gerçekleşmez. " +
+                        "Instagram, Facebook, TikTok, Pinterest ve YouTube için yetki olmadığında " +
+                        "manuel paylaşım sunulur; otomatik yayın başarılı gösterilmez. " +
+                        "Uygulama yedeği ve bulut eşitlemesi kapalıdır; genel sosyal bildirimler okunmaz.")
                     Spacer(Modifier.height(12.dp))
                     Text(remember {
                         context.assets.open("legal/licenses.txt").bufferedReader().use { it.readText() }
