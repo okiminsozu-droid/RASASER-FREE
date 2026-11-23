@@ -99,6 +99,8 @@ fun CreatorHubApp(initialCreatorId: Long = -1L) {
     var deleteCreator by remember { mutableStateOf<Creator?>(null) }
     var deleteAccount by remember { mutableStateOf<SocialAccount?>(null) }
     var filterPlatform by remember { mutableStateOf<String?>(null) }
+    var requestedConnection by remember { mutableStateOf<String?>(null) }
+    var connectionRevision by remember { mutableStateOf(0) }
     var showLicenses by remember { mutableStateOf(false) }
     var feedback by remember { mutableStateOf("") }
     var language by remember { mutableStateOf(AppLanguage.get(context)) }
@@ -319,11 +321,35 @@ fun CreatorHubApp(initialCreatorId: Long = -1L) {
                     item {
                         Text(tr("Sosyal medya platformları"), fontWeight = FontWeight.SemiBold)
                         Spacer(Modifier.height(10.dp))
-                        LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(
+                            tr("Simgelere dokunarak ilgili hesap bağlantı ekranını açın. Yatay kaydırın."),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(Modifier.height(7.dp))
+                        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             items(SocialCatalog.presets, key = { it.name }) { platform ->
-                                PlatformTile(platform, filterPlatform == platform.name) {
-                                    filterPlatform = if (filterPlatform == platform.name) null
-                                        else platform.name
+                                val real = when (platform.name) {
+                                    "Telegram" -> runCatching {
+                                        TelegramSecureStore.channels(context, creatorId).size
+                                    }.getOrDefault(0)
+                                    "Bluesky" -> runCatching {
+                                        BlueskySecureStore.channels(context, creatorId).size
+                                    }.getOrDefault(0)
+                                    else -> 0
+                                }
+                                PlatformTile(
+                                    platform = platform,
+                                    selected = filterPlatform == platform.name,
+                                    connectedCount = real,
+                                    savedCount = accounts.count { it.platform == platform.name }
+                                ) {
+                                    filterPlatform = platform.name
+                                    if (platform.name == "Telegram" || platform.name == "Bluesky") {
+                                        requestedConnection = platform.name
+                                    } else {
+                                        addAccountFor = platform.name
+                                    }
                                 }
                             }
                         }
@@ -332,7 +358,12 @@ fun CreatorHubApp(initialCreatorId: Long = -1L) {
                             addAccountFor = "Instagram"
                         }
                         Spacer(Modifier.height(10.dp))
-                        IndependentConnectionsPanel(creatorId = creatorId)
+                        IndependentConnectionsPanel(
+                            creatorId = creatorId,
+                            requestedProvider = requestedConnection,
+                            onRequestConsumed = { requestedConnection = null },
+                            onConnectionsChanged = { connectionRevision += 1 }
+                        )
                         Spacer(Modifier.height(10.dp))
                         ShareComposer(
                             creatorId = creatorId,
@@ -619,6 +650,7 @@ private fun PlatformTile(
     platform: Platform,
     selected: Boolean,
     connectedCount: Int,
+    savedCount: Int,
     onSelect: () -> Unit
 ) {
     Column(
@@ -635,8 +667,11 @@ private fun PlatformTile(
             fontWeight = FontWeight.SemiBold, maxLines = 1)
         Spacer(Modifier.height(3.dp))
         Text(
-            if (connectedCount > 0) "$connectedCount " + tr("bağlı")
-            else tr("Hesap ekle"),
+            when {
+                connectedCount > 0 -> "$connectedCount " + tr("bağlı")
+                savedCount > 0 -> "$savedCount " + tr("kısayol")
+                else -> tr("Hesap ekle")
+            },
             style = MaterialTheme.typography.labelSmall,
             color = if (connectedCount > 0) Color(0xFF248550)
                     else MaterialTheme.colorScheme.onSurfaceVariant,
