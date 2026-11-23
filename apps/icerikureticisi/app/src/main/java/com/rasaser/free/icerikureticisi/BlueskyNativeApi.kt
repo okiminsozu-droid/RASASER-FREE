@@ -49,9 +49,9 @@ object BlueskyNativeApi {
     fun validAppPassword(value: String): Boolean =
         Regex("(?i)^[a-z0-9]{4}(-[a-z0-9]{4}){3}$").matches(value.trim())
 
-    fun validateText(text: String): String {
+    fun validateText(text: String, hasPhoto: Boolean = false): String {
         val trimmed = text.trim()
-        require(trimmed.isNotBlank()) { "Bluesky gönderisi boş olamaz." }
+        require(hasPhoto || trimmed.isNotBlank()) { "Bluesky gönderisi boş olamaz." }
         require(trimmed.codePointCount(0, trimmed.length) <= MAX_CODEPOINTS &&
             trimmed.toByteArray(Charsets.UTF_8).size <= MAX_UTF8) {
             "Bluesky metni en fazla 300 karakter ve 3000 bayt olabilir."
@@ -77,9 +77,26 @@ object BlueskyNativeApi {
     suspend fun publish(
         stored: BlueskyCredential,
         onRenewed: (BlueskySession) -> Unit,
-        text: String
+        text: String,
+        jpeg: ByteArray? = null
     ): BlueskyPublishedPost = withContext(Dispatchers.IO) {
-        val content = validateText(text)
+        val content = validateText(text, jpeg != null)
+        require(jpeg == null || (jpeg.isNotEmpty() && jpeg.size <= 950_000)) {
+            "Bluesky JPEG dosyası 950 KB veya daha küçük olmalı."
+        }
+        var access = stored.accessJwt
+        var refreshToken = stored.refreshJwt
+        fun rotateSession() {
+            val renewed = session(request(
+                "com.atproto.server.refreshSession", JSONObject(), refreshToken
+            ))
+            require(renewed.did == stored.channel.did) {
+                "Bluesky oturum kimliği değişti. Yeniden hesap bağlayın."
+            }
+            onRenewed(renewed)
+            access = renewed.accessJwt
+            refreshToken = renewed.refreshJwt
+        }
         val now = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ROOT).apply {
             timeZone = TimeZone.getTimeZone("UTC")
         }.format(Date())
@@ -92,27 +109,76 @@ object BlueskyNativeApi {
                 put("createdAt", now)
             })
         }
+        if (jpeg != null) {
+            val blob = try {
+                uploadBlob(access, jpeg)
+            } catch (e: BlueskyHttpException) {
+                if (e.status != 401) throw e
+                rotateSession()
+                uploadBlob(access, jpeg)
+            }
+            body.getJSONObject("record").put("embed", JSONObject().apply {
+                put("$" + "type", "app.bsky.embed.images")
+                put("images", org.json.JSONArray().put(JSONObject().apply {
+                    put("alt", content.take(160).ifBlank { "Paylaşılan fotoğraf" })
+                    put("image", blob)
+                }))
+            })
+        }
         val response = try {
-            request("com.atproto.repo.createRecord", body, stored.accessJwt)
+            request("com.atproto.repo.createRecord", body, access)
         } catch (e: BlueskyHttpException) {
             if (e.status != 401) throw e
-            // A 401 means the initial post was NOT accepted. Refresh before retry.
-            val refreshed = session(request(
-                "com.atproto.server.refreshSession",
-                JSONObject(), stored.refreshJwt
-            ))
-            require(refreshed.did == stored.channel.did) {
-                "Bluesky oturum kimliği değişti. Yeniden hesap bağlayın."
-            }
-            // Persist rotated refresh token BEFORE retry to avoid lockout on crash.
-            onRenewed(refreshed)
-            request("com.atproto.repo.createRecord", body, refreshed.accessJwt)
+            rotateSession()
+            request("com.atproto.repo.createRecord", body, access)
         }
         val uri = response.optString("uri")
         require(uri.startsWith("at://" + stored.channel.did + "/app.bsky.feed.post/")) {
             "Bluesky geçerli yayın kimliği döndürmedi."
         }
         BlueskyPublishedPost(uri, response.optString("cid"))
+    }
+
+    private fun uploadBlob(accessJwt: String, jpeg: ByteArray): JSONObject {
+        val url = URL(ENTRYWAY + "com.atproto.repo.uploadBlob")
+        val conn = url.openConnection() as HttpURLConnection
+        try {
+            conn.requestMethod = "POST"
+            conn.connectTimeout = 15000
+            conn.readTimeout = 30000
+            conn.doOutput = true
+            conn.useCaches = false
+            conn.instanceFollowRedirects = false
+            conn.setFixedLengthStreamingMode(jpeg.size)
+            conn.setRequestProperty("Content-Type", "image/jpeg")
+            conn.setRequestProperty("Authorization", "Bearer $accessJwt")
+            conn.setRequestProperty("Accept", "application/json")
+            conn.outputStream.use { it.write(jpeg) }
+            val code = conn.responseCode
+            if (code !in 200..299) {
+                throw BlueskyHttpException(code,
+                    if (code == 401) "Bluesky oturumu yenilenmeli."
+                    else "Bluesky görsel yüklemesi başarısız (HTTP $code).")
+            }
+            val json = conn.inputStream.use { input ->
+                val bytes = input.readBytes()
+                require(bytes.size <= MAX_REPLY) { "Bluesky yanıtı beklenenden büyük." }
+                JSONObject(String(bytes, Charsets.UTF_8))
+            }
+            return json.getJSONObject("blob")
+        } catch (e: BlueskyHttpException) {
+            throw e
+        } catch (e: IllegalArgumentException) {
+            throw e
+        } catch (e: IllegalStateException) {
+            throw e
+        } catch (_: IOException) {
+            throw IllegalStateException("Bluesky fotoğrafı yüklenemedi. İnterneti kontrol edin.")
+        } catch (_: Exception) {
+            throw IllegalStateException("Bluesky görsel yanıtı doğrulanamadı.")
+        } finally {
+            conn.disconnect()
+        }
     }
 
     private fun session(obj: JSONObject): BlueskySession {
