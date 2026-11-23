@@ -1,4 +1,4 @@
-name: İçerik Üreticisi — v0.4.1 İkonlu Yerel Hesap Bağlantı Merkezi
+name: İçerik Üreticisi — v0.4.2 Dört Platform Çoklu OAuth Temeli
 on:
   push:
     branches:
@@ -16,6 +16,7 @@ on:
       - feature/icerik-ureticisi-direct-app-routing-v039
       - feature/icerik-ureticisi-ondevice-publish-v040
       - feature/icerik-ureticisi-embedded-social-hub-v041
+      - feature/icerik-ureticisi-four-platform-connection-foundation-v042
     paths:
       - 'apps/icerikureticisi/**'
       - '.github/workflows/04-icerik-ureticisi-debug.yml'
@@ -85,8 +86,12 @@ jobs:
             echo "ERROR: offline voucher verification is absent"
             exit 1
           fi
+          if ! test -s apps/icerikureticisi/app/src/main/java/com/rasaser/free/icerikureticisi/DeviceOAuthVault.kt || ! test -s apps/icerikureticisi/app/src/main/java/com/rasaser/free/icerikureticisi/OAuthPkceCore.kt; then
+            echo "ERROR: encrypted OAuth vault or PKCE core missing"
+            exit 1
+          fi
           # Brand assets must be part of APK, never fetched from CDN at runtime.
-          for provider in instagram facebook youtube tiktok pinterest bluesky telegram; do
+          for provider in instagram facebook x youtube tiktok pinterest bluesky telegram; do
             icon="apps/icerikureticisi/app/src/main/res/drawable/brand_${provider}.xml"
             test -s "$icon"
             grep -q 'android:pathData=' "$icon"
@@ -142,7 +147,7 @@ jobs:
             exit 1
           fi
           "$AAPT" dump badging "$APK" | head -n 4
-          if ! "$AAPT" dump badging "$APK" | grep -q "name='com.rasaser.free.icerikureticisi.v041' versionCode='15' versionName='0.4.1'"; then
+          if ! "$AAPT" dump badging "$APK" | grep -q "name='com.rasaser.free.icerikureticisi.v042' versionCode='16' versionName='0.4.2'"; then
             echo "ERROR: Debug preview identity mismatch"
             exit 1
           fi
@@ -151,7 +156,7 @@ jobs:
       - name: Upload installable debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: RaSaSeR-Icerik-Ureticisi-v041-Sosyal-Hesap-Motoru-${{ github.run_number }}
+          name: RaSaSeR-Icerik-Ureticisi-v042-Dort-Platform-OAuth-${{ github.run_number }}
           path: apps/icerikureticisi/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 7
           if-no-files-found: error
