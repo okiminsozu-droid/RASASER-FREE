@@ -206,20 +206,10 @@ fun OwnerPremiumDialog(context: Context, onDismiss: () -> Unit) {
         text = {
             Column {
                 Text(
-                    if (active) tr("Premium etkin") else
-                        tr("15 günlük ücretsiz deneme. Ortak promosyon kodu Cloudflare sunucusunda doğrulanır."),
-                    style = MaterialTheme.typography.bodyMedium
+                    if (active) tr("Premium etkin") else tr("Abone olun"),
+                    style = MaterialTheme.typography.titleMedium
                 )
-                Spacer(Modifier.height(12.dp))
-                if (!active) {
-                    Text(
-                        tr("Google Play satın alma henüz etkin değil. Geçerli promosyon koduyla erişim açılabilir."),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(Modifier.height(8.dp))
-                }
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(18.dp))
                 OutlinedTextField(
                     value = code, onValueChange = { code = it.take(64) },
                     label = { Text(tr("Promosyon kodu")) },
