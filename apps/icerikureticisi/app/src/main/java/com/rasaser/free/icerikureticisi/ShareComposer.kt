@@ -61,29 +61,14 @@ private val dateFormat = SimpleDateFormat("dd.MM.yyyy HH:mm", Locale("tr", "TR")
 /** No stored passwords or APIs: share via the official app, then user confirms publish there. */
 object SocialIntents {
     fun openAccount(context: Context, account: SocialAccount): Boolean {
-        val pkg = account.packageName
-        val url = account.profileUrl.takeIf { it.startsWith("https://", true) }
-        if (pkg.isNotBlank()) {
-            if (url != null) {
-                val deepLink = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
-                    addCategory(Intent.CATEGORY_BROWSABLE)
-                    setPackage(pkg)
-                }
-                // Explicit component bypasses Android's app/clone chooser.
-                try {
-                    val match = context.packageManager.queryIntentActivities(deepLink, 0)
-                        .firstOrNull { it.activityInfo.packageName == pkg && it.activityInfo.exported }
-                    if (match != null) {
-                        deepLink.component = ComponentName(pkg, match.activityInfo.name)
-                        context.startActivity(deepLink)
-                        return true
-                    }
-                } catch (_: Exception) { /* Launch official app home instead. */ }
-            }
+        val pkg = account.packageName.trim()
+        val url = account.profileUrl.takeIf { it.startsWith("https://", ignoreCase = true) }
+        if (pkg.isNotEmpty()) {
+            // The installed app's launcher intent names its exact component, avoiding the
+            // generic WEB-link resolver on devices with duplicated Instagram installs.
             try {
-                val launch = context.packageManager.getLaunchIntentForPackage(pkg)
-                if (launch != null) {
-                    context.startActivity(launch)
+                context.packageManager.getLaunchIntentForPackage(pkg)?.let {
+                    context.startActivity(it)
                     return true
                 }
                 if (Build.VERSION.SDK_INT >= 33) {
@@ -91,16 +76,28 @@ object SocialIntents {
                         .sendIntent(context, 0, null, null, null)
                     return true
                 }
-            } catch (_: Exception) { /* App may not be installed. */ }
+            } catch (_: Exception) { /* Try the saved HTTPS profile link below. */ }
+            if (url != null) try {
+                val view = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
+                    addCategory(Intent.CATEGORY_BROWSABLE)
+                    setPackage(pkg)
+                }
+                val match = context.packageManager.queryIntentActivities(view, 0)
+                    .firstOrNull { it.activityInfo.packageName == pkg && it.activityInfo.exported }
+                if (match != null) {
+                    view.component = ComponentName(pkg, match.activityInfo.name)
+                    context.startActivity(view)
+                    return true
+                }
+            } catch (_: Exception) {}
         }
-        // For unknown / missing apps, open a valid HTTPS address in the browser.
-        if (url == null) return false
-        return try {
-            val browser = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-                .addCategory(Intent.CATEGORY_BROWSABLE)
-            context.startActivity(browser)
-            true
-        } catch (_: Exception) { false }
+        // Web fallback is only for a missing app or an unconfigured custom platform.
+        return url?.let {
+            try {
+                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(it)))
+                true
+            } catch (_: Exception) { false }
+        } ?: false
     }
 
     fun handoff(
@@ -156,6 +153,8 @@ fun ShareComposer(
     var sendQueue by remember(creatorId) { mutableStateOf<List<Long>>(emptyList()) }
     var nextPosition by remember(creatorId) { mutableIntStateOf(0) }
     var refreshSchedules by remember(creatorId) { mutableIntStateOf(0) }
+    var handedToAccountId by remember(creatorId) { mutableStateOf<Long?>(null) }
+    var localShareNote by remember(creatorId) { mutableStateOf("") }
 
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) {
@@ -183,15 +182,20 @@ fun ShareComposer(
     val available = accounts.filter { selectedIds.contains(it.id) }
     val schedules = remember(creatorId, refreshSchedules) { database.scheduledFor(creatorId) }
 
-    fun sendTo(account: SocialAccount) {
-        val result = SocialIntents.handoff(
+    fun sendTo(account: SocialAccount): Boolean {
+        val launched = SocialIntents.handoff(
             context, account, Uri.parse(mediaUri), mediaMime, caption
         )
-        onMessage(
-            if (result) "Paylaşım ekranı açıldı: ${account.platform} / ${account.label}. " +
-                "Yayını ilgili uygulamada onaylayın; hesap otomatik değiştirilemez."
-            else "${account.platform} uygulaması bu medya paylaşımını kabul etmedi veya kurulu değil."
-        )
+        if (launched) {
+            // ACTION_SEND does not return a publication receipt. Do not claim "sent"
+            // and do not show an alert on top of the receiving app's share sheet.
+            handedToAccountId = account.id
+            localShareNote = "${account.platform} / ${account.label}: " +
+                "medya uygulamaya aktarıldı. Gerçek yayın henüz doğrulanmadı."
+        } else {
+            onMessage("${account.platform} için paylaşım açılamadı. Uygulamanın kurulu olduğunu kontrol edin.")
+        }
+        return launched
     }
 
     fun plan() {
@@ -291,8 +295,8 @@ fun ShareComposer(
                             onMessage("Gönderim için medya ve hesap seçin.")
                         } else {
                             sendQueue = available.map { it.id }
-                            nextPosition = 1
-                            sendTo(available.first())
+                            nextPosition = 0
+                            if (sendTo(available.first())) nextPosition = 1
                         }
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
@@ -305,20 +309,52 @@ fun ShareComposer(
             }
             Text("${available.size} hesap seçildi",
                 style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            if (localShareNote.isNotBlank()) {
+                Spacer(Modifier.height(8.dp))
+                Text(localShareNote, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodySmall)
+            }
+            handedToAccountId?.let { awaitingId ->
+                val waiting = accounts.firstOrNull { it.id == awaitingId }
+                if (waiting != null) {
+                    Spacer(Modifier.height(6.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        TextButton(onClick = {
+                            localShareNote = "${waiting.label}: " +
+                                "gönderildi olarak kullanıcı tarafından onaylandı."
+                            handedToAccountId = null
+                            onMessage("Gönderildi olarak işaretlendi: ${waiting.platform} / ${waiting.label}. " +
+                                "Bu sizin onayınızdır; platform API doğrulaması değildir.")
+                        }) {
+                            Text(tr("Gönderildi olarak işaretle"),
+                                style = MaterialTheme.typography.labelSmall)
+                        }
+                        TextButton(onClick = {
+                            localShareNote = "${waiting.label}: gönderim tamamlanmadı."
+                            handedToAccountId = null
+                        }) {
+                            Text(tr("Gönderilmedi"), style = MaterialTheme.typography.labelSmall)
+                        }
+                    }
+                }
+            }
             if (nextPosition < sendQueue.size && mediaUri.isNotBlank()) {
                 val next = accounts.firstOrNull { it.id == sendQueue[nextPosition] }
                 if (next != null) {
                     TextButton(onClick = {
-                        nextPosition += 1
-                        sendTo(next)
+                        if (sendTo(next)) nextPosition += 1
                     }) {
                         Text("➜ Sıradaki hesaba aktar (${nextPosition + 1}/${sendQueue.size})")
                     }
                 }
             }
             Text(
-                "Seçilen hesaplarda paylaşım ekranı açılır. Gönderi sizin onayınızla yayınlanır; " +
-                    "hesap değişimi ve açıklamanın eklenmesi platforma bağlıdır.",
+                "Kayıtlı hesaplar seçili başlar. Medya ilgili sosyal uygulamaya doğrudan aktarılır; " +
+                    "aktif sosyal medya hesabı ve son yayın onayı ilgili platform tarafından yönetilir.",
                 color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall
             )
         }
