@@ -1,6 +1,8 @@
 package com.rasaser.free.icerikureticisi
 
 import android.net.Uri
+import androidx.compose.foundation.Image
+import androidx.compose.ui.res.painterResource
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -47,9 +49,15 @@ import kotlinx.coroutines.withContext
  * provider OAuth connectors are actually installed and verified.
  */
 @Composable
-fun IndependentConnectionsPanel(creatorId: Long) {
+fun IndependentConnectionsPanel(
+    creatorId: Long,
+    requestedProvider: String? = null,
+    onRequestConsumed: () -> Unit = {},
+    onConnectionsChanged: () -> Unit = {}
+) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val verifiedNotice = tr("Bağlantı doğrulandı")
     var channels by remember(creatorId) {
         mutableStateOf(runCatching { TelegramSecureStore.channels(context, creatorId) }
             .getOrElse { emptyList() })
@@ -63,11 +71,15 @@ fun IndependentConnectionsPanel(creatorId: Long) {
     var showAdd by remember(creatorId) { mutableStateOf(false) }
     var deleteChannel by remember(creatorId) { mutableStateOf<TelegramChannel?>(null) }
     var selected by remember(creatorId) { mutableStateOf<Set<String>>(emptySet()) }
+    var checkingConnection by remember(creatorId) { mutableStateOf<String?>(null) }
+    var verificationMessages by remember(creatorId) {
+        mutableStateOf<Map<String, String>>(emptyMap())
+    }
     var caption by remember(creatorId) { mutableStateOf("") }
     var photo by remember(creatorId) { mutableStateOf<Uri?>(null) }
     var sending by remember(creatorId) { mutableStateOf(false) }
     var response by remember(creatorId) { mutableStateOf<List<String>>(emptyList()) }
-    var expanded by remember(creatorId) { mutableStateOf(false) }
+    var expanded by remember(creatorId) { mutableStateOf(true) }
     val photoPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) {
         photo = it
     }
@@ -76,6 +88,18 @@ fun IndependentConnectionsPanel(creatorId: Long) {
         channels = TelegramSecureStore.channels(context, creatorId)
         bluesky = BlueskySecureStore.channels(context, creatorId)
         selected = selected.intersect((channels.map { it.id } + bluesky.map { it.id }).toSet())
+        onConnectionsChanged()
+    }
+
+    LaunchedEffect(creatorId, requestedProvider) {
+        if (requestedProvider != null) {
+            expanded = true
+            when (requestedProvider) {
+                "Telegram" -> showAdd = true
+                "Bluesky" -> showBlueskyAdd = true
+            }
+            onRequestConsumed()
+        }
     }
 
     Card(
@@ -84,7 +108,9 @@ fun IndependentConnectionsPanel(creatorId: Long) {
     ) {
         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("🔗 " + tr("Bağımsız hesap bağlantıları"), fontWeight = FontWeight.Bold,
+                Text("🔗 " + tr("Bağımsız hesap bağlantıları") + " • " +
+                    (channels.size + bluesky.size),
+                    fontWeight = FontWeight.Bold,
                     style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
                 TextButton(onClick = { expanded = !expanded }) {
                     Text(if (expanded) tr("Gizle") else tr("Aç"))
@@ -93,6 +119,11 @@ fun IndependentConnectionsPanel(creatorId: Long) {
             Text(
                 tr("Resmî bağlantılar ayrı yönetilir. Telegram kanallarına gerçek yayın onayı alınabilir."),
                 style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                tr("↻ simgesi bağlantı yetkisini yeniden doğrular; hesap şifreleri uygulamada gösterilmez."),
+                style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             if (expanded) {
@@ -110,6 +141,11 @@ fun IndependentConnectionsPanel(creatorId: Long) {
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
+                        Image(
+                            painter = painterResource(R.drawable.brand_telegram),
+                            contentDescription = "Telegram",
+                            modifier = Modifier.size(30.dp)
+                        )
                         Checkbox(
                             checked = selected.contains(channel.id),
                             onCheckedChange = { checked ->
@@ -121,7 +157,40 @@ fun IndependentConnectionsPanel(creatorId: Long) {
                                 maxLines = 2, overflow = TextOverflow.Ellipsis)
                             Text("@" + channel.botUsername + " • " + tr("Yayın yetkisi doğrulandı"),
                                 style = MaterialTheme.typography.labelSmall)
+                            verificationMessages[channel.id]?.let { result ->
+                                Text(result, style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
                         }
+                        TextButton(
+                            enabled = checkingConnection == null,
+                            onClick = {
+                                checkingConnection = channel.id
+                                scope.launch {
+                                    val result = try {
+                                        val credential = TelegramSecureStore.credential(
+                                            context, channel.id, creatorId
+                                        ) ?: error("Şifreli bağlantı bulunamadı.")
+                                        val fresh = TelegramBotApi.verify(
+                                            credential.token, credential.channel.channelId
+                                        )
+                                        check(fresh.channelId == credential.channel.channelId) {
+                                            "Doğrulanan kanal kimliği değişti."
+                                        }
+                                        check(TelegramSecureStore.markReverified(
+                                            context, creatorId, channel.id, System.currentTimeMillis()
+                                        )) { "Kanal doğrulaması kaydedilemedi." }
+                                        refresh()
+                                        "✓ " + verifiedNotice
+                                    } catch (e: Exception) {
+                                        "✕ " + TelegramBotApi.safeMessage(e)
+                                    }
+                                    verificationMessages = verificationMessages +
+                                        (channel.id to result)
+                                    checkingConnection = null
+                                }
+                            }
+                        ) { Text(if (checkingConnection == channel.id) "…" else "↻") }
                         TextButton(onClick = { deleteChannel = channel }) {
                             Text(tr("Kaldır"))
                         }
@@ -139,6 +208,11 @@ fun IndependentConnectionsPanel(creatorId: Long) {
                 }
                 bluesky.forEach { account ->
                     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Image(
+                            painter = painterResource(R.drawable.brand_bluesky),
+                            contentDescription = "Bluesky",
+                            modifier = Modifier.size(30.dp)
+                        )
                         Checkbox(
                             checked = selected.contains(account.id),
                             onCheckedChange = { checked ->
@@ -149,7 +223,35 @@ fun IndependentConnectionsPanel(creatorId: Long) {
                             Text("@" + account.handle, fontWeight = FontWeight.SemiBold)
                             Text(tr("Cihazda şifreli oturum"),
                                 style = MaterialTheme.typography.labelSmall)
+                            verificationMessages[account.id]?.let { result ->
+                                Text(result, style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
                         }
+                        TextButton(
+                            enabled = checkingConnection == null,
+                            onClick = {
+                                checkingConnection = account.id
+                                scope.launch {
+                                    val result = try {
+                                        val credential = BlueskySecureStore.credential(
+                                            context, creatorId, account.id
+                                        ) ?: error("Şifreli Bluesky bağlantısı bulunamadı.")
+                                        val rotated = BlueskyNativeApi.verifyAndRefresh(credential)
+                                        check(BlueskySecureStore.renew(
+                                            context, creatorId, account.id, rotated
+                                        )) { "Yenilenen oturum kaydedilemedi." }
+                                        refresh()
+                                        "✓ " + verifiedNotice
+                                    } catch (e: Exception) {
+                                        "✕ " + BlueskyNativeApi.safeMessage(e)
+                                    }
+                                    verificationMessages = verificationMessages +
+                                        (account.id to result)
+                                    checkingConnection = null
+                                }
+                            }
+                        ) { Text(if (checkingConnection == account.id) "…" else "↻") }
                         TextButton(onClick = { blueskyToDelete = account }) {
                             Text(tr("Kaldır"))
                         }
@@ -350,17 +452,25 @@ private fun TelegramAddChannelDialog(
                     style = MaterialTheme.typography.bodySmall
                 )
                 OutlinedTextField(
-                    value = token,
-                    onValueChange = { token = it.trim().take(256); message = "" },
-                    label = { Text(tr("BotFather bot tokenı")) },
-                    visualTransformation = PasswordVisualTransformation(),
+                    value = chatId,
+                    onValueChange = { chatId = it.trim().take(100); message = "" },
+                    label = { Text(tr("Kullanıcı adı / Kanal: @kanaladi veya -100...")) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
                 OutlinedTextField(
-                    value = chatId,
-                    onValueChange = { chatId = it.trim().take(100); message = "" },
-                    label = { Text(tr("Kanal: @kanaladi veya -100...")) },
+                    value = "",
+                    onValueChange = {},
+                    enabled = false,
+                    label = { Text(tr("Hesap şifresi gerekli değil")) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = token,
+                    onValueChange = { token = it.trim().take(256); message = "" },
+                    label = { Text(tr("API Key / BotFather tokenı")) },
+                    visualTransformation = PasswordVisualTransformation(),
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -429,14 +539,21 @@ private fun BlueskyAddAccountDialog(
                 OutlinedTextField(
                     value = handle,
                     onValueChange = { handle = it.trim().take(253); message = "" },
-                    label = { Text(tr("Bluesky kullanıcı adı")) },
+                    label = { Text(tr("Kullanıcı adı / Bluesky hesabı")) },
                     singleLine = true, modifier = Modifier.fillMaxWidth()
                 )
                 OutlinedTextField(
                     value = password,
                     onValueChange = { password = it.trim().take(64); message = "" },
-                    label = { Text(tr("Bluesky uygulama parolası")) },
+                    label = { Text(tr("Şifre / yalnız Bluesky uygulama parolası")) },
                     visualTransformation = PasswordVisualTransformation(),
+                    singleLine = true, modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = "",
+                    onValueChange = {},
+                    enabled = false,
+                    label = { Text(tr("API Key gerekli değil")) },
                     singleLine = true, modifier = Modifier.fillMaxWidth()
                 )
                 Text(

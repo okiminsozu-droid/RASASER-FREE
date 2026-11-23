@@ -1,4 +1,4 @@
-name: İçerik Üreticisi — v0.4.0 Telefonda Bağımsız Yayın Motoru
+name: İçerik Üreticisi — v0.4.1 İkonlu Yerel Hesap Bağlantı Merkezi
 on:
   push:
     branches:
@@ -15,6 +15,7 @@ on:
       - feature/icerik-ureticisi-independent-multichannel-v038
       - feature/icerik-ureticisi-direct-app-routing-v039
       - feature/icerik-ureticisi-ondevice-publish-v040
+      - feature/icerik-ureticisi-embedded-social-hub-v041
     paths:
       - 'apps/icerikureticisi/**'
       - '.github/workflows/04-icerik-ureticisi-debug.yml'
@@ -84,6 +85,16 @@ jobs:
             echo "ERROR: offline voucher verification is absent"
             exit 1
           fi
+          # Brand assets must be part of APK, never fetched from CDN at runtime.
+          for provider in instagram facebook youtube tiktok pinterest bluesky telegram; do
+            icon="apps/icerikureticisi/app/src/main/res/drawable/brand_${provider}.xml"
+            test -s "$icon"
+            grep -q 'android:pathData=' "$icon"
+          done
+          if grep -R -E -q 'https://cdn[.]simpleicons[.]org|api.telegram.org.*Log[.]' apps/icerikureticisi/app/src/main; then
+            echo "ERROR: remote brand icons or secret-bearing logs forbidden"
+            exit 1
+          fi
 
       - name: Build debug APK and unit tests
         shell: bash
@@ -131,7 +142,7 @@ jobs:
             exit 1
           fi
           "$AAPT" dump badging "$APK" | head -n 4
-          if ! "$AAPT" dump badging "$APK" | grep -q "name='com.rasaser.free.icerikureticisi.v040' versionCode='14' versionName='0.4.0'"; then
+          if ! "$AAPT" dump badging "$APK" | grep -q "name='com.rasaser.free.icerikureticisi.v041' versionCode='15' versionName='0.4.1'"; then
             echo "ERROR: Debug preview identity mismatch"
             exit 1
           fi
@@ -140,7 +151,7 @@ jobs:
       - name: Upload installable debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: RaSaSeR-Icerik-Ureticisi-v040-Tamamen-Yerel-${{ github.run_number }}
+          name: RaSaSeR-Icerik-Ureticisi-v041-Sosyal-Hesap-Motoru-${{ github.run_number }}
           path: apps/icerikureticisi/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 7
           if-no-files-found: error

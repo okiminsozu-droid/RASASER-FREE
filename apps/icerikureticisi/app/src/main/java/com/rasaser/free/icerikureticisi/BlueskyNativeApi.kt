@@ -74,6 +74,24 @@ object BlueskyNativeApi {
             session(j)
         }
 
+    /**
+     * A device-only refresh doubles as a connection health check.
+     * The returned rotated tokens must be persisted atomically in Keystore
+     * before subsequent API operations.
+     */
+    internal suspend fun verifyAndRefresh(stored: BlueskyCredential): BlueskySession =
+        withContext(Dispatchers.IO) {
+            val session = session(request(
+                "com.atproto.server.refreshSession",
+                JSONObject(),
+                stored.refreshJwt
+            ))
+            require(session.did == stored.channel.did) {
+                "Yenilenen Bluesky bağlantısı farklı hesaba ait."
+            }
+            session
+        }
+
     internal suspend fun publish(
         stored: BlueskyCredential,
         onRenewed: (BlueskySession) -> Unit,

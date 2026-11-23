@@ -152,6 +152,25 @@ object TelegramSecureStore {
         channel
     }
 
+    fun markReverified(
+        context: Context, creatorId: Long,
+        connectionId: String, verifiedAt: Long
+    ): Boolean = synchronized(monitor) {
+        require(verifiedAt > 0L)
+        val entries = read(context)
+        var found = false
+        for (i in 0 until entries.length()) {
+            val j = entries.getJSONObject(i)
+            if (j.getLong("creator_id") == creatorId &&
+                j.getString("id") == connectionId) {
+                j.put("verified_at", verifiedAt)
+                found = true
+            }
+        }
+        if (found) write(context, entries)
+        found
+    }
+
     fun remove(context: Context, creatorId: Long, connectionId: String): Boolean =
         synchronized(monitor) {
             val stored = read(context)
