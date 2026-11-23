@@ -328,8 +328,9 @@ fun CreatorHubApp(initialCreatorId: Long = -1L) {
                         )
                         Spacer(Modifier.height(7.dp))
                         LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            items(SocialCatalog.presets, key = { it.name }) { platform ->
-                                val real = when (platform.name) {
+                            items(SocialCatalog.presets + Platform("Diğer", "", ""), key = { it.name }) { platform ->
+                                val real = remember(creatorId, connectionRevision, platform.name) {
+                                    when (platform.name) {
                                     "Telegram" -> runCatching {
                                         TelegramSecureStore.channels(context, creatorId).size
                                     }.getOrDefault(0)
@@ -337,6 +338,7 @@ fun CreatorHubApp(initialCreatorId: Long = -1L) {
                                         BlueskySecureStore.channels(context, creatorId).size
                                     }.getOrDefault(0)
                                     else -> 0
+                                    }
                                 }
                                 PlatformTile(
                                     platform = platform,
@@ -843,7 +845,7 @@ private fun NewAccountDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(tr("Sosyal medya hesabı ekle")) },
+        title = { Text(tr("Sosyal medya profil kısayolu ekle")) },
         text = {
             Column(Modifier.heightIn(max = 500.dp).verticalScroll(rememberScrollState())) {
                 Text(tr("Platform"), fontWeight = FontWeight.SemiBold)
@@ -879,6 +881,26 @@ private fun NewAccountDialog(
                     modifier = Modifier.fillMaxWidth(), singleLine = true
                 )
                 if (!isCustom) {
+                    Spacer(Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = "",
+                        onValueChange = {},
+                        enabled = false,
+                        label = { Text(tr("Şifre • resmî OAuth bağlantısı gerekli")) },
+                        modifier = Modifier.fillMaxWidth(), singleLine = true
+                    )
+                    OutlinedTextField(
+                        value = "",
+                        onValueChange = {},
+                        enabled = false,
+                        label = { Text(tr("API Key • geliştirici onayı gerekli")) },
+                        modifier = Modifier.fillMaxWidth(), singleLine = true
+                    )
+                    Text(
+                        tr("Bu platformda güvenli otomatik giriş etkin değil. Sadece profil kısayolu kaydedilir; hesap şifresini buraya yazmayın."),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                     Spacer(Modifier.height(10.dp))
                     OutlinedButton(
                         onClick = { saveAccount("app") },
@@ -903,7 +925,7 @@ private fun NewAccountDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = { saveAccount() }) { Text(tr("Hesabı kaydet")) }
+            TextButton(onClick = { saveAccount() }) { Text(tr("Profil kısayolunu kaydet")) }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(tr("Vazgeç")) } }
     )
