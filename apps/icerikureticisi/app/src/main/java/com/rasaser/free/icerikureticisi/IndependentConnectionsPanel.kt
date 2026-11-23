@@ -57,6 +57,7 @@ fun IndependentConnectionsPanel(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val verifiedNotice = tr("Bağlantı doğrulandı")
     var channels by remember(creatorId) {
         mutableStateOf(runCatching { TelegramSecureStore.channels(context, creatorId) }
             .getOrElse { emptyList() })
@@ -180,7 +181,7 @@ fun IndependentConnectionsPanel(
                                             context, creatorId, channel.id, System.currentTimeMillis()
                                         )) { "Kanal doğrulaması kaydedilemedi." }
                                         refresh()
-                                        "✓ " + tr("Bağlantı doğrulandı")
+                                        "✓ " + verifiedNotice
                                     } catch (e: Exception) {
                                         "✕ " + TelegramBotApi.safeMessage(e)
                                     }
@@ -241,7 +242,7 @@ fun IndependentConnectionsPanel(
                                             context, creatorId, account.id, rotated
                                         )) { "Yenilenen oturum kaydedilemedi." }
                                         refresh()
-                                        "✓ " + tr("Bağlantı doğrulandı")
+                                        "✓ " + verifiedNotice
                                     } catch (e: Exception) {
                                         "✕ " + BlueskyNativeApi.safeMessage(e)
                                     }
