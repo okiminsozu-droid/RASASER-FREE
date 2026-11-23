@@ -177,10 +177,12 @@ fun IndependentConnectionsPanel(creatorId: Long) {
                         }
                     }
                     val hasContent = caption.isNotBlank() || photo != null
-                    val unsupportedBlueskyImage = photo != null &&
-                        bluesky.any { it.id in selected }
-                    if (unsupportedBlueskyImage) {
-                        Text(tr("Bluesky görselli yayın bu sürümde hazır değil. Fotoğrafı kaldırın veya Bluesky seçimini kaldırın."),
+                    val hasBlue = bluesky.any { it.id in selected }
+                    val bskyLimitError = hasBlue && caption.isNotBlank() &&
+                        (caption.codePointCount(0, caption.length) > 300 ||
+                            caption.toByteArray(Charsets.UTF_8).size > 3000)
+                    if (bskyLimitError) {
+                        Text(tr("Bluesky metni en fazla 300 karakter ve 3000 bayt olabilir."),
                             color = MaterialTheme.colorScheme.error,
                             style = MaterialTheme.typography.bodySmall)
                     }
@@ -194,6 +196,9 @@ fun IndependentConnectionsPanel(creatorId: Long) {
                             val image = photo
                             scope.launch {
                                 val results = withContext(Dispatchers.IO) {
+                                    val bluePhoto = if (image != null && blueskyTargets.isNotEmpty()) {
+                                        runCatching { BlueskyPhoto.jpeg(context, image) }
+                                    } else null
                                     val telegramResults = targets.map { channel ->
                                         try {
                                             val stored = TelegramSecureStore.credential(
@@ -228,7 +233,8 @@ fun IndependentConnectionsPanel(creatorId: Long) {
                                                         context, creatorId, account.id, renewed
                                                     )) { "Bluesky oturumu kaydedilemedi." }
                                                 },
-                                                text = message
+                                                text = message,
+                                                jpeg = bluePhoto?.getOrThrow()
                                             )
                                             "@" + account.handle + ": ✓ Bluesky yayını (" + posted.uri + ")"
                                         } catch (e: Exception) {
@@ -243,7 +249,7 @@ fun IndependentConnectionsPanel(creatorId: Long) {
                             }
                         },
                         enabled = !sending && selected.isNotEmpty() && hasContent &&
-                            !unsupportedBlueskyImage && (photo == null || caption.length <= 1024),
+                            !bskyLimitError && (photo == null || caption.length <= 1024),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         if (sending) CircularProgressIndicator(
