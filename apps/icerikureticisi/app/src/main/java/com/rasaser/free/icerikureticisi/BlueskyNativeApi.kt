@@ -74,7 +74,7 @@ object BlueskyNativeApi {
             session(j)
         }
 
-    suspend fun publish(
+    internal suspend fun publish(
         stored: BlueskyCredential,
         onRenewed: (BlueskySession) -> Unit,
         text: String,
